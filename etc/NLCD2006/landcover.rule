@@ -1,0 +1,14 @@
+11 = 13 water
+12 = 14 ice and snow
+21 = 2 lawn
+22 23 24 = 1 impervious
+31 = 11 bare
+41 = 5 deciduous forest
+42 = 6 evergreen forest
+43 = 7 mixed forest
+51 52 = 4 shrub
+71 72 = 3 grassland/herbaceous
+73 74 = 10 lichen/moss
+81 = 8 pasture/hay
+82 = 9 crops
+90 95 = 12 wetlands
