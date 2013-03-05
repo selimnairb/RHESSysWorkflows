@@ -38,7 +38,7 @@ from ecohydroworkflowlib.metadata import GenericMetadata
 
 class RHESSysMetadata(GenericMetadata):
     
-    RHESSYS_SECTION = 'RHESSYS'
+    RHESSYS_SECTION = 'rhessys'
     
     @staticmethod
     def writeRHESSysEntry(projectDir, key, value):
