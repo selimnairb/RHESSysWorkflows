@@ -40,7 +40,7 @@ Pre conditions
 1. Configuration file must define the following sections and values:
    'GRASS', 'GISBASE'
 
-2. The following metadata entry(ies) must be present in the manifest section of the metadata associated with the project directory:
+2. The following metadata entry(ies) must be present in the RHESSys section of the metadata associated with the project directory:
    grass_dbase
    grass_location
    grass_mapset
@@ -52,7 +52,7 @@ Pre conditions
 
 Post conditions
 ---------------
-1. Will write the following entry(ies) to the study area section of metadata associated with the project directory:
+1. Will write the following entry(ies) to the RHESSys section of metadata associated with the project directory:
    gage_easting_snapped (gage X coordinate in study area spatial reference system coordinates)
    gage_northing_snapped (gage Y coordinate in study area spatial reference system coordinates)
    watershed_threshold
@@ -78,7 +78,7 @@ Post conditions
 
 Usage:
 @code
-PYTHONPATH=${PYTHONPATH}:../EcohydroWorkflowLib: python2.7 ./DelineateWatershedForGRASSLocation.py -p ../../../scratchspace/scratch7 -t 500
+DelineateWatershedForGRASSLocation.py -p /path/to/project_dir -t 500
 @endcode
 
 @note EcoHydroWorkflowLib configuration file must be specified by environmental variable 'ECOHYDROWORKFLOW_CFG',
@@ -93,8 +93,8 @@ import os, sys, errno
 import argparse
 import ConfigParser
 
-import ecohydrologyworkflowlib.metadata as metadata
-from spatialdatalib.utils import transformCoordinates
+from rhessysworkflows.metadata import RHESSysMetadata
+from ecohydroworkflowlib.spatialdata.utils import transformCoordinates
 
 # Handle command line options
 parser = argparse.ArgumentParser(description='Delineate watershed using GRASS GIS')
@@ -135,21 +135,15 @@ if not os.access(projectDir, os.W_OK):
 projectDir = os.path.abspath(projectDir)
 
 # Check for necessary information in metadata
-manifest = metadata.readManifestEntries(projectDir)
-if not 'grass_dbase' in manifest:
+metadata = RHESSysMetadata.readRHESSysEntries(projectDir)
+if not 'grass_dbase' in metadata:
     sys.exit("Metadata in project directory %s does not contain a GRASS Dbase" % (projectDir,)) 
-if not 'grass_location' in manifest:
+if not 'grass_location' in metadata:
     sys.exit("Metadata in project directory %s does not contain a GRASS location" % (projectDir,)) 
-if not 'grass_mapset' in manifest:
+if not 'grass_mapset' in metadata:
     sys.exit("Metadata in project directory %s does not contain a GRASS mapset" % (projectDir,))
-if not 'dem' in manifest:
-    sys.exit("Metadata in project directory %s does not contain a DEM" % (projectDir,))
 
-studyArea = metadata.readStudyAreaEntries(projectDir)
-if not 'dem_columns' in studyArea:
-    sys.exit("Metadata in project directory %s does not contain DEM columns" % (projectDir,))
-if not 'dem_rows' in studyArea:
-    sys.exit("Metadata in project directory %s does not contain DEM rows" % (projectDir,)) 
+studyArea = RHESSysMetadata.readStudyAreaEntries(projectDir)
 if not 'dem_srs' in studyArea:
     sys.exit("Metadata in project directory %s does not contain DEM spatial reference" % (projectDir,)) 
 if not 'gage_lat_wgs84' in studyArea:
@@ -160,12 +154,12 @@ if not 'gage_lon_wgs84' in studyArea:
 demRows = int(studyArea['dem_rows'])
 
 # Set up GRASS environment
-grassDbase = os.path.join(projectDir, manifest['grass_dbase'])
+grassDbase = os.path.join(projectDir, metadata['grass_dbase'])
 os.environ['GISBASE'] = gisBase
 sys.path.append(os.path.join(gisBase, "etc", "python"))
 import grass.script as grass
 import grass.script.setup as gsetup
-gsetup.init(gisBase, grassDbase, manifest['grass_location'], manifest['grass_mapset'])
+gsetup.init(gisBase, grassDbase, metadata['grass_location'], metadata['grass_mapset'])
 
 # Generate drainage direction map
 result = grass.run_command('r.watershed', 
@@ -193,8 +187,8 @@ if len(snappedCoords) == 2:
     easting = snappedCoords[0]
     northing = snappedCoords[1]
     
-metadata.writeStudyAreaEntry(projectDir, 'gage_easting_snapped', easting)
-metadata.writeStudyAreaEntry(projectDir, 'gage_northing_snapped', northing)
+RHESSysMetadata.writeRHESSysEntry(projectDir, 'gage_easting_snapped', easting)
+RHESSysMetadata.writeRHESSysEntry(projectDir, 'gage_northing_snapped', northing)
 
 # Delineate watershed
 result = grass.run_command('r.water.outlet', drainage="drain", basin="basin", easting=easting, northing=northing)
@@ -211,7 +205,7 @@ result = grass.run_command('r.watershed', **rWatershedOptions)
 if result != 0:
     sys.exit("r.watershed failed creating subbasins, returning %s" % (result,))
 
-metadata.writeStudyAreaEntry(projectDir, 'watershed_threshold', args.threshold)
+RHESSysMetadata.writeRHESSysEntry(projectDir, 'watershed_threshold', args.threshold)
 
 # Generate derived terrain products
 result = grass.run_command('r.horizon', flags="d", elevin="dem", direction=0, horizon="east")

@@ -42,11 +42,13 @@ Pre conditions
    'GRASS', 'GISBASE'
 
 2. The following metadata entry(ies) must be present in the manifest section of the metadata associated with the project directory:
+   soil_raster_avgsand
+   soil_raster_avgclay
+
+2. The following metadata entry(ies) must be present in the RHESSys section of the metadata associated with the project directory:
    grass_dbase
    grass_location
    grass_mapset
-   soil_raster_avgsand
-   soil_raster_avgclay
    
 3. Requires r.soils.texture GRASS extension: http://grasswiki.osgeo.org/wiki/GRASS_AddOns#r.soils.texture
 
@@ -69,7 +71,7 @@ import os, sys, errno
 import argparse
 import ConfigParser
 
-import ecohydrologyworkflowlib.metadata as metadata
+from rhessysworkflows.metadata import RHESSysMetadata
 
 # Handle command line options
 parser = argparse.ArgumentParser(description='Generate soil texture map for dataset in GRASS GIS')
@@ -113,38 +115,40 @@ if not os.access(projectDir, os.W_OK):
 projectDir = os.path.abspath(projectDir)
 
 # Check for necessary information in metadata
-manifest = metadata.readManifestEntries(projectDir)
-if not 'grass_dbase' in manifest:
-    sys.exit("Metadata in project directory %s does not contain a GRASS Dbase" % (projectDir,)) 
-if not 'grass_location' in manifest:
-    sys.exit("Metadata in project directory %s does not contain a GRASS location" % (projectDir,)) 
-if not 'grass_mapset' in manifest:
-    sys.exit("Metadata in project directory %s does not contain a GRASS mapset" % (projectDir,))
+manifest = RHESSysMetadata.readManifestEntries(projectDir)
 if not 'soil_raster_avgsand' in manifest:
     sys.exit("Metadata in project directory %s does not contain a soil_raster_avgsand raster" % (projectDir,))
 if not 'soil_raster_avgclay' in manifest:
     sys.exit("Metadata in project directory %s does not contain a soil_raster_avgclay raster" % (projectDir,))
 
+metadata = RHESSysMetadata.readRHESSysEntries(projectDir)
+if not 'grass_dbase' in metadata:
+    sys.exit("Metadata in project directory %s does not contain a GRASS Dbase" % (projectDir,)) 
+if not 'grass_location' in metadata:
+    sys.exit("Metadata in project directory %s does not contain a GRASS location" % (projectDir,)) 
+if not 'grass_mapset' in metadata:
+    sys.exit("Metadata in project directory %s does not contain a GRASS mapset" % (projectDir,))
+
 # Set up GRASS environment
-grassDbase = os.path.join(projectDir, manifest['grass_dbase'])
+grassDbase = os.path.join(projectDir, metadata['grass_dbase'])
 os.environ['GISBASE'] = gisBase
 sys.path.append(os.path.join(gisBase, "etc", "python"))
 import grass.script as grass
 import grass.script.setup as gsetup
-gsetup.init(gisBase, grassDbase, manifest['grass_location'], manifest['grass_mapset'])
+gsetup.init(gisBase, grassDbase, metadata['grass_location'], metadata['grass_mapset'])
 
 # Import percent sand and percent clay raster maps into GRASS
 percentSandRasterPath = os.path.join(projectDir, manifest['soil_raster_avgsand'])
 result = grass.run_command('r.in.gdal', input=percentSandRasterPath, output='soil_raster_avgsand')
 if result != 0:
     sys.exit("Failed to import soil_raster_avgsand into GRASS dataset %s/%s, results:\n%s" % \
-             (grassDbase, manifest['grass_location'], result) )
+             (grassDbase, metadata['grass_location'], result) )
     
 percentClayRasterPath = os.path.join(projectDir, manifest['soil_raster_avgclay'])
 result = grass.run_command('r.in.gdal', input=percentClayRasterPath, output='soil_raster_avgclay')
 if result != 0:
     sys.exit("Failed to import soil_raster_avgclay into GRASS dataset %s/%s, results:\n%s" % \
-             (grassDbase, manifest['grass_location'], result) )
+             (grassDbase, metadata['grass_location'], result) )
 
 # Generate soil texture map
 soilTexture = os.path.join(modulePath, 'r.soils.texture')

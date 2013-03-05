@@ -43,12 +43,14 @@ Pre conditions
    'SCRIPT', 'ETC'
 
 2. The following metadata entry(ies) must be present in the manifest section of the metadata associated with the project directory:
+   landcover
+   
+3. The following metadata entry(ies) must be present in the RHESSys section of the metadata associated with the project directory:
    grass_dbase
    grass_location
    grass_mapset
-   landcover
- 
-3. The following metadata entry(ies) must be present in the study area section of the metadata associated with the project directory:
+   
+4. The following metadata entry(ies) must be present in the study area section of the metadata associated with the project directory:
    landcover_type
    
 Post conditions
@@ -59,14 +61,14 @@ Post conditions
    impervious
    lai
 
-2. Will write the following entry(ies) to the manifest section of metadata associated with the project directory:
+2. Will write the following entry(ies) to the RHESSys section of metadata associated with the project directory:
    lancover_rule
    landcover_impervious_rule
    landcover_lai_rule
 
 Usage:
 @code
-PYTHONPATH=${PYTHONPATH}:../EcohydroWorkflowLib python2.7 ./GenerateLandcoverMaps.py -p ../../../scratchspace/scratch7
+GenerateLandcoverMaps.py -p /path/to/project_dir
 @endcode
 
 @note EcoHydroWorkflowLib configuration file must be specified by environmental variable 'ECOHYDROWORKFLOW_CFG',
@@ -78,7 +80,7 @@ import os, sys, errno, shutil
 import argparse
 import ConfigParser
 
-import ecohydrologyworkflowlib.metadata as metadata
+from rhessysworkflows.metadata import RHESSysMetadata
 
 KNOWN_LC_TYPES = ['NLCD2006']
 
@@ -121,7 +123,7 @@ if not os.access(projectDir, os.W_OK):
 projectDir = os.path.abspath(projectDir)
 
 # Check for necessary information in metadata
-studyArea = metadata.readStudyAreaEntries(projectDir)
+studyArea = RHESSysMetadata.readStudyAreaEntries(projectDir)
 landcoverType = studyArea['landcover_type']
 
 if landcoverType in KNOWN_LC_TYPES:
@@ -147,30 +149,32 @@ if not os.access(laiRulePath, os.R_OK):
     sys.exit("Unable to read %s" % (laiRulePath,) )
 
 # Check for necessary information in metadata
-manifest = metadata.readManifestEntries(projectDir)
-if not 'grass_dbase' in manifest:
-    sys.exit("Metadata in project directory %s does not contain a GRASS Dbase" % (projectDir,)) 
-if not 'grass_location' in manifest:
-    sys.exit("Metadata in project directory %s does not contain a GRASS location" % (projectDir,)) 
-if not 'grass_mapset' in manifest:
-    sys.exit("Metadata in project directory %s does not contain a GRASS mapset" % (projectDir,))
+manifest = RHESSysMetadata.readManifestEntries(projectDir)
 if not 'landcover' in manifest:
     sys.exit("Metadata in project directory %s does not contain a landcover raster" % (projectDir,))
 
+metadata = RHESSysMetadata.readRHESSysEntries(projectDir)
+if not 'grass_dbase' in metadata:
+    sys.exit("Metadata in project directory %s does not contain a GRASS Dbase" % (projectDir,)) 
+if not 'grass_location' in metadata:
+    sys.exit("Metadata in project directory %s does not contain a GRASS location" % (projectDir,)) 
+if not 'grass_mapset' in metadata:
+    sys.exit("Metadata in project directory %s does not contain a GRASS mapset" % (projectDir,))
+
 # Set up GRASS environment
-grassDbase = os.path.join(projectDir, manifest['grass_dbase'])
+grassDbase = os.path.join(projectDir, metadata['grass_dbase'])
 os.environ['GISBASE'] = gisBase
 sys.path.append(os.path.join(gisBase, "etc", "python"))
 import grass.script as grass
 import grass.script.setup as gsetup
-gsetup.init(gisBase, grassDbase, manifest['grass_location'], manifest['grass_mapset'])
+gsetup.init(gisBase, grassDbase, metadata['grass_location'], metadata['grass_mapset'])
 
 # Import landcover raster map into GRASS
 landcoverRasterPath = os.path.join(projectDir, manifest['landcover'])
 result = grass.run_command('r.in.gdal', input=landcoverRasterPath, output='landcover_raw')
 if result != 0:
     sys.exit("Failed to import landcover into GRASS dataset %s/%s, results:\n%s" % \
-             (grassDbase, manifest['grass_location'], result) )
+             (grassDbase, metadata['grass_location'], result) )
 
 # Reclassify raw landcover into "RHESSys" landcover types
 result = grass.read_command('r.reclass', input='landcover_raw', output='landcover', 
@@ -196,6 +200,6 @@ shutil.copy(imperviousRulePath, projectDir)
 shutil.copy(laiRulePath, projectDir)
     
 # Write metadata
-metadata.writeStudyAreaEntry(projectDir, "lancover_rule", os.path.basename(landcoverRulePath))
-metadata.writeStudyAreaEntry(projectDir, "landcover_impervious_rule", os.path.basename(imperviousRulePath))
-metadata.writeStudyAreaEntry(projectDir, "landcover_lai_rule", os.path.basename(laiRulePath))
+RHESSysMetadata.writeRHESSysEntry(projectDir, "lancover_rule", os.path.basename(landcoverRulePath))
+RHESSysMetadata.writeRHESSysEntry(projectDir, "landcover_impervious_rule", os.path.basename(imperviousRulePath))
+RHESSysMetadata.writeRHESSysEntry(projectDir, "landcover_lai_rule", os.path.basename(laiRulePath))

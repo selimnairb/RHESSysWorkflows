@@ -46,12 +46,10 @@ Pre conditions
 
 3. The following metadata entry(ies) must be present in the study area section of the metadata associated with the project directory:
    dem_srs
-   dem_columns
-   dem_rows
 
 Post conditions
 ---------------
-1. Will write the following entry(ies) to the manifest section of metadata associated with the project directory:
+1. Will write the following entry(ies) to the RHESSys section of metadata associated with the project directory:
    grass_dbase
    grass_location
    grass_mapset
@@ -62,12 +60,13 @@ Post conditions
 
 Usage:
 @code
-PYTHONPATH=${PYTHONPATH}:../EcohydroWorkflowLib python2.7 ./CreateGRASSLocationFromDEM.py -p ../../../scratchspace/scratch7 -g GRASSData -l default -m "Grass location for RHESSys model of Dead Run watershed in Baltimore, MD"
+CreateGRASSLocationFromDEM.py -p /path/to/project_dir -g GRASSData -l default -m "Grass location for RHESSys model of Dead Run watershed in Baltimore, MD"
 @endcode
 
 @note EcoHydroWorkflowLib configuration file must be specified by environmental variable 'ECOHYDROWORKFLOW_CFG',
 or -i option must be specified. 
 
+@todo mode grass information from manifest to rhessys-specific area of metadata
 @todo write names of grass datasets to metadata
 """
 import os, sys, errno
@@ -75,7 +74,7 @@ import argparse
 import ConfigParser
 import re
 
-import ecohydrologyworkflowlib.metadata as metadata
+from rhessysworkflows.metadata import RHESSysMetadata
 
 DEFAULT_MAPSET = 'PERMANENT'
 
@@ -138,11 +137,11 @@ if os.path.exists(os.path.join(grassDbase, args.location)):
 mapset = DEFAULT_MAPSET
 
 # Check for necessary information in metadata
-manifest = metadata.readManifestEntries(projectDir)
+manifest = RHESSysMetadata.readManifestEntries(projectDir)
 if not 'dem' in manifest:
     sys.exit("Metadata in project directory %s does not contain a DEM reference" % (projectDir,)) 
 
-studyArea = metadata.readStudyAreaEntries(projectDir)
+studyArea = RHESSysMetadata.readStudyAreaEntries(projectDir)
 if not 'dem_srs' in studyArea:
     sys.exit("Metadata in project directory %s does not contain DEM spatial reference" % (projectDir,)) 
 srsPattern = re.compile('EPSG:(\d+)')
@@ -177,6 +176,6 @@ if result != 0:
     sys.exit("Failed to set region to DEM")
 
 # Update metadata
-metadata.writeManifestEntry(projectDir, "grass_dbase", args.grassDbase)
-metadata.writeManifestEntry(projectDir, "grass_location", args.location)
-metadata.writeManifestEntry(projectDir, "grass_mapset", mapset)
+RHESSysMetadata.writeRHESSysEntry(projectDir, "grass_dbase", args.grassDbase)
+RHESSysMetadata.writeRHESSysEntry(projectDir, "grass_location", args.location)
+RHESSysMetadata.writeRHESSysEntry(projectDir, "grass_mapset", mapset)
