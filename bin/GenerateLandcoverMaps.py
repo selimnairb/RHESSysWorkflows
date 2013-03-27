@@ -93,6 +93,7 @@ parser.add_argument('-p', '--projectDir', dest='projectDir', required=True,
 parser.add_argument('-r', '--ruleDir', dest='ruleDir', required=False,
                     help='The directory where landcover reclass rules can be found')
 args = parser.parse_args()
+cmdline = RHESSysMetadata.getCommandLine()
 
 configFile = None
 if args.configfile:
@@ -203,3 +204,6 @@ shutil.copy(laiRulePath, projectDir)
 RHESSysMetadata.writeRHESSysEntry(projectDir, "lancover_rule", os.path.basename(landcoverRulePath))
 RHESSysMetadata.writeRHESSysEntry(projectDir, "landcover_impervious_rule", os.path.basename(imperviousRulePath))
 RHESSysMetadata.writeRHESSysEntry(projectDir, "landcover_lai_rule", os.path.basename(laiRulePath))
+
+# Write processing history
+RHESSysMetadata.appendProcessingHistoryItem(projectDir, cmdline)

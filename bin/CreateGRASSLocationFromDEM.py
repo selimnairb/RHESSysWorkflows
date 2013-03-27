@@ -91,6 +91,7 @@ parser.add_argument('-l', '--location', dest='location', required=True,
 parser.add_argument('-m', '--description', dest='description', required=True,
                     help='Description for new location')
 args = parser.parse_args()
+cmdline = RHESSysMetadata.getCommandLine()
 
 configFile = None
 if args.configfile:
@@ -179,3 +180,6 @@ if result != 0:
 RHESSysMetadata.writeRHESSysEntry(projectDir, "grass_dbase", args.grassDbase)
 RHESSysMetadata.writeRHESSysEntry(projectDir, "grass_location", args.location)
 RHESSysMetadata.writeRHESSysEntry(projectDir, "grass_mapset", mapset)
+
+# Write processing history
+RHESSysMetadata.appendProcessingHistoryItem(projectDir, cmdline)

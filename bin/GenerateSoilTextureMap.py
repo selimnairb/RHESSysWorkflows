@@ -80,6 +80,7 @@ parser.add_argument('-i', '--configfile', dest='configfile', required=False,
 parser.add_argument('-p', '--projectDir', dest='projectDir', required=True,
                     help='The directory to which metadata, intermediate, and final files should be saved')
 args = parser.parse_args()
+cmdline = RHESSysMetadata.getCommandLine()
 
 configFile = None
 if args.configfile:
@@ -156,3 +157,6 @@ result = grass.read_command(soilTexture, sand='soil_raster_avgsand', clay='soil_
                             scheme=schemePath, output='soil_texture')
 if None == result:
     sys.exit("r.soils.texture failed, returning %s" % (result,))
+    
+# Write processing history
+RHESSysMetadata.appendProcessingHistoryItem(projectDir, cmdline)

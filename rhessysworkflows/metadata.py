@@ -39,6 +39,8 @@ from ecohydroworkflowlib.metadata import GenericMetadata
 class RHESSysMetadata(GenericMetadata):
     
     RHESSYS_SECTION = 'rhessys'
+    # Patch list of valid sections
+    GenericMetadata.SECTIONS.append(RHESSYS_SECTION)
     
     @staticmethod
     def writeRHESSysEntry(projectDir, key, value):
@@ -52,7 +54,7 @@ class RHESSysMetadata(GenericMetadata):
             
             @exception IOError(errno.EACCES) if the metadata store for the project is not writable
         """
-        GenericMetadata._writeEntryToSection(projectDir, RHESSysMetadata.RHESSYS_SECTION, key, value)
+        GenericMetadata.writeEntryToSection(projectDir, RHESSysMetadata.RHESSYS_SECTION, key, value)
      
     @staticmethod
     def readRHESSysEntries(projectDir):

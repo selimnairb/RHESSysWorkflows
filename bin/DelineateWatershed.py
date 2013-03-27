@@ -105,6 +105,7 @@ parser.add_argument('-p', '--projectDir', dest='projectDir', required=True,
 parser.add_argument('-t', '--threshold', dest='threshold', required=True, type=int,
                     help='Minimum size (in cells the size of the DEM resolution) of watershed sub-basins')
 args = parser.parse_args()
+cmdline = RHESSysMetadata.getCommandLine()
 
 configFile = None
 if args.configfile:
@@ -171,13 +172,15 @@ if result != 0:
 (easting, northing) = transformCoordinates(studyArea['gage_lon_wgs84'],
                                            studyArea['gage_lat_wgs84'],
                                            t_srs=studyArea['dem_srs'])
-#print("Raw gage coords: %s %s" % (easting, northing))
+print("Raw gage coords: %s %s" % (easting, northing))
 
 # Snap the gage to the stream
 findTheRiver = os.path.join(modulePath, 'r.findtheriver')
+#result = grass.read_command(findTheRiver, flags="q",
+#                            accumulation="uaa", easting=easting, northing=northing,
+#                            threshold="2", window="17")
 result = grass.read_command(findTheRiver, flags="q",
-                            accumulation="uaa", easting=easting, northing=northing,
-                            threshold="2", window="17")
+                            accumulation="uaa", easting=easting, northing=northing)
 if None == result:
     sys.exit("r.findtheriver failed, returning %s" % (result,))
 #print("r.findtheriver response: %s" % result)
@@ -245,3 +248,6 @@ result = grass.write_command('r.mapcalc',
                              stdin="patch=(row()-1) * %d + col()" % demRows)
 if result != 0:
     sys.exit("r.mapcalc failed to create patch map, returning %s" % (result,))
+    
+# Write processing history
+RHESSysMetadata.appendProcessingHistoryItem(projectDir, cmdline)
