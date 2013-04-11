@@ -66,8 +66,8 @@ CreateGRASSLocationFromDEM.py -p /path/to/project_dir -g GRASSData -l default -m
 @note EcoHydroWorkflowLib configuration file must be specified by environmental variable 'ECOHYDROWORKFLOW_CFG',
 or -i option must be specified. 
 
-@todo mode grass information from manifest to rhessys-specific area of metadata
 @todo write names of grass datasets to metadata
+@todo make grassdbase and location optional with defaults of 'GRASSdata' and 'default'
 """
 import os, sys, errno
 import argparse

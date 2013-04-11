@@ -88,6 +88,7 @@ or -i option must be specified.
 @todo complete with steps such as convert stream map to binary
 @todo separate out patch map creation.  for urban environment workflow, need a non-grid way to create patches
 @todo make zone the patch map
+@todo Factor out gage snapping into a separate script
 """
 import os, sys, errno
 import argparse
@@ -183,7 +184,7 @@ result = grass.read_command(findTheRiver, flags="q",
                             accumulation="uaa", easting=easting, northing=northing)
 if None == result:
     sys.exit("r.findtheriver failed, returning %s" % (result,))
-#print("r.findtheriver response: %s" % result)
+print("r.findtheriver response: %s" % result)
 snappedCoords = result.split();
 if len(snappedCoords) == 2:
     # We found the stream, update coordinates

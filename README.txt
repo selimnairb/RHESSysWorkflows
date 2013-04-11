@@ -52,6 +52,11 @@ build on the workflow system defined by
 [EcohydrologyWorkflowLib](https://github.com/selimnairb/EcohydrologyWorkflowLibWorkflow).
 
 
+Source code
+-----------
+Source code can be found at https://github.com/selimnairb/RHESSysWorkflows
+
+
 Installation
 ------------
 Using Python PyPi:
