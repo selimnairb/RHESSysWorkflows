@@ -80,6 +80,9 @@ import os, sys, errno, shutil
 import argparse
 import ConfigParser
 
+from ecohydrolib.grasslib import *
+
+from rhessysworkflows.context import Context
 from rhessysworkflows.metadata import RHESSysMetadata
 
 KNOWN_LC_TYPES = ['NLCD2006']
@@ -98,40 +101,18 @@ cmdline = RHESSysMetadata.getCommandLine()
 configFile = None
 if args.configfile:
     configFile = args.configfile
-else:
-    try:
-        configFile = os.environ['ECOHYDROWORKFLOW_CFG']
-    except KeyError:
-        sys.exit("Configuration file not specified via environmental variable\n'ECOHYDROWORKFLOW_CFG', and -i option not specified")
-if not os.access(configFile, os.R_OK):
-    raise IOError(errno.EACCES, "Unable to read configuration file %s" %
-                  configFile)
-config = ConfigParser.RawConfigParser()
-config.read(configFile)
 
-gisBase = config.get('GRASS', 'GISBASE')
-modulePath = config.get('GRASS', 'MODULE_PATH')
-
-if args.projectDir:
-    projectDir = args.projectDir
-else:
-    projectDir = os.getcwd()
-if not os.path.isdir(projectDir):
-    raise IOError(errno.ENOTDIR, "Project directory %s is not a directory" % (projectDir,))
-if not os.access(projectDir, os.W_OK):
-    raise IOError(errno.EACCES, "Not allowed to write to project directory %s" %
-                  projectDir)
-projectDir = os.path.abspath(projectDir)
+context = Context(args.projectDir, configFile) 
 
 # Check for necessary information in metadata
-studyArea = RHESSysMetadata.readStudyAreaEntries(projectDir)
+studyArea = RHESSysMetadata.readStudyAreaEntries(context)
 landcoverType = studyArea['landcover_type']
 
 if landcoverType in KNOWN_LC_TYPES:
     if args.ruleDir:
         ruleDir = os.path.abspath(args.ruleDir)
     else:
-        scriptEtc = config.get('SCRIPT', 'ETC')
+        scriptEtc = context.config.get('SCRIPT', 'ETC')
         ruleDir = os.path.join(scriptEtc, landcoverType)
 else:
     if args.ruleDir:
@@ -150,60 +131,58 @@ if not os.access(laiRulePath, os.R_OK):
     sys.exit("Unable to read %s" % (laiRulePath,) )
 
 # Check for necessary information in metadata
-manifest = RHESSysMetadata.readManifestEntries(projectDir)
+manifest = RHESSysMetadata.readManifestEntries(context)
 if not 'landcover' in manifest:
-    sys.exit("Metadata in project directory %s does not contain a landcover raster" % (projectDir,))
+    sys.exit("Metadata in project directory %s does not contain a landcover raster" % (context.projectDir,))
 
-metadata = RHESSysMetadata.readRHESSysEntries(projectDir)
+metadata = RHESSysMetadata.readRHESSysEntries(context)
 if not 'grass_dbase' in metadata:
-    sys.exit("Metadata in project directory %s does not contain a GRASS Dbase" % (projectDir,)) 
+    sys.exit("Metadata in project directory %s does not contain a GRASS Dbase" % (context.projectDir,)) 
 if not 'grass_location' in metadata:
-    sys.exit("Metadata in project directory %s does not contain a GRASS location" % (projectDir,)) 
+    sys.exit("Metadata in project directory %s does not contain a GRASS location" % (context.projectDir,)) 
 if not 'grass_mapset' in metadata:
-    sys.exit("Metadata in project directory %s does not contain a GRASS mapset" % (projectDir,))
+    sys.exit("Metadata in project directory %s does not contain a GRASS mapset" % (context.projectDir,))
 
 # Set up GRASS environment
-grassDbase = os.path.join(projectDir, metadata['grass_dbase'])
-os.environ['GISBASE'] = gisBase
-sys.path.append(os.path.join(gisBase, "etc", "python"))
-import grass.script as grass
-import grass.script.setup as gsetup
-gsetup.init(gisBase, grassDbase, metadata['grass_location'], metadata['grass_mapset'])
+modulePath = context.config.get('GRASS', 'MODULE_PATH')
+grassDbase = os.path.join(context.projectDir, metadata['grass_dbase'])
+grassConfig = GRASSConfig(context, grassDbase, metadata['grass_location'], metadata['grass_mapset'], newLocation=False)
+grassLib = GRASSLib(grassConfig=grassConfig)
 
 # Import landcover raster map into GRASS
-landcoverRasterPath = os.path.join(projectDir, manifest['landcover'])
-result = grass.run_command('r.in.gdal', input=landcoverRasterPath, output='landcover_raw')
+landcoverRasterPath = os.path.join(context.projectDir, manifest['landcover'])
+result = grassLib.script.run_command('r.in.gdal', input=landcoverRasterPath, output='landcover_raw')
 if result != 0:
     sys.exit("Failed to import landcover into GRASS dataset %s/%s, results:\n%s" % \
              (grassDbase, metadata['grass_location'], result) )
 
 # Reclassify raw landcover into "RHESSys" landcover types
-result = grass.read_command('r.reclass', input='landcover_raw', output='landcover', 
+result = grassLib.script.read_command('r.reclass', input='landcover_raw', output='landcover', 
                            rules=landcoverRulePath)
 if None == result:
     sys.exit("r.reclass failed to create landcover map, returning %s" % (result,))
 
 # Reclassify landcover into impervious map
-result = grass.read_command('r.reclass', input='landcover', output='impervious', 
+result = grassLib.script.read_command('r.reclass', input='landcover', output='impervious', 
                            rules=imperviousRulePath)
 if None == result:
     sys.exit("r.reclass failed to create impervious map, returning %s" % (result,))
     
 # Reclassify landcover into lai map
-result = grass.read_command('r.reclass', input='landcover', output='lai', 
+result = grassLib.script.read_command('r.reclass', input='landcover', output='lai', 
                            rules=laiRulePath)
 if None == result:
     sys.exit("r.reclass failed to create LAI map, returning %s" % (result,))
 
 # Copy rules used to into project directory
-shutil.copy(landcoverRulePath, projectDir)
-shutil.copy(imperviousRulePath, projectDir)
-shutil.copy(laiRulePath, projectDir)
+shutil.copy(landcoverRulePath, context.projectDir)
+shutil.copy(imperviousRulePath, context.projectDir)
+shutil.copy(laiRulePath, context.projectDir)
     
 # Write metadata
-RHESSysMetadata.writeRHESSysEntry(projectDir, "lancover_rule", os.path.basename(landcoverRulePath))
-RHESSysMetadata.writeRHESSysEntry(projectDir, "landcover_impervious_rule", os.path.basename(imperviousRulePath))
-RHESSysMetadata.writeRHESSysEntry(projectDir, "landcover_lai_rule", os.path.basename(laiRulePath))
+RHESSysMetadata.writeRHESSysEntry(context, "lancover_rule", os.path.basename(landcoverRulePath))
+RHESSysMetadata.writeRHESSysEntry(context, "landcover_impervious_rule", os.path.basename(imperviousRulePath))
+RHESSysMetadata.writeRHESSysEntry(context, "landcover_lai_rule", os.path.basename(laiRulePath))
 
 # Write processing history
-RHESSysMetadata.appendProcessingHistoryItem(projectDir, cmdline)
+RHESSysMetadata.appendProcessingHistoryItem(context, cmdline)

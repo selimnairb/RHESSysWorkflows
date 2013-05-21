@@ -69,8 +69,10 @@ or -i option must be specified.
 """
 import os, sys, errno
 import argparse
-import ConfigParser
 
+from ecohydrolib.grasslib import *
+
+from rhessysworkflows.context import Context
 from rhessysworkflows.metadata import RHESSysMetadata
 
 # Handle command line options
@@ -85,78 +87,53 @@ cmdline = RHESSysMetadata.getCommandLine()
 configFile = None
 if args.configfile:
     configFile = args.configfile
-else:
-    try:
-        configFile = os.environ['ECOHYDROWORKFLOW_CFG']
-    except KeyError:
-        sys.exit("Configuration file not specified via environmental variable\n'ECOHYDROWORKFLOW_CFG', and -i option not specified")
-if not os.access(configFile, os.R_OK):
-    raise IOError(errno.EACCES, "Unable to read configuration file %s" %
-                  configFile)
-config = ConfigParser.RawConfigParser()
-config.read(configFile)
 
-gisBase = config.get('GRASS', 'GISBASE')
-modulePath = config.get('GRASS', 'MODULE_PATH')
-moduleEtc = config.get('GRASS', 'MODULE_ETC')
-
-schemePath = os.path.join(moduleEtc, 'USDA.dat')
-if not os.access(schemePath, os.R_OK):
-    raise IOError(errno.EACCES, "Not allowed to read r.soils.texture scheme %s" % (schemePath,) )
-
-if args.projectDir:
-    projectDir = args.projectDir
-else:
-    projectDir = os.getcwd()
-if not os.path.isdir(projectDir):
-    raise IOError(errno.ENOTDIR, "Project directory %s is not a directory" % (projectDir,))
-if not os.access(projectDir, os.W_OK):
-    raise IOError(errno.EACCES, "Not allowed to write to project directory %s" %
-                  projectDir)
-projectDir = os.path.abspath(projectDir)
+context = Context(args.projectDir, configFile) 
 
 # Check for necessary information in metadata
-manifest = RHESSysMetadata.readManifestEntries(projectDir)
+manifest = RHESSysMetadata.readManifestEntries(context)
 if not 'soil_raster_avgsand' in manifest:
-    sys.exit("Metadata in project directory %s does not contain a soil_raster_avgsand raster" % (projectDir,))
+    sys.exit("Metadata in project directory %s does not contain a soil_raster_avgsand raster" % (context.projectDir,))
 if not 'soil_raster_avgclay' in manifest:
-    sys.exit("Metadata in project directory %s does not contain a soil_raster_avgclay raster" % (projectDir,))
+    sys.exit("Metadata in project directory %s does not contain a soil_raster_avgclay raster" % (context.projectDir,))
 
-metadata = RHESSysMetadata.readRHESSysEntries(projectDir)
+metadata = RHESSysMetadata.readRHESSysEntries(context)
 if not 'grass_dbase' in metadata:
-    sys.exit("Metadata in project directory %s does not contain a GRASS Dbase" % (projectDir,)) 
+    sys.exit("Metadata in project directory %s does not contain a GRASS Dbase" % (context.projectDir,)) 
 if not 'grass_location' in metadata:
-    sys.exit("Metadata in project directory %s does not contain a GRASS location" % (projectDir,)) 
+    sys.exit("Metadata in project directory %s does not contain a GRASS location" % (context.projectDir,)) 
 if not 'grass_mapset' in metadata:
-    sys.exit("Metadata in project directory %s does not contain a GRASS mapset" % (projectDir,))
+    sys.exit("Metadata in project directory %s does not contain a GRASS mapset" % (context.projectDir,))
 
 # Set up GRASS environment
-grassDbase = os.path.join(projectDir, metadata['grass_dbase'])
-os.environ['GISBASE'] = gisBase
-sys.path.append(os.path.join(gisBase, "etc", "python"))
-import grass.script as grass
-import grass.script.setup as gsetup
-gsetup.init(gisBase, grassDbase, metadata['grass_location'], metadata['grass_mapset'])
+modulePath = context.config.get('GRASS', 'MODULE_PATH')
+moduleEtc = context.config.get('GRASS', 'MODULE_ETC')
+grassDbase = os.path.join(context.projectDir, metadata['grass_dbase'])
+grassConfig = GRASSConfig(context, grassDbase, metadata['grass_location'], metadata['grass_mapset'], newLocation=False)
+grassLib = GRASSLib(grassConfig=grassConfig)
 
 # Import percent sand and percent clay raster maps into GRASS
-percentSandRasterPath = os.path.join(projectDir, manifest['soil_raster_avgsand'])
-result = grass.run_command('r.in.gdal', input=percentSandRasterPath, output='soil_raster_avgsand')
+percentSandRasterPath = os.path.join(context.projectDir, manifest['soil_raster_avgsand'])
+result = grassLib.script.run_command('r.in.gdal', input=percentSandRasterPath, output='soil_raster_avgsand')
 if result != 0:
     sys.exit("Failed to import soil_raster_avgsand into GRASS dataset %s/%s, results:\n%s" % \
              (grassDbase, metadata['grass_location'], result) )
     
-percentClayRasterPath = os.path.join(projectDir, manifest['soil_raster_avgclay'])
-result = grass.run_command('r.in.gdal', input=percentClayRasterPath, output='soil_raster_avgclay')
+percentClayRasterPath = os.path.join(context.projectDir, manifest['soil_raster_avgclay'])
+result = grassLib.script.run_command('r.in.gdal', input=percentClayRasterPath, output='soil_raster_avgclay')
 if result != 0:
     sys.exit("Failed to import soil_raster_avgclay into GRASS dataset %s/%s, results:\n%s" % \
              (grassDbase, metadata['grass_location'], result) )
 
 # Generate soil texture map
+schemePath = os.path.join(moduleEtc, 'USDA.dat')
+if not os.access(schemePath, os.R_OK):
+    raise IOError(errno.EACCES, "Not allowed to read r.soils.texture scheme %s" % (schemePath,) )
 soilTexture = os.path.join(modulePath, 'r.soils.texture')
-result = grass.read_command(soilTexture, sand='soil_raster_avgsand', clay='soil_raster_avgclay',
-                            scheme=schemePath, output='soil_texture')
+result = grassLib.script.read_command(soilTexture, sand='soil_raster_avgsand', clay='soil_raster_avgclay',
+                                      scheme=schemePath, output='soil_texture')
 if None == result:
     sys.exit("r.soils.texture failed, returning %s" % (result,))
     
 # Write processing history
-RHESSysMetadata.appendProcessingHistoryItem(projectDir, cmdline)
+RHESSysMetadata.appendProcessingHistoryItem(context, cmdline)

@@ -60,7 +60,7 @@ Post conditions
 
 Usage:
 @code
-CreateGRASSLocationFromDEM.py -p /path/to/project_dir -g GRASSData -l default -m "Grass location for RHESSys model of Dead Run watershed in Baltimore, MD"
+CreateGRASSLocationFromDEM.py -p /path/to/project_dir -script GRASSData -l default -m "Grass location for RHESSys model of Dead Run watershed in Baltimore, MD"
 @endcode
 
 @note EcoHydroWorkflowLib configuration file must be specified by environmental variable 'ECOHYDROWORKFLOW_CFG',
@@ -69,14 +69,14 @@ or -i option must be specified.
 @todo write names of grass datasets to metadata
 @todo make grassdbase and location optional with defaults of 'GRASSdata' and 'default'
 """
-import os, sys, errno
+import sys
 import argparse
-import ConfigParser
 import re
 
-from rhessysworkflows.metadata import RHESSysMetadata
+from ecohydrolib.grasslib import *
 
-DEFAULT_MAPSET = 'PERMANENT'
+from rhessysworkflows.context import Context
+from rhessysworkflows.metadata import RHESSysMetadata
 
 # Handle command line options
 parser = argparse.ArgumentParser(description='Import spatial data needed to create RHESSys worldfile into the PERMANENT mapset of a new GRASS location')
@@ -84,11 +84,13 @@ parser.add_argument('-i', '--configfile', dest='configfile', required=False,
                     help='The configuration file. Must define section "GRASS" and option "GISBASE"')
 parser.add_argument('-p', '--projectDir', dest='projectDir', required=True,
                     help='The directory to which metadata, intermediate, and final files should be saved')
-parser.add_argument('-g', '--grassDbase', dest='grassDbase', required=True,
+parser.add_argument('-g', '--grassDbase', dest='grassDbase', required=False,
                     help='Path within project directory of the GRASS database where the new location is to be created.')
-parser.add_argument('-l', '--location', dest='location', required=True,
+parser.add_argument('-l', '--location', dest='location', required=False,
                     help='Name of the new GRASS location where study area data are to be imported.')
-parser.add_argument('-m', '--description', dest='description', required=True,
+parser.add_argument('-m', '--mapset', dest='mapset', required=False,
+                    help='Name of the new GRASS mapset where study area data are to be imported.')
+parser.add_argument('-d', '--description', dest='description', required=True,
                     help='Description for new location')
 args = parser.parse_args()
 cmdline = RHESSysMetadata.getCommandLine()
@@ -96,55 +98,29 @@ cmdline = RHESSysMetadata.getCommandLine()
 configFile = None
 if args.configfile:
     configFile = args.configfile
+
+context = Context(args.projectDir, configFile) 
+
+if not args.grassDbase:
+    dbase = 'GRASSData'
 else:
-    try:
-        configFile = os.environ['ECOHYDROWORKFLOW_CFG']
-    except KeyError:
-        sys.exit("Configuration file not specified via environmental variable\n'ECOHYDROWORKFLOW_CFG', and -i option not specified")
-if not os.access(configFile, os.R_OK):
-    raise IOError(errno.EACCES, "Unable to read configuration file %s" %
-                  configFile)
-config = ConfigParser.RawConfigParser()
-config.read(configFile)
-
-gisBase = config.get('GRASS', 'GISBASE')
-
-if args.projectDir:
-    projectDir = args.projectDir
-else:
-    projectDir = os.getcwd()
-if not os.path.isdir(projectDir):
-    raise IOError(errno.ENOTDIR, "Project directory %s is not a directory" % (projectDir,))
-if not os.access(projectDir, os.W_OK):
-    raise IOError(errno.EACCES, "Not allowed to write to project directory %s" %
-                  projectDir)
-projectDir = os.path.abspath(projectDir)
-
-# Make sure grassDbase exists
-grassDbase = os.path.join(projectDir, args.grassDbase)
-if not os.path.exists(grassDbase):
-    (grassDbLoc, grassDbName) = os.path.split(grassDbase)
-    if not (os.path.isdir(grassDbLoc) and os.access(grassDbLoc, os.W_OK)):
-        sys.exit("%s is not a writable directory" % (grassDbLoc,))
-    os.makedirs(grassDbase)
-else:
-    if not os.access(grassDbase, os.W_OK):
-        sys.exit("Not allowed to write to %s" % (grassDbase,))
-
-# Make sure location doesn't already exist, if it does, exit
-if os.path.exists(os.path.join(grassDbase, args.location)):
-    sys.exit("Location '%s' already exists in %s" % (args.location, grassDbase))
-
-mapset = DEFAULT_MAPSET
+    dbase = args.grassDbase
+grassDbase = os.path.join(context.projectDir, dbase)
+location = None
+if args.location:
+    location = args.location
+mapset = None
+if args.mapset:
+    mapset = args.mapset
 
 # Check for necessary information in metadata
-manifest = RHESSysMetadata.readManifestEntries(projectDir)
+manifest = RHESSysMetadata.readManifestEntries(context)
 if not 'dem' in manifest:
-    sys.exit("Metadata in project directory %s does not contain a DEM reference" % (projectDir,)) 
+    sys.exit("Metadata in project directory %s does not contain a DEM reference" % (context.projectDir,)) 
 
-studyArea = RHESSysMetadata.readStudyAreaEntries(projectDir)
+studyArea = RHESSysMetadata.readStudyAreaEntries(context)
 if not 'dem_srs' in studyArea:
-    sys.exit("Metadata in project directory %s does not contain DEM spatial reference" % (projectDir,)) 
+    sys.exit("Metadata in project directory %s does not contain DEM spatial reference" % (context.projectDir,)) 
 srsPattern = re.compile('EPSG:(\d+)')
 result = srsPattern.search(studyArea['dem_srs'])
 if not result:
@@ -152,34 +128,29 @@ if not result:
 srs = int(result.group(1))
 
 # Set up GRASS environment
-os.environ['GISBASE'] = gisBase
-sys.path.append(os.path.join(gisBase, "etc", "python"))
-import grass.script as grass
-import grass.script.setup as gsetup
-gsetup.init(gisBase, args.grassDbase, args.location)
+grassConfig = GRASSConfig(context, grassDbase, location, mapset, newLocation=True)
+grassLib = GRASSLib(grassConfig=grassConfig)
 
 # Create the new location
-grass.core.create_location(grassDbase, args.location, epsg=srs, desc=args.description)
+grassLib.script.core.create_location(grassConfig.dbase, grassConfig.location, epsg=srs, desc=args.description)
 
 # Import DEM into location
-gsetup.init(gisBase,
-            grassDbase, args.location, mapset)
-demFilepath = os.path.join(projectDir, manifest['dem'])
+demFilepath = os.path.join(context.projectDir, manifest['dem'])
 #print demFilepath
-result = grass.run_command('r.in.gdal', flags="e", input=demFilepath, output='dem')
+result = grassLib.script.run_command('r.in.gdal', flags="e", input=demFilepath, output='dem')
 if result != 0:
     sys.exit("Failed to import DEM into new GRASS dataset %s/%s, results:\n%s" % \
              (grassDbase, args.location, result) )
 
 # Set region to DEM
-result = grass.run_command('g.region', rast='dem')
+result = grassLib.script.run_command('g.region', rast='dem')
 if result != 0:
     sys.exit("Failed to set region to DEM")
 
 # Update metadata
-RHESSysMetadata.writeRHESSysEntry(projectDir, "grass_dbase", args.grassDbase)
-RHESSysMetadata.writeRHESSysEntry(projectDir, "grass_location", args.location)
-RHESSysMetadata.writeRHESSysEntry(projectDir, "grass_mapset", mapset)
+RHESSysMetadata.writeRHESSysEntry(context, "grass_dbase", dbase)
+RHESSysMetadata.writeRHESSysEntry(context, "grass_location", grassConfig.location)
+RHESSysMetadata.writeRHESSysEntry(context, "grass_mapset", grassConfig.mapset)
 
 # Write processing history
-RHESSysMetadata.appendProcessingHistoryItem(projectDir, cmdline)
+RHESSysMetadata.appendProcessingHistoryItem(context, cmdline)
