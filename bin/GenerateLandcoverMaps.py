@@ -95,6 +95,8 @@ parser.add_argument('-p', '--projectDir', dest='projectDir', required=True,
                     help='The directory to which metadata, intermediate, and final files should be saved')
 parser.add_argument('-r', '--ruleDir', dest='ruleDir', required=False,
                     help='The directory where landcover reclass rules can be found')
+parser.add_argument('--overwrite', dest='overwrite', action='store_true', required=False,
+                    help='Overwrite existing datasets in the GRASS mapset.  If not specified, program will halt if a dataset already exists.')
 args = parser.parse_args()
 cmdline = RHESSysMetadata.getCommandLine()
 
@@ -151,26 +153,26 @@ grassLib = GRASSLib(grassConfig=grassConfig)
 
 # Import landcover raster map into GRASS
 landcoverRasterPath = os.path.join(context.projectDir, manifest['landcover'])
-result = grassLib.script.run_command('r.in.gdal', input=landcoverRasterPath, output='landcover_raw')
+result = grassLib.script.run_command('r.in.gdal', input=landcoverRasterPath, output='landcover_raw', overwrite=args.overwrite)
 if result != 0:
     sys.exit("Failed to import landcover into GRASS dataset %s/%s, results:\n%s" % \
              (grassDbase, metadata['grass_location'], result) )
 
 # Reclassify raw landcover into "RHESSys" landcover types
 result = grassLib.script.read_command('r.reclass', input='landcover_raw', output='landcover', 
-                           rules=landcoverRulePath)
+                           rules=landcoverRulePath, overwrite=args.overwrite)
 if None == result:
     sys.exit("r.reclass failed to create landcover map, returning %s" % (result,))
 
 # Reclassify landcover into impervious map
 result = grassLib.script.read_command('r.reclass', input='landcover', output='impervious', 
-                           rules=imperviousRulePath)
+                           rules=imperviousRulePath, overwrite=args.overwrite)
 if None == result:
     sys.exit("r.reclass failed to create impervious map, returning %s" % (result,))
     
 # Reclassify landcover into lai map
 result = grassLib.script.read_command('r.reclass', input='landcover', output='lai', 
-                           rules=laiRulePath)
+                           rules=laiRulePath, overwrite=args.overwrite)
 if None == result:
     sys.exit("r.reclass failed to create LAI map, returning %s" % (result,))
 

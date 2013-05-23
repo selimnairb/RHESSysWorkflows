@@ -77,6 +77,11 @@ Post conditions
    zero [zeros map]
    K [default Ksat map]
    m [default decay of Ksat with depth map]
+   
+3. The following vector datasets will be created in the GRASS location:
+   gage
+   gage_snapped
+   
 
 Usage:
 @code
@@ -110,6 +115,8 @@ parser.add_argument('-p', '--projectDir', dest='projectDir', required=True,
                     help='The directory to which metadata, intermediate, and final files should be saved')
 parser.add_argument('-t', '--threshold', dest='threshold', required=True, type=int,
                     help='Minimum size (in cells the size of the DEM resolution) of watershed sub-basins')
+parser.add_argument('--overwrite', dest='overwrite', action='store_true', required=False,
+                    help='Overwrite existing datasets in the GRASS mapset.  If not specified, program will halt if a dataset already exists.')
 args = parser.parse_args()
 cmdline = RHESSysMetadata.getCommandLine()
 
@@ -146,7 +153,8 @@ grassLib = GRASSLib(grassConfig=grassConfig)
 
 # Generate drainage direction map
 result = grassLib.script.run_command('r.watershed', 
-                                     elevation="dem", drainage="drain", accumulation="uaa")
+                                     elevation="dem", drainage="drain", accumulation="uaa",
+                                     overwrite=args.overwrite)
 if result != 0:
     sys.exit("r.watershed failed creating drainage direction and uaa maps, returning %s" % (result,))
 
@@ -158,37 +166,47 @@ if result != 0:
 RHESSysMetadata.writeRHESSysEntry(context, 'gage_easting_raw', easting)
 RHESSysMetadata.writeRHESSysEntry(context, 'gage_northing_raw', northing)
 
+point = "%f|%f\n" % (easting, northing) 
+result = grassLib.script.write_command('v.in.ascii', output='gage', stdin=point, overwrite=args.overwrite)
+if result != 0:
+    sys.exit("v.in.ascii failed to create 'gage' vector, returning %s" % (result,))
+
 # Snap the gage to the stream
 findTheRiver = os.path.join(modulePath, 'r.findtheriver')
-#result = grassLib.script.read_command(findTheRiver, flags="q",
-#                            accumulation="uaa", easting=easting, northing=northing,
-#                            threshold="2", window="17")
 result = grassLib.script.read_command(findTheRiver, flags="q",
                                       accumulation="uaa", easting=easting, northing=northing)
-if None == result:
-    sys.exit("r.findtheriver failed, returning %s" % (result,))
-print("r.findtheriver response: %s" % result)
+if None == result or '' == result:
+    sys.stdout.write("r.findtheriver did not find a better stream pixel, using raw gage coordinate\n")
+
 snappedCoords = result.split();
 if len(snappedCoords) == 2:
     # We found the stream, update coordinates
-    easting = snappedCoords[0]
-    northing = snappedCoords[1]
+    easting = float(snappedCoords[0])
+    northing = float(snappedCoords[1])
     
 RHESSysMetadata.writeRHESSysEntry(context, 'gage_easting_snapped', easting)
 RHESSysMetadata.writeRHESSysEntry(context, 'gage_northing_snapped', northing)
 
+point = "%f|%f\n" % (easting, northing) 
+result = grassLib.script.write_command('v.in.ascii', output='gage_snapped', stdin=point, overwrite=args.overwrite)
+if result != 0:
+    sys.exit("v.in.ascii failed to create 'gage_snapped' vector, returning %s" % (result,))
+
 # Delineate watershed
 result = grassLib.script.run_command('r.water.outlet', drainage="drain", basin="basin", 
-                                     easting=easting, northing=northing)
+                                     easting=easting, northing=northing, overwrite=args.overwrite)
 if result != 0:
     sys.exit("r.water.outlet failed to delineate watershed basin, returning %s" % (result,))
 
 # Generate hillslopes
-rWatershedOptions = {'elevation': "dem", 
+#   We have to place these options in a dictionary because one of the options
+#   has a '.' in its name.
+rWatershedOptions = {'elevation': 'dem', 
                      'threshold': args.threshold,
-                     'basin': "subbasins",
-                     'half.basin': "hillslopes",
-                     'stream': "streams"}
+                     'basin': 'subbasins',
+                     'half.basin': 'hillslopes',
+                     'stream': 'streams',
+                     'overwrite': args.overwrite}
 result = grassLib.script.run_command('r.watershed', **rWatershedOptions)
 if result != 0:
     sys.exit("r.watershed failed creating subbasins, returning %s" % (result,))
@@ -208,7 +226,7 @@ if result != 0:
 result = grassLib.script.write_command('r.mapcalc', stdin='west_horizon=sin(west_0)')
 if result != 0:
     sys.exit("r.mapcalc failed to create west_horizon, returning %s" % (result,))
-result = grassLib.script.run_command('r.slope.aspect', el="dem", slope="slope", aspect="aspect")
+result = grassLib.script.run_command('r.slope.aspect', el="dem", slope="slope", aspect="aspect", overwrite=args.overwrite)
 if result != 0:
     sys.exit("r.slope.aspect failed, returning %s" % (result,))
 

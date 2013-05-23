@@ -92,6 +92,8 @@ parser.add_argument('-m', '--mapset', dest='mapset', required=False,
                     help='Name of the new GRASS mapset where study area data are to be imported.')
 parser.add_argument('-d', '--description', dest='description', required=True,
                     help='Description for new location')
+parser.add_argument('--overwrite', dest='overwrite', action='store_true', required=False,
+                    help='Overwrite existing datasets in the GRASS mapset.  If not specified, program will halt if a dataset already exists.')
 args = parser.parse_args()
 cmdline = RHESSysMetadata.getCommandLine()
 
@@ -128,7 +130,7 @@ if not result:
 srs = int(result.group(1))
 
 # Set up GRASS environment
-grassConfig = GRASSConfig(context, grassDbase, location, mapset, newLocation=True)
+grassConfig = GRASSConfig(context, grassDbase, location, mapset, overwrite=args.overwrite)
 grassLib = GRASSLib(grassConfig=grassConfig)
 
 # Create the new location

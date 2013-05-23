@@ -81,6 +81,8 @@ parser.add_argument('-i', '--configfile', dest='configfile', required=False,
                     help='The configuration file. Must define section "GRASS" and option "GISBASE"')
 parser.add_argument('-p', '--projectDir', dest='projectDir', required=True,
                     help='The directory to which metadata, intermediate, and final files should be saved')
+parser.add_argument('--overwrite', dest='overwrite', action='store_true', required=False,
+                    help='Overwrite existing datasets in the GRASS mapset.  If not specified, program will halt if a dataset already exists.')
 args = parser.parse_args()
 cmdline = RHESSysMetadata.getCommandLine()
 
@@ -114,13 +116,13 @@ grassLib = GRASSLib(grassConfig=grassConfig)
 
 # Import percent sand and percent clay raster maps into GRASS
 percentSandRasterPath = os.path.join(context.projectDir, manifest['soil_raster_avgsand'])
-result = grassLib.script.run_command('r.in.gdal', input=percentSandRasterPath, output='soil_raster_avgsand')
+result = grassLib.script.run_command('r.in.gdal', input=percentSandRasterPath, output='soil_raster_avgsand', overwrite=args.overwrite)
 if result != 0:
     sys.exit("Failed to import soil_raster_avgsand into GRASS dataset %s/%s, results:\n%s" % \
              (grassDbase, metadata['grass_location'], result) )
     
 percentClayRasterPath = os.path.join(context.projectDir, manifest['soil_raster_avgclay'])
-result = grassLib.script.run_command('r.in.gdal', input=percentClayRasterPath, output='soil_raster_avgclay')
+result = grassLib.script.run_command('r.in.gdal', input=percentClayRasterPath, output='soil_raster_avgclay', overwrite=args.overwrite)
 if result != 0:
     sys.exit("Failed to import soil_raster_avgclay into GRASS dataset %s/%s, results:\n%s" % \
              (grassDbase, metadata['grass_location'], result) )
@@ -131,7 +133,7 @@ if not os.access(schemePath, os.R_OK):
     raise IOError(errno.EACCES, "Not allowed to read r.soils.texture scheme %s" % (schemePath,) )
 soilTexture = os.path.join(modulePath, 'r.soils.texture')
 result = grassLib.script.read_command(soilTexture, sand='soil_raster_avgsand', clay='soil_raster_avgclay',
-                                      scheme=schemePath, output='soil_texture')
+                                      scheme=schemePath, output='soil_texture', overwrite=args.overwrite)
 if None == result:
     sys.exit("r.soils.texture failed, returning %s" % (result,))
     
