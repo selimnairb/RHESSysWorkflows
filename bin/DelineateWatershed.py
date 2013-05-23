@@ -148,7 +148,7 @@ demRows = int(studyArea['dem_rows'])
 # Set up GRASS environment
 modulePath = context.config.get('GRASS', 'MODULE_PATH')
 grassDbase = os.path.join(context.projectDir, metadata['grass_dbase'])
-grassConfig = GRASSConfig(context, grassDbase, metadata['grass_location'], metadata['grass_mapset'], newLocation=False)
+grassConfig = GRASSConfig(context, grassDbase, metadata['grass_location'], metadata['grass_mapset'])
 grassLib = GRASSLib(grassConfig=grassConfig)
 
 # Generate drainage direction map

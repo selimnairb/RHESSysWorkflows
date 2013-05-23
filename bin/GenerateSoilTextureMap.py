@@ -111,7 +111,7 @@ if not 'grass_mapset' in metadata:
 modulePath = context.config.get('GRASS', 'MODULE_PATH')
 moduleEtc = context.config.get('GRASS', 'MODULE_ETC')
 grassDbase = os.path.join(context.projectDir, metadata['grass_dbase'])
-grassConfig = GRASSConfig(context, grassDbase, metadata['grass_location'], metadata['grass_mapset'], newLocation=False)
+grassConfig = GRASSConfig(context, grassDbase, metadata['grass_location'], metadata['grass_mapset'])
 grassLib = GRASSLib(grassConfig=grassConfig)
 
 # Import percent sand and percent clay raster maps into GRASS

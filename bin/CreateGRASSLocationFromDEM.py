@@ -130,7 +130,7 @@ if not result:
 srs = int(result.group(1))
 
 # Set up GRASS environment
-grassConfig = GRASSConfig(context, grassDbase, location, mapset, overwrite=args.overwrite)
+grassConfig = GRASSConfig(context, grassDbase, location, mapset, newLocation=True, overwrite=args.overwrite)
 grassLib = GRASSLib(grassConfig=grassConfig)
 
 # Create the new location
