@@ -53,6 +53,7 @@ Post conditions
    grass_dbase
    grass_location
    grass_mapset
+   rhessys_dir
 
 3. GRASS location and mapset will be created in grass_dbase
 
@@ -77,6 +78,7 @@ from ecohydrolib.grasslib import *
 
 from rhessysworkflows.context import Context
 from rhessysworkflows.metadata import RHESSysMetadata
+from rhessysworkflows.rhessys import RHESSysPaths
 
 # Handle command line options
 parser = argparse.ArgumentParser(description='Import spatial data needed to create RHESSys worldfile into the PERMANENT mapset of a new GRASS location')
@@ -102,6 +104,7 @@ if args.configfile:
     configFile = args.configfile
 
 context = Context(args.projectDir, configFile) 
+paths = RHESSysPaths(args.projectDir)
 
 if not args.grassDbase:
     dbase = 'GRASSData'
@@ -150,9 +153,10 @@ if result != 0:
     sys.exit("Failed to set region to DEM")
 
 # Update metadata
-RHESSysMetadata.writeRHESSysEntry(context, "grass_dbase", dbase)
-RHESSysMetadata.writeRHESSysEntry(context, "grass_location", grassConfig.location)
-RHESSysMetadata.writeRHESSysEntry(context, "grass_mapset", grassConfig.mapset)
+RHESSysMetadata.writeRHESSysEntry(context, 'grass_dbase', dbase)
+RHESSysMetadata.writeRHESSysEntry(context, 'grass_location', grassConfig.location)
+RHESSysMetadata.writeRHESSysEntry(context, 'grass_mapset', grassConfig.mapset)
+RHESSysMetadata.writeRHESSysEntry(context, 'rhessys_dir', paths.rhessysDir)
 
 # Write processing history
 RHESSysMetadata.appendProcessingHistoryItem(context, cmdline)

@@ -49,6 +49,7 @@ Pre conditions
    grass_dbase
    grass_location
    grass_mapset
+   rhessys_dir
    
 3. Requires r.soils.texture GRASS extension: http://grasswiki.osgeo.org/wiki/GRASS_AddOns#r.soils.texture
 
@@ -70,10 +71,14 @@ or -i option must be specified.
 import os, sys, errno
 import argparse
 
+from rhessys.params import paramDB
+import rhessys.constants as paramConst
+
 from ecohydrolib.grasslib import *
 
 from rhessysworkflows.context import Context
 from rhessysworkflows.metadata import RHESSysMetadata
+from rhessysworkflows.rhessys import RHESSysPaths
 
 # Handle command line options
 parser = argparse.ArgumentParser(description='Generate soil texture map for dataset in GRASS GIS')
@@ -107,6 +112,9 @@ if not 'grass_location' in metadata:
 if not 'grass_mapset' in metadata:
     sys.exit("Metadata in project directory %s does not contain a GRASS mapset" % (context.projectDir,))
 
+paths = RHESSysPaths(args.projectDir, metadata['rhessys_dir'])
+paramDB = paramDB()
+
 # Set up GRASS environment
 modulePath = context.config.get('GRASS', 'MODULE_PATH')
 moduleEtc = context.config.get('GRASS', 'MODULE_ETC')
@@ -136,6 +144,19 @@ result = grassLib.script.read_command(soilTexture, sand='soil_raster_avgsand', c
                                       scheme=schemePath, output='soil_texture', overwrite=args.overwrite)
 if None == result:
     sys.exit("r.soils.texture failed, returning %s" % (result,))
-    
+
+pipe = grassLib.script.pipe_command('r.stats', flags='lic', input='soil_texture')
+textures = {}
+for line in pipe.stdout:
+    (dn, cat, num) = line.strip().split()
+    if cat != 'NULL':
+        textures[cat] = int(dn)
+pipe.wait()
+print("Writing soil default files to %s" % (paths.RHESSYS_DEF) )
+for key in textures.keys():
+    #print("texture %s has dn %d" % (key, textures[key]) )
+    paramDB.search(paramConst.SEARCH_TYPE_CONSTRAINED, None, key, None, None, None, None, None, None, None, None, limitToBaseClasses=True)
+    paramDB.writeParamFiles(paths.RHESSYS_DEF)
+
 # Write processing history
 RHESSysMetadata.appendProcessingHistoryItem(context, cmdline)
