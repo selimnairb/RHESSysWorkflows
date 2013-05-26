@@ -49,6 +49,7 @@ Pre conditions
    grass_dbase
    grass_location
    grass_mapset
+   rhessys_dir
    
 4. The following metadata entry(ies) must be present in the study area section of the metadata associated with the project directory:
    landcover_type
@@ -56,13 +57,15 @@ Pre conditions
 Post conditions
 ---------------
 1. The following raster datasets will be created in the GRASS location:
-   landcover_raw
    landcover
+   stratum
+   landuse
    impervious
    lai
 
 2. Will write the following entry(ies) to the RHESSys section of metadata associated with the project directory:
-   lancover_rule
+   landcover_stratum_rule
+   landcover_landuse_rule
    landcover_impervious_rule
    landcover_lai_rule
 
@@ -80,12 +83,21 @@ import os, sys, errno, shutil
 import argparse
 import ConfigParser
 
+from rhessys.params import paramDB
+import rhessys.constants as paramConst
+
 from ecohydrolib.grasslib import *
 
 from rhessysworkflows.context import Context
 from rhessysworkflows.metadata import RHESSysMetadata
+from rhessysworkflows.rhessys import RHESSysPaths
 
 KNOWN_LC_TYPES = ['NLCD2006']
+LC_RULE_IMPERVIOUS = 'impervious.rule'
+LC_RULE_LAI = 'lai.rule'
+LC_RULE_LANDUSE = 'landuse.rule'
+LC_RULE_STRATUM = 'stratum.rule'
+LC_RULES = [LC_RULE_IMPERVIOUS, LC_RULE_LAI, LC_RULE_LANDUSE, LC_RULE_STRATUM]
 
 # Handle command line options
 parser = argparse.ArgumentParser(description='Generate landcover maps in GRASS GIS')
@@ -94,7 +106,7 @@ parser.add_argument('-i', '--configfile', dest='configfile', required=False,
 parser.add_argument('-p', '--projectDir', dest='projectDir', required=True,
                     help='The directory to which metadata, intermediate, and final files should be saved')
 parser.add_argument('-r', '--ruleDir', dest='ruleDir', required=False,
-                    help='The directory where landcover reclass rules can be found')
+                    help="The directory where landcover reclass rules can be found; must contain these files %s" % (str(LC_RULES),) )
 parser.add_argument('--overwrite', dest='overwrite', action='store_true', required=False,
                     help='Overwrite existing datasets in the GRASS mapset.  If not specified, program will halt if a dataset already exists.')
 args = parser.parse_args()
@@ -122,15 +134,18 @@ else:
     else:
         sys.exit("Landcover type %s specified, but land cover conversion rule directory not specified")
     
-landcoverRulePath = os.path.join(ruleDir, 'landcover.rule')
-if not os.access(landcoverRulePath, os.R_OK):
-    sys.exit("Unable to read %s" % (landcoverRulePath,) )
-imperviousRulePath = os.path.join(ruleDir, 'impervious.rule')
+imperviousRulePath = os.path.join(ruleDir, LC_RULE_IMPERVIOUS)
 if not os.access(imperviousRulePath, os.R_OK):
-    sys.exit("Unable to read %s" % (imperviousRulePath,) )
-laiRulePath = os.path.join(ruleDir, 'lai.rule')
+    sys.exit("Unable to read %s in rule directory %s" % (imperviousRulePath, ruleDir) )
+laiRulePath = os.path.join(ruleDir, LC_RULE_LAI)
 if not os.access(laiRulePath, os.R_OK):
-    sys.exit("Unable to read %s" % (laiRulePath,) )
+    sys.exit("Unable to read %s in rule directory %s" % (laiRulePath, ruleDir) )
+stratumRulePath = os.path.join(ruleDir, LC_RULE_STRATUM)
+if not os.access(stratumRulePath, os.R_OK):
+    sys.exit("Unable to read %s in rule directory %s" % (stratumRulePath, ruleDir) )
+landuseRulePath = os.path.join(ruleDir, LC_RULE_LANDUSE)
+if not os.access(landuseRulePath, os.R_OK):
+    sys.exit("Unable to read %s in rule directory %s" % (landuseRulePath, ruleDir) )
 
 # Check for necessary information in metadata
 manifest = RHESSysMetadata.readManifestEntries(context)
@@ -145,6 +160,9 @@ if not 'grass_location' in metadata:
 if not 'grass_mapset' in metadata:
     sys.exit("Metadata in project directory %s does not contain a GRASS mapset" % (context.projectDir,))
 
+paths = RHESSysPaths(args.projectDir, metadata['rhessys_dir'])
+paramDB = paramDB()
+
 # Set up GRASS environment
 modulePath = context.config.get('GRASS', 'MODULE_PATH')
 grassDbase = os.path.join(context.projectDir, metadata['grass_dbase'])
@@ -153,16 +171,50 @@ grassLib = GRASSLib(grassConfig=grassConfig)
 
 # Import landcover raster map into GRASS
 landcoverRasterPath = os.path.join(context.projectDir, manifest['landcover'])
-result = grassLib.script.run_command('r.in.gdal', input=landcoverRasterPath, output='landcover_raw', overwrite=args.overwrite)
+result = grassLib.script.run_command('r.in.gdal', input=landcoverRasterPath, output='landcover', overwrite=args.overwrite)
 if result != 0:
     sys.exit("Failed to import landcover into GRASS dataset %s/%s, results:\n%s" % \
              (grassDbase, metadata['grass_location'], result) )
 
-# Reclassify raw landcover into "RHESSys" landcover types
-result = grassLib.script.read_command('r.reclass', input='landcover_raw', output='landcover', 
-                           rules=landcoverRulePath, overwrite=args.overwrite)
+# Reclassify landcover into stratum map
+result = grassLib.script.read_command('r.reclass', input='landcover', output='stratum', 
+                           rules=stratumRulePath, overwrite=args.overwrite)
 if None == result:
-    sys.exit("r.reclass failed to create landcover map, returning %s" % (result,))
+    sys.exit("r.reclass failed to create stratum map, returning %s" % (result,))
+
+# Fetch relevant stratum default files from param DB
+pipe = grassLib.script.pipe_command('r.stats', flags='lic', input='stratum')
+rasterVals = {}
+for line in pipe.stdout:
+    (dn, cat, num) = line.strip().split()
+    if cat != 'NULL':
+        rasterVals[cat] = int(dn)
+pipe.wait()
+print("Writing stratum default files to %s" % (paths.RHESSYS_DEF) )
+for key in rasterVals.keys():
+    #print("stratum %s has dn %d" % (key, rasterVals[key]) )
+    paramDB.search(paramConst.SEARCH_TYPE_CONSTRAINED, None, key, None, None, None, None, None, None, None, None, limitToBaseClasses=True)
+    paramDB.writeParamFiles(paths.RHESSYS_DEF)
+
+# Reclassify landcover into landuse map
+result = grassLib.script.read_command('r.reclass', input='landcover', output='landuse', 
+                           rules=landuseRulePath, overwrite=args.overwrite)
+if None == result:
+    sys.exit("r.reclass failed to create stratum map, returning %s" % (result,))
+
+# Fetch relevant landuse default files from param DB
+pipe = grassLib.script.pipe_command('r.stats', flags='lic', input='landuse')
+rasterVals = {}
+for line in pipe.stdout:
+    (dn, cat, num) = line.strip().split()
+    if cat != 'NULL':
+        rasterVals[cat] = int(dn)
+pipe.wait()
+print("Writing landuse default files to %s" % (paths.RHESSYS_DEF) )
+for key in rasterVals.keys():
+    #print("landuse %s has dn %d" % (key, rasterVals[key]) )
+    paramDB.search(paramConst.SEARCH_TYPE_CONSTRAINED, None, key, None, None, None, None, None, None, None, None, limitToBaseClasses=True)
+    paramDB.writeParamFiles(paths.RHESSYS_DEF)
 
 # Reclassify landcover into impervious map
 result = grassLib.script.read_command('r.reclass', input='landcover', output='impervious', 
@@ -176,15 +228,18 @@ result = grassLib.script.read_command('r.reclass', input='landcover', output='la
 if None == result:
     sys.exit("r.reclass failed to create LAI map, returning %s" % (result,))
 
+
 # Copy rules used to into project directory
-shutil.copy(landcoverRulePath, context.projectDir)
+shutil.copy(stratumRulePath, context.projectDir)
+shutil.copy(landuseRulePath, context.projectDir)
 shutil.copy(imperviousRulePath, context.projectDir)
 shutil.copy(laiRulePath, context.projectDir)
     
 # Write metadata
-RHESSysMetadata.writeRHESSysEntry(context, "lancover_rule", os.path.basename(landcoverRulePath))
-RHESSysMetadata.writeRHESSysEntry(context, "landcover_impervious_rule", os.path.basename(imperviousRulePath))
-RHESSysMetadata.writeRHESSysEntry(context, "landcover_lai_rule", os.path.basename(laiRulePath))
+RHESSysMetadata.writeRHESSysEntry(context, 'landcover_stratum_rule', os.path.basename(stratumRulePath))
+RHESSysMetadata.writeRHESSysEntry(context, 'landcover_landuse_rule', os.path.basename(landuseRulePath))
+RHESSysMetadata.writeRHESSysEntry(context, 'landcover_impervious_rule', os.path.basename(imperviousRulePath))
+RHESSysMetadata.writeRHESSysEntry(context, 'landcover_lai_rule', os.path.basename(laiRulePath))
 
 # Write processing history
 RHESSysMetadata.appendProcessingHistoryItem(context, cmdline)

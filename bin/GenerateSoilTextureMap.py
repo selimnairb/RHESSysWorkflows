@@ -145,6 +145,7 @@ result = grassLib.script.read_command(soilTexture, sand='soil_raster_avgsand', c
 if None == result:
     sys.exit("r.soils.texture failed, returning %s" % (result,))
 
+# Fetch relevant soil default files from param DB
 pipe = grassLib.script.pipe_command('r.stats', flags='lic', input='soil_texture')
 textures = {}
 for line in pipe.stdout:
