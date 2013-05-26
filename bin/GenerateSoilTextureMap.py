@@ -45,13 +45,13 @@ Pre conditions
    soil_raster_avgsand
    soil_raster_avgclay
 
-2. The following metadata entry(ies) must be present in the RHESSys section of the metadata associated with the project directory:
+3. The following metadata entry(ies) must be present in the RHESSys section of the metadata associated with the project directory:
    grass_dbase
    grass_location
    grass_mapset
    rhessys_dir
    
-3. Requires r.soils.texture GRASS extension: http://grasswiki.osgeo.org/wiki/GRASS_AddOns#r.soils.texture
+4. Requires r.soils.texture GRASS extension: http://grasswiki.osgeo.org/wiki/GRASS_AddOns#r.soils.texture
 
 Post conditions
 ---------------
