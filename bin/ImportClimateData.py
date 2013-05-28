@@ -64,7 +64,7 @@ from rhessysworkflows.rhessys import RHESSysPaths
 STATION_FILE_EXTENSION = 'base'
 
 # Handle command line options
-parser = argparse.ArgumentParser(description='Generate soil texture map for dataset in GRASS GIS')
+parser = argparse.ArgumentParser(description='Import RHESSys climate data into project directory')
 parser.add_argument('-i', '--configfile', dest='configfile', required=False,
                     help='The configuration file. Must define section "GRASS" and option "GISBASE"')
 parser.add_argument('-p', '--projectDir', dest='projectDir', required=True,

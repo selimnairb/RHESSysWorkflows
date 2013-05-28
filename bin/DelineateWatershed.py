@@ -96,6 +96,7 @@ or -i option must be specified.
 @todo separate out patch map creation.  for urban environment workflow, need a non-grid way to create patches
 @todo make zone the patch map
 @todo Factor out gage snapping into a separate script
+@todo Generate wetness index raster
 """
 import os, sys, errno
 import argparse
