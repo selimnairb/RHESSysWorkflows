@@ -216,6 +216,11 @@ else:
             returnCode = process.wait()
             if returnCode != 0:
                 sys.exit("Git command '%s' failed" % (gitCommand,) )
+# Make sure there is a template in the imported source
+templatePath = os.path.join(paths.RHESSYS_SRC, TEMPLATE_PATH)
+print(templatePath)
+if not os.path.exists(templatePath):
+    sys.exit("Template template not found in source imported to %s" % (paths.RHESSYS_SRC,) )
             
 ## 2. Compile code
 # Set GISBASE (needed to compile g2w and cf)
@@ -297,6 +302,7 @@ os.chmod(rhessysDest, permissions)
 # Write metadata
 RHESSysMetadata.writeRHESSysEntry(context, 'rhessys_bin', os.path.join(metadata['rhessys_dir'], 'bin', rhessysBin) )
 RHESSysMetadata.writeRHESSysEntry(context, 'exec_dir', os.path.join(metadata['rhessys_dir'], 'bin') )
+RHESSysMetadata.writeRHESSysEntry(context, 'template_template', os.path.join(metadata['rhessys_dir'], 'src', TEMPLATE_PATH) )
 
 # Write processing history
 RHESSysMetadata.appendProcessingHistoryItem(context, cmdline)
