@@ -59,7 +59,8 @@ Post conditions
 3. Will write the following entry(ies) to the RHESSys section of metadata associated with the project directory:
    rhessys_src
    rhessys_branch or rhessys_tag (if specified)
-   exec_dir
+   template_template
+   exec_dir (directory within project directory containing executables)
    rhessys_bin
    cf_bin
    rat_bin
