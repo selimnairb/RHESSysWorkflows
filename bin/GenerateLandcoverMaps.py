@@ -56,12 +56,12 @@ Pre conditions
    
 Post conditions
 ---------------
-1. The following raster datasets will be created in the GRASS location:
-   landcover
-   stratum
-   landuse
-   impervious
-   lai
+1. Will write the following entry(ies) to the GRASS section of metadata associated with the project directory:
+   landcover_rast
+   stratum_rast
+   landuse_rast
+   impervious_rast
+   lai_rast
 
 2. Will write the following entry(ies) to the RHESSys section of metadata associated with the project directory:
    landcover_stratum_rule
@@ -175,15 +175,17 @@ result = grassLib.script.run_command('r.in.gdal', input=landcoverRasterPath, out
 if result != 0:
     sys.exit("Failed to import landcover into GRASS dataset %s/%s, results:\n%s" % \
              (grassDbase, metadata['grass_location'], result) )
+RHESSysMetadata.writeGRASSEntry(context, 'landcover_rast', 'landcover')
 
 # Reclassify landcover into stratum map
 result = grassLib.script.read_command('r.reclass', input='landcover', output='stratum', 
                            rules=stratumRulePath, overwrite=args.overwrite)
 if None == result:
     sys.exit("r.reclass failed to create stratum map, returning %s" % (result,))
+RHESSysMetadata.writeGRASSEntry(context, 'stratum_rast', 'stratum')
 
 # Fetch relevant stratum default files from param DB
-pipe = grassLib.script.pipe_command('r.stats', flags='lic', input='stratum')
+pipe = grassLib.script.pipe_command('r.stats', flags='licn', input='stratum')
 rasterVals = {}
 for line in pipe.stdout:
     (dn, cat, num) = line.strip().split()
@@ -201,9 +203,10 @@ result = grassLib.script.read_command('r.reclass', input='landcover', output='la
                            rules=landuseRulePath, overwrite=args.overwrite)
 if None == result:
     sys.exit("r.reclass failed to create stratum map, returning %s" % (result,))
+RHESSysMetadata.writeGRASSEntry(context, 'landuse_rast', 'landuse')
 
 # Fetch relevant landuse default files from param DB
-pipe = grassLib.script.pipe_command('r.stats', flags='lic', input='landuse')
+pipe = grassLib.script.pipe_command('r.stats', flags='licn', input='landuse')
 rasterVals = {}
 for line in pipe.stdout:
     (dn, cat, num) = line.strip().split()
@@ -221,13 +224,14 @@ result = grassLib.script.read_command('r.reclass', input='landcover', output='im
                            rules=imperviousRulePath, overwrite=args.overwrite)
 if None == result:
     sys.exit("r.reclass failed to create impervious map, returning %s" % (result,))
+RHESSysMetadata.writeGRASSEntry(context, 'impervious_rast', 'impervious')    
     
 # Reclassify landcover into lai map
 result = grassLib.script.read_command('r.reclass', input='landcover', output='lai', 
                            rules=laiRulePath, overwrite=args.overwrite)
 if None == result:
     sys.exit("r.reclass failed to create LAI map, returning %s" % (result,))
-
+RHESSysMetadata.writeGRASSEntry(context, 'lai_rast', 'lai')
 
 # Copy rules used to into project directory
 shutil.copy(stratumRulePath, context.projectDir)

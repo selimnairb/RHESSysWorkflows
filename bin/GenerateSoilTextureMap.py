@@ -55,10 +55,10 @@ Pre conditions
 
 Post conditions
 ---------------
-1. The following raster datasets will be created in the GRASS location:
-   soil_raster_avgclay,
-   soil_raster_avgsand,
-   soil_texture
+1. Will write the following entry(ies) to the GRASS section of metadata associated with the project directory:
+   soil_avgsand_rast
+   soil_avgclay_rast
+   soil_texture_rast
 
 Usage:
 @code
@@ -124,16 +124,18 @@ grassLib = GRASSLib(grassConfig=grassConfig)
 
 # Import percent sand and percent clay raster maps into GRASS
 percentSandRasterPath = os.path.join(context.projectDir, manifest['soil_raster_avgsand'])
-result = grassLib.script.run_command('r.in.gdal', input=percentSandRasterPath, output='soil_raster_avgsand', overwrite=args.overwrite)
+result = grassLib.script.run_command('r.in.gdal', input=percentSandRasterPath, output='soil_avgsand', overwrite=args.overwrite)
 if result != 0:
     sys.exit("Failed to import soil_raster_avgsand into GRASS dataset %s/%s, results:\n%s" % \
              (grassDbase, metadata['grass_location'], result) )
+RHESSysMetadata.writeGRASSEntry(context, 'soil_avgsand_rast', 'soil_avgsand')
     
 percentClayRasterPath = os.path.join(context.projectDir, manifest['soil_raster_avgclay'])
-result = grassLib.script.run_command('r.in.gdal', input=percentClayRasterPath, output='soil_raster_avgclay', overwrite=args.overwrite)
+result = grassLib.script.run_command('r.in.gdal', input=percentClayRasterPath, output='soil_avgclay', overwrite=args.overwrite)
 if result != 0:
     sys.exit("Failed to import soil_raster_avgclay into GRASS dataset %s/%s, results:\n%s" % \
              (grassDbase, metadata['grass_location'], result) )
+RHESSysMetadata.writeGRASSEntry(context, 'soil_avgclay_rast', 'soil_avgclay')
 
 # Generate soil texture map
 schemePath = os.path.join(moduleEtc, 'USDA.dat')
@@ -144,12 +146,13 @@ result = grassLib.script.read_command(soilTexture, sand='soil_raster_avgsand', c
                                       scheme=schemePath, output='soil_texture', overwrite=args.overwrite)
 if None == result:
     sys.exit("r.soils.texture failed, returning %s" % (result,))
+RHESSysMetadata.writeGRASSEntry(context, 'soil_texture_rast', 'soil_texture')
 
 # Fetch relevant soil default files from param DB
-pipe = grassLib.script.pipe_command('r.stats', flags='lic', input='soil_texture')
+pipe = grassLib.script.pipe_command('r.stats', flags='licn', input='soil_texture')
 textures = {}
 for line in pipe.stdout:
-    (dn, cat, num) = line.strip().split()
+    (dn, cat, num, ) = line.strip().split()
     if cat != 'NULL':
         textures[cat] = int(dn)
 pipe.wait()

@@ -49,6 +49,9 @@ Pre conditions
    dem_srs
    gage_lat_wgs84
    gage_lon_wgs84
+   
+4. The following metadata entry(ies) must be present in the GRASS section of the metadata associated with the project directory:
+   dem_rast
 
 Post conditions
 ---------------
@@ -60,27 +63,23 @@ Post conditions
    watershed_threshold
     
 
-2. The following raster datasets will be created in the GRASS location:
-   drain [drainage direction map]
-   basin [delineated watershed boundary]
-   uaa [upslope accumulating area]
-   subbasins [sub basins within the watershed boundary]
-   hillslopes [hillslopes within the watershed boundary]
-   streams [streams within the watershed boundary]
-   aspect 
-   east_0
-   east_horizon
-   patch [patch map]
-   slope
-   west_0
-   west_horizon
-   zero [zeros map]
-   K [default Ksat map]
-   m [default decay of Ksat with depth map]
-   
-3. The following vector datasets will be created in the GRASS location:
-   gage
-   gage_snapped
+2. Will write the following entry(ies) to the GRASS section of metadata associated with the project directory:
+   gage_vect
+   gage_snapped_vect
+   drain_rast [drainage direction map]
+   uaa_rast [upslope accumulated area]
+   basin_rast [delineated watershed boundary]
+   subbasins_rast [sub basins within the watershed boundary]
+   hillslopes_rast [hillslopes within the watershed boundary]
+   streams_rast [streams within the watershed boundary]
+   east_horizon_rast
+   west_horizon_rast
+   slope_rast
+   aspect_rast 
+   K_rast [default Ksat map]
+   m_rast [default decay of Ksat with depth map]
+   zero_rast [zeros map]
+   patch_rast [patch map]
    
 
 Usage:
@@ -116,6 +115,8 @@ parser.add_argument('-p', '--projectDir', dest='projectDir', required=True,
                     help='The directory to which metadata, intermediate, and final files should be saved')
 parser.add_argument('-t', '--threshold', dest='threshold', required=True, type=int,
                     help='Minimum size (in cells the size of the DEM resolution) of watershed sub-basins')
+parser.add_argument('-s', '--streamThreshold', dest='streamThreshold', required=False, type=float,
+                    help='Threshold to pass to r.findtheriver for distinguishing stream from non-stream pixels')
 parser.add_argument('--overwrite', dest='overwrite', action='store_true', required=False,
                     help='Overwrite existing datasets in the GRASS mapset.  If not specified, program will halt if a dataset already exists.')
 args = parser.parse_args()
@@ -143,6 +144,11 @@ if not 'gage_lat_wgs84' in studyArea:
     sys.exit("Metadata in project directory %s does not contain gage latitude" % (context.projectDir,)) 
 if not 'gage_lon_wgs84' in studyArea:
     sys.exit("Metadata in project directory %s does not contain gage longitude" % (context.projectDir,)) 
+    
+grassMetadata = RHESSysMetadata.readGRASSEntries(context)
+if not 'dem_rast' in grassMetadata:
+    sys.exit("Metadata in project directory %s does not contain a DEM raster in a GRASS mapset" % (context.projectDir,)) 
+
 
 demRows = int(studyArea['dem_rows'])
 
@@ -154,10 +160,13 @@ grassLib = GRASSLib(grassConfig=grassConfig)
 
 # Generate drainage direction map
 result = grassLib.script.run_command('r.watershed', 
-                                     elevation="dem", drainage="drain", accumulation="uaa",
+                                     elevation=grassMetadata['dem_rast'], drainage='drain', accumulation='uaa',
                                      overwrite=args.overwrite)
 if result != 0:
     sys.exit("r.watershed failed creating drainage direction and uaa maps, returning %s" % (result,))
+
+RHESSysMetadata.writeGRASSEntry(context, 'drain_rast', 'drain')
+RHESSysMetadata.writeGRASSEntry(context, 'uaa_rast', 'uaa')
 
 # Convert gage coordinates into dem_srs coordinates
 (easting, northing) = transformCoordinates(studyArea['gage_lon_wgs84'],
@@ -172,10 +181,13 @@ result = grassLib.script.write_command('v.in.ascii', output='gage', stdin=point,
 if result != 0:
     sys.exit("v.in.ascii failed to create 'gage' vector, returning %s" % (result,))
 
+RHESSysMetadata.writeGRASSEntry(context, 'gage_vect', 'gage')
+
 # Snap the gage to the stream
 findTheRiver = os.path.join(modulePath, 'r.findtheriver')
 result = grassLib.script.read_command(findTheRiver, flags="q",
-                                      accumulation="uaa", easting=easting, northing=northing)
+                                      accumulation="uaa", easting=easting, northing=northing,
+                                      threshold=args.streamThreshold)
 if None == result or '' == result:
     sys.stdout.write("r.findtheriver did not find a better stream pixel, using raw gage coordinate\n")
 
@@ -193,11 +205,16 @@ result = grassLib.script.write_command('v.in.ascii', output='gage_snapped', stdi
 if result != 0:
     sys.exit("v.in.ascii failed to create 'gage_snapped' vector, returning %s" % (result,))
 
+RHESSysMetadata.writeGRASSEntry(context, 'gage_snapped_vect', 'gage_snapped')
+
 # Delineate watershed
-result = grassLib.script.run_command('r.water.outlet', drainage="drain", basin="basin", 
+result = grassLib.script.run_command('r.water.outlet', drainage='drain', basin='basin', 
                                      easting=easting, northing=northing, overwrite=args.overwrite)
+
 if result != 0:
     sys.exit("r.water.outlet failed to delineate watershed basin, returning %s" % (result,))
+
+RHESSysMetadata.writeGRASSEntry(context, 'basin_rast', 'basin')
 
 # Generate hillslopes
 #   We have to place these options in a dictionary because one of the options
@@ -212,24 +229,34 @@ result = grassLib.script.run_command('r.watershed', **rWatershedOptions)
 if result != 0:
     sys.exit("r.watershed failed creating subbasins, returning %s" % (result,))
 
+RHESSysMetadata.writeGRASSEntry(context, 'subbasins_rast', 'subbasins')
+RHESSysMetadata.writeGRASSEntry(context, 'hillslopes_rast', 'hillslopes')
+RHESSysMetadata.writeGRASSEntry(context, 'streams_rast', 'streams')
 RHESSysMetadata.writeRHESSysEntry(context, 'watershed_threshold', args.threshold)
 
 # Generate derived terrain products
-result = grassLib.script.run_command('r.horizon', flags="d", elevin="dem", direction=0, horizon="east")
+result = grassLib.script.run_command('r.horizon', flags='d', elevin='dem', direction=0, horizon='east')
 if result != 0:
     sys.exit("r.horizon failed, returning %s" % (result,))
-result = grassLib.script.run_command('r.horizon', flags="d", elevin="dem", direction=180, horizon="west")
+result = grassLib.script.run_command('r.horizon', flags="d", elevin='dem', direction=180, horizon='west')
 if result != 0:
     sys.exit("r.horizon failed, returning %s" % (result,))
+
 result = grassLib.script.write_command('r.mapcalc', stdin='east_horizon=sin(east_0)')
 if result != 0:
     sys.exit("r.mapcalc failed to create east_horizon, returning %s" % (result,))
+RHESSysMetadata.writeGRASSEntry(context, 'east_horizon_rast', 'east_horizon')
+    
 result = grassLib.script.write_command('r.mapcalc', stdin='west_horizon=sin(west_0)')
 if result != 0:
     sys.exit("r.mapcalc failed to create west_horizon, returning %s" % (result,))
-result = grassLib.script.run_command('r.slope.aspect', el="dem", slope="slope", aspect="aspect", overwrite=args.overwrite)
+RHESSysMetadata.writeGRASSEntry(context, 'west_horizon_rast', 'west_horizon')
+
+result = grassLib.script.run_command('r.slope.aspect', el='dem', slope='slope', aspect='aspect', overwrite=args.overwrite)
 if result != 0:
     sys.exit("r.slope.aspect failed, returning %s" % (result,))
+RHESSysMetadata.writeGRASSEntry(context, 'slope_rast', 'slope')
+RHESSysMetadata.writeGRASSEntry(context, 'aspect_rast', 'aspect')
 
 # Generate default K, m, zero (default for roads), and patch maps
 # First set mask
@@ -240,18 +267,24 @@ if result != 0:
 result = grassLib.script.write_command('r.mapcalc', stdin='K=basin*2')
 if result != 0:
     sys.exit("r.mapcalc failed to create K map, returning %s" % (result,))
+RHESSysMetadata.writeGRASSEntry(context, 'K_rast', 'K')
+    
 result = grassLib.script.write_command('r.mapcalc', stdin='m=basin*0.12')
 if result != 0:
     sys.exit("r.mapcalc failed to create m map, returning %s" % (result,))
+RHESSysMetadata.writeGRASSEntry(context, 'm_rast', 'm')
+    
 result = grassLib.script.write_command('r.mapcalc', stdin='zero=0')
 if result != 0:
     sys.exit("r.mapcalc failed to create zero map, returning %s" % (result,))
+RHESSysMetadata.writeGRASSEntry(context, 'zero_rast', 'zero')
 
 # TODO: rename this xy and add to world file as xy coordinate
 result = grassLib.script.write_command('r.mapcalc', 
                              stdin="patch=(row()-1) * %d + col()" % demRows)
 if result != 0:
     sys.exit("r.mapcalc failed to create patch map, returning %s" % (result,))
+RHESSysMetadata.writeGRASSEntry(context, 'patch_rast', 'patch')
     
 # Write processing history
 RHESSysMetadata.appendProcessingHistoryItem(context, cmdline)

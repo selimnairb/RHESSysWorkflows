@@ -55,9 +55,10 @@ Post conditions
    grass_mapset
    rhessys_dir
 
-3. GRASS location and mapset will be created in grass_dbase
+2. GRASS location and mapset will be created in grass_dbase
 
-4. DEM named 'dem' will be imported into newly created location 
+3. Will write the following entry(ies) to the GRASS section of metadata associated with the project directory:
+   dem_rast
 
 Usage:
 @code
@@ -153,6 +154,7 @@ if result != 0:
     sys.exit("Failed to set region to DEM")
 
 # Update metadata
+RHESSysMetadata.writeGRASSEntry(context, 'dem_rast', 'dem')
 RHESSysMetadata.writeRHESSysEntry(context, 'grass_dbase', dbase)
 RHESSysMetadata.writeRHESSysEntry(context, 'grass_location', grassConfig.location)
 RHESSysMetadata.writeRHESSysEntry(context, 'grass_mapset', grassConfig.mapset)
