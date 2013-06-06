@@ -42,8 +42,8 @@ Pre conditions
 --------------
 1. Configuration file must define the following sections and values:
    'GRASS', 'GISBASE'
-   'RHESSys build', 'PATH_OF_GIT'
-   'RHESSys build', 'PATH_OF_MAKE'
+   'RHESSYS', 'PATH_OF_GIT'
+   'RHESSYS', 'PATH_OF_MAKE'
 
 2. The following metadata entry(ies) must be present in the RHESSys section of the 
    metadata associated with the project directory: 
@@ -112,8 +112,8 @@ if args.configfile:
 context = Context(args.projectDir, configFile)
 
 gisBase = context.config.get('GRASS', 'GISBASE')
-gitPath = context.config.get('RHESSYS BUILD', 'PATH_OF_GIT')
-makePath = context.config.get('RHESSYS BUILD', 'PATH_OF_MAKE')
+gitPath = context.config.get('RHESSYS', 'PATH_OF_GIT')
+makePath = context.config.get('RHESSYS', 'PATH_OF_MAKE')
 
 # Check for necessary information in metadata
 metadata = RHESSysMetadata.readRHESSysEntries(context)

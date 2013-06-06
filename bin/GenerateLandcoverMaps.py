@@ -40,6 +40,7 @@ Pre conditions
 --------------
 1. Configuration file must define the following sections and values:
    'GRASS', 'GISBASE'
+   'RHESSYS', 'PATH_OF_PARAMDB'
    'SCRIPT', 'ETC'
 
 2. The following metadata entry(ies) must be present in the manifest section of the metadata associated with the project directory:
@@ -118,6 +119,11 @@ if args.configfile:
 
 context = Context(args.projectDir, configFile) 
 
+paramDbPath = context.config.get('RHESSYS', 'PATH_OF_PARAMDB')
+if not os.access(paramDbPath, os.R_OK):
+    sys.exit("Unable to read RHESSys parameters database %s" % (paramDbPath,) )
+paramDbPath = os.path.abspath(paramDbPath)
+
 # Check for necessary information in metadata
 studyArea = RHESSysMetadata.readStudyAreaEntries(context)
 landcoverType = studyArea['landcover_type']
@@ -161,7 +167,7 @@ if not 'grass_mapset' in metadata:
     sys.exit("Metadata in project directory %s does not contain a GRASS mapset" % (context.projectDir,))
 
 paths = RHESSysPaths(args.projectDir, metadata['rhessys_dir'])
-paramDB = paramDB()
+paramDB = paramDB(filename=paramDbPath)
 
 # Set up GRASS environment
 modulePath = context.config.get('GRASS', 'MODULE_PATH')
@@ -194,8 +200,8 @@ for line in pipe.stdout:
 pipe.wait()
 print("Writing stratum default files to %s" % (paths.RHESSYS_DEF) )
 for key in rasterVals.keys():
-    #print("stratum %s has dn %d" % (key, rasterVals[key]) )
-    paramDB.search(paramConst.SEARCH_TYPE_CONSTRAINED, None, key, None, None, None, None, None, None, None, None, limitToBaseClasses=True)
+    print("stratum '%s' has dn %d" % (key, rasterVals[key]) )
+    paramDB.search(paramConst.SEARCH_TYPE_CONSTRAINED, None, key, None, None, None, None, None, None, None, None)
     paramDB.writeParamFiles(paths.RHESSYS_DEF)
 
 # Reclassify landcover into landuse map
@@ -215,8 +221,8 @@ for line in pipe.stdout:
 pipe.wait()
 print("Writing landuse default files to %s" % (paths.RHESSYS_DEF) )
 for key in rasterVals.keys():
-    #print("landuse %s has dn %d" % (key, rasterVals[key]) )
-    paramDB.search(paramConst.SEARCH_TYPE_CONSTRAINED, None, key, None, None, None, None, None, None, None, None, limitToBaseClasses=True)
+    print("landuse '%s' has dn %d" % (key, rasterVals[key]) )
+    paramDB.search(paramConst.SEARCH_TYPE_CONSTRAINED, None, key, None, None, None, None, None, None, None, None)
     paramDB.writeParamFiles(paths.RHESSYS_DEF)
 
 # Reclassify landcover into impervious map

@@ -40,6 +40,7 @@ Pre conditions
 --------------
 1. Configuration file must define the following sections and values:
    'GRASS', 'GISBASE'
+   'RHESSYS', 'PATH_OF_PARAMDB'
 
 2. The following metadata entry(ies) must be present in the manifest section of the metadata associated with the project directory:
    soil_raster_avgsand
@@ -97,6 +98,11 @@ if args.configfile:
 
 context = Context(args.projectDir, configFile) 
 
+paramDbPath = context.config.get('RHESSYS', 'PATH_OF_PARAMDB')
+if not os.access(paramDbPath, os.R_OK):
+    sys.exit("Unable to read RHESSys parameters database %s" % (paramDbPath,) )
+paramDbPath = os.path.abspath(paramDbPath)
+
 # Check for necessary information in metadata
 manifest = RHESSysMetadata.readManifestEntries(context)
 if not 'soil_raster_avgsand' in manifest:
@@ -113,7 +119,7 @@ if not 'grass_mapset' in metadata:
     sys.exit("Metadata in project directory %s does not contain a GRASS mapset" % (context.projectDir,))
 
 paths = RHESSysPaths(args.projectDir, metadata['rhessys_dir'])
-paramDB = paramDB()
+paramDB = paramDB(filename=paramDbPath)
 
 # Set up GRASS environment
 modulePath = context.config.get('GRASS', 'MODULE_PATH')
@@ -158,9 +164,10 @@ for line in pipe.stdout:
 pipe.wait()
 print("Writing soil default files to %s" % (paths.RHESSYS_DEF) )
 for key in textures.keys():
-    #print("texture %s has dn %d" % (key, textures[key]) )
-    paramDB.search(paramConst.SEARCH_TYPE_CONSTRAINED, None, key, None, None, None, None, None, None, None, None, limitToBaseClasses=True)
+    print("soil '%s' has dn %d" % (key, textures[key]) )
+    paramDB.search(paramConst.SEARCH_TYPE_CONSTRAINED, None, key, None, None, None, None, None, None, None, None)
     paramDB.writeParamFiles(paths.RHESSYS_DEF)
+    
 
 # Write processing history
 RHESSysMetadata.appendProcessingHistoryItem(context, cmdline)
