@@ -100,12 +100,15 @@ or -i option must be specified.
 import os, sys, errno
 import argparse
 import ConfigParser
+import re
 
 from ecohydrolib.spatialdata.utils import transformCoordinates
 from ecohydrolib.grasslib import *
 
 from rhessysworkflows.context import Context
 from rhessysworkflows.metadata import RHESSysMetadata
+
+AREA_THRESHOLD = 0.2
 
 # Handle command line options
 parser = argparse.ArgumentParser(description='Delineate watershed using GRASS GIS')
@@ -117,6 +120,8 @@ parser.add_argument('-t', '--threshold', dest='threshold', required=True, type=i
                     help='Minimum size (in cells the size of the DEM resolution) of watershed sub-basins')
 parser.add_argument('-s', '--streamThreshold', dest='streamThreshold', required=False, type=float,
                     help='Threshold to pass to r.findtheriver for distinguishing stream from non-stream pixels')
+parser.add_argument('-a', '--areaEstimate', dest='areaEstimate', required=False, type=float,
+                    help='Estimated area, in sq. km, of watershed to be delineated.  A warning message will be displayed if the delineated basin area is not close to estimated area.')
 parser.add_argument('--overwrite', dest='overwrite', action='store_true', required=False,
                     help='Overwrite existing datasets in the GRASS mapset.  If not specified, program will halt if a dataset already exists.')
 args = parser.parse_args()
@@ -157,6 +162,11 @@ modulePath = context.config.get('GRASS', 'MODULE_PATH')
 grassDbase = os.path.join(context.projectDir, metadata['grass_dbase'])
 grassConfig = GRASSConfig(context, grassDbase, metadata['grass_location'], metadata['grass_mapset'])
 grassLib = GRASSLib(grassConfig=grassConfig)
+
+# Make sure there is no mask present
+result = grassLib.script.run_command('r.mask', flags='r')
+if result != 0:
+    sys.exit("r.mask filed, returning %s" % (result,) )
 
 # Generate drainage direction map
 result = grassLib.script.run_command('r.watershed', 
@@ -208,13 +218,14 @@ if result != 0:
 RHESSysMetadata.writeGRASSEntry(context, 'gage_snapped_vect', 'gage_snapped')
 
 # Delineate watershed
-result = grassLib.script.run_command('r.water.outlet', drainage='drain', basin='basin', 
+basinName = 'basin'
+result = grassLib.script.run_command('r.water.outlet', drainage='drain', basin=basinName, 
                                      easting=easting, northing=northing, overwrite=args.overwrite)
 
 if result != 0:
     sys.exit("r.water.outlet failed to delineate watershed basin, returning %s" % (result,))
 
-RHESSysMetadata.writeGRASSEntry(context, 'basin_rast', 'basin')
+RHESSysMetadata.writeGRASSEntry(context, 'basin_rast', basinName)
 
 # Generate hillslopes
 #   We have to place these options in a dictionary because one of the options
@@ -286,5 +297,22 @@ if result != 0:
     sys.exit("r.mapcalc failed to create patch map, returning %s" % (result,))
 RHESSysMetadata.writeGRASSEntry(context, 'patch_rast', 'patch')
     
+# Check delineated basin area
+if args.areaEstimate:
+    area = -1.0
+    areaRegex = re.compile('^\|1\|.*\|(.*)\|$')
+    # Get delineated area in hectares
+    pipe = grassLib.script.pipe_command('r.report', map=basinName, units='k')
+    for line in pipe.stdout:
+        m = areaRegex.match(line)
+        if m:
+            area = float(m.group(1))
+            if abs(area - args.areaEstimate) / args.areaEstimate > AREA_THRESHOLD:
+                sys.stdout.write("WARNING: Delineated area of %f sq. km differs from estimated area %f sq. km by MORE than %f%%. Try increasing or decreasing the stream threshold used for gage snapping.\n" % \
+                                   (area, args.areaEstimate, AREA_THRESHOLD * 100) )
+            else:
+                sys.stdout.write("OK: Delineated area of %f sq. km differs from estimated area %f sq. km by less than %f%%\n" % \
+                                   (area, args.areaEstimate, AREA_THRESHOLD * 100) )
+                
 # Write processing history
 RHESSysMetadata.appendProcessingHistoryItem(context, cmdline)
