@@ -61,6 +61,8 @@ Post conditions
    gage_easting_snapped (gage X coordinate, snapped to nearest stream pixel, in study area spatial reference system coordinates)
    gage_northing_snapped (gage Y coordinate, snapped to nearest stream pixel, in study area spatial reference system coordinates)
    watershed_threshold
+   watershed_area
+   watershed_area_estimate
     
 
 2. Will write the following entry(ies) to the GRASS section of metadata associated with the project directory:
@@ -313,6 +315,9 @@ if args.areaEstimate:
             else:
                 sys.stdout.write("OK: Delineated area of %f sq. km differs from estimated area %f sq. km by less than %f%%\n" % \
                                    (area, args.areaEstimate, AREA_THRESHOLD * 100) )
+    # Write metadata
+    RHESSysMetadata.writeRHESSysEntry(context, 'watershed_area', area)
+    RHESSysMetadata.writeRHESSysEntry(context, 'watershed_area_estimate', args.areaEstimate)
                 
 # Write processing history
 RHESSysMetadata.appendProcessingHistoryItem(context, cmdline)

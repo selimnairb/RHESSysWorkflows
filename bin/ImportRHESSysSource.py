@@ -65,6 +65,7 @@ Post conditions
    cf_bin
    rat_bin
    g2w_bin
+   lairead_bin
 
 
 Usage:
@@ -217,6 +218,7 @@ else:
             returnCode = process.wait()
             if returnCode != 0:
                 sys.exit("Git command '%s' failed" % (gitCommand,) )
+                
 # Make sure there is a template in the imported source
 templatePath = os.path.join(paths.RHESSYS_SRC, TEMPLATE_PATH)
 print(templatePath)
@@ -224,7 +226,7 @@ if not os.path.exists(templatePath):
     sys.exit("Template template not found in source imported to %s" % (paths.RHESSYS_SRC,) )
             
 ## 2. Compile code
-# Set GISBASE (needed to compile g2w and cf)
+# Set GISBASE (needed to compile g2w, cf, lairead)
 os.environ['GISBASE'] = gisBase
 permissions = stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR
 # Build g2w
@@ -276,6 +278,21 @@ os.chmod(cfDest, permissions)
 # Write metadata
 RHESSysMetadata.writeRHESSysEntry(context, 'cf_bin', os.path.join(metadata['rhessys_dir'], 'bin', cfBin) )
 
+# Build lairead
+buildPath = os.path.join(paths.RHESSYS_SRC, 'util', 'GRASS', 'lairead')
+makeCommand = makePath
+process = Popen(makeCommand, shell=True, cwd=buildPath)
+returnCode = process.wait()
+if returnCode != 0:
+    sys.exit("Failed to build lairead, return code: %s" % (returnCode,) )
+# Copy binary to paths.RHESSYS_BIN
+src = os.path.join(buildPath, 'lairead')
+dest = os.path.join(paths.RHESSYS_BIN, 'lairead')
+shutil.copyfile(src, dest)
+os.chmod(dest, permissions)
+# Write metadata
+RHESSysMetadata.writeRHESSysEntry(context, 'lairead_bin', os.path.join(metadata['rhessys_dir'], 'bin', 'lairead') )
+
 # Build RHESSys
 buildPath = os.path.join(paths.RHESSYS_SRC, 'rhessys')
 makeCommand = makePath
@@ -300,6 +317,7 @@ rhessysSrc = os.path.join(buildPath, rhessysBin)
 rhessysDest = os.path.join(paths.RHESSYS_BIN, rhessysBin)
 shutil.copyfile(rhessysSrc, rhessysDest)
 os.chmod(rhessysDest, permissions)
+
 # Write metadata
 RHESSysMetadata.writeRHESSysEntry(context, 'rhessys_bin', os.path.join(metadata['rhessys_dir'], 'bin', rhessysBin) )
 RHESSysMetadata.writeRHESSysEntry(context, 'exec_dir', os.path.join(metadata['rhessys_dir'], 'bin') )
