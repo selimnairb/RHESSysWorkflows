@@ -73,7 +73,7 @@ Usage:
 ImportRHESSysSource.py -p /path/to/project_dir
 @endcode
 
-@todo Write provenance information for code to metadata
+@todo Save commend SHA to metadata (for GitHub import)
 """
 import os, sys, errno, stat
 import argparse

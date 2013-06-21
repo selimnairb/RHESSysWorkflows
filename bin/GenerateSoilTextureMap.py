@@ -148,11 +148,11 @@ schemePath = os.path.join(moduleEtc, 'USDA.dat')
 if not os.access(schemePath, os.R_OK):
     raise IOError(errno.EACCES, "Not allowed to read r.soils.texture scheme %s" % (schemePath,) )
 soilTexture = os.path.join(modulePath, 'r.soils.texture')
-result = grassLib.script.read_command(soilTexture, sand='soil_raster_avgsand', clay='soil_raster_avgclay',
+result = grassLib.script.read_command(soilTexture, sand='soil_avgsand', clay='soil_avgclay',
                                       scheme=schemePath, output='soil_texture', overwrite=args.overwrite)
 if None == result:
     sys.exit("r.soils.texture failed, returning %s" % (result,))
-RHESSysMetadata.writeGRASSEntry(context, 'soil_texture_rast', 'soil_texture')
+RHESSysMetadata.writeGRASSEntry(context, 'soils_rast', 'soil_texture')
 
 # Fetch relevant soil default files from param DB
 pipe = grassLib.script.pipe_command('r.stats', flags='licn', input='soil_texture')
@@ -165,7 +165,8 @@ pipe.wait()
 print("Writing soil default files to %s" % (paths.RHESSYS_DEF) )
 for key in textures.keys():
     print("soil '%s' has dn %d" % (key, textures[key]) )
-    paramDB.search(paramConst.SEARCH_TYPE_CONSTRAINED, None, key, None, None, None, None, None, None, None, None)
+    paramsFound = paramDB.search(paramConst.SEARCH_TYPE_CONSTRAINED, None, key, None, None, None, None, None, None, None, None)
+    assert(paramsFound)
     paramDB.writeParamFiles(paths.RHESSYS_DEF)
     
 

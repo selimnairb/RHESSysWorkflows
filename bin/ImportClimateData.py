@@ -70,7 +70,7 @@ parser.add_argument('-i', '--configfile', dest='configfile', required=False,
 parser.add_argument('-p', '--projectDir', dest='projectDir', required=True,
                     help='The directory to which metadata, intermediate, and final files should be saved')
 parser.add_argument('-s', '--sourceDir', dest='sourceDir', required=True,
-                    help='The directory from which climate data should be copied')
+                    help='The directory from which climate data should be copied. Assumes climate base stations are stored in files ending in ".base", with climate data files of the form ".VARNAME" (e.g. ".tmin")')
 parser.add_argument('--overwrite', dest='overwrite', action='store_true', required=False,
                     help='Overwrite existing climate stations and datasets; If specified, will delete existing data before importing new data.  If not specified, new data will be added to existing data.')
 args = parser.parse_args()

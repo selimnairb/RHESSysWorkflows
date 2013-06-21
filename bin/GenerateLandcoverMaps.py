@@ -201,7 +201,8 @@ pipe.wait()
 print("Writing stratum default files to %s" % (paths.RHESSYS_DEF) )
 for key in rasterVals.keys():
     print("stratum '%s' has dn %d" % (key, rasterVals[key]) )
-    paramDB.search(paramConst.SEARCH_TYPE_CONSTRAINED, None, key, None, None, None, None, None, None, None, None)
+    paramsFound = paramDB.search(paramConst.SEARCH_TYPE_CONSTRAINED, None, key, None, None, None, None, None, None, None, None)
+    assert(paramsFound)
     paramDB.writeParamFiles(paths.RHESSYS_DEF)
 
 # Reclassify landcover into landuse map
@@ -222,7 +223,8 @@ pipe.wait()
 print("Writing landuse default files to %s" % (paths.RHESSYS_DEF) )
 for key in rasterVals.keys():
     print("landuse '%s' has dn %d" % (key, rasterVals[key]) )
-    paramDB.search(paramConst.SEARCH_TYPE_CONSTRAINED, None, key, None, None, None, None, None, None, None, None)
+    paramsFound = paramDB.search(paramConst.SEARCH_TYPE_CONSTRAINED, None, key, None, None, None, None, None, None, None, None)
+    assert(paramsFound)
     paramDB.writeParamFiles(paths.RHESSYS_DEF)
 
 # Reclassify landcover into impervious map

@@ -35,6 +35,26 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 import os, errno
 
+def readParameterFile(paramFilepath):
+    """ Read a RHESSys parameter file into a dictionary with
+        parameters as keys and parameter values as values
+        
+        @param paramFilepath String representing path of parameter file to read
+        @return Dict with keys representing parameters and their values
+        @raise IOError if file cannot be read
+    """
+    if not os.access(paramFilepath, os.R_OK):
+        raise IOError(errno.EACCES, "Unable to read parameter file %s" % (paramFilepath,) )
+    
+    paramFile = {}
+    with open(paramFilepath) as f:
+        for line in f:
+            tokens = line.strip().split()
+            if len(tokens) >= 2 and tokens[0] != '#':
+                paramFile[tokens[1].lower()] = tokens[0]
+    return paramFile
+
+
 class RHESSysPaths(object):
 
     _DB = 'db'

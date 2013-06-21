@@ -61,8 +61,8 @@ Post conditions
    gage_easting_snapped (gage X coordinate, snapped to nearest stream pixel, in study area spatial reference system coordinates)
    gage_northing_snapped (gage Y coordinate, snapped to nearest stream pixel, in study area spatial reference system coordinates)
    watershed_threshold
-   watershed_area
-   watershed_area_estimate
+   watershed_area_km
+   watershed_area_estimate_km
     
 
 2. Will write the following entry(ies) to the GRASS section of metadata associated with the project directory:
@@ -72,7 +72,7 @@ Post conditions
    uaa_rast [upslope accumulated area]
    basin_rast [delineated watershed boundary]
    subbasins_rast [sub basins within the watershed boundary]
-   hillslopes_rast [hillslopes within the watershed boundary]
+   hillslope_rast [hillslopes within the watershed boundary]
    streams_rast [streams within the watershed boundary]
    east_horizon_rast
    west_horizon_rast
@@ -80,7 +80,8 @@ Post conditions
    aspect_rast 
    K_rast [default Ksat map]
    m_rast [default decay of Ksat with depth map]
-   zero_rast [zeros map]
+   zero_rast [Map where all cells are set to zero]
+   one_rast [Map where all cells are set to one]
    patch_rast [patch map]
    
 
@@ -243,7 +244,7 @@ if result != 0:
     sys.exit("r.watershed failed creating subbasins, returning %s" % (result,))
 
 RHESSysMetadata.writeGRASSEntry(context, 'subbasins_rast', 'subbasins')
-RHESSysMetadata.writeGRASSEntry(context, 'hillslopes_rast', 'hillslopes')
+RHESSysMetadata.writeGRASSEntry(context, 'hillslope_rast', 'hillslopes')
 RHESSysMetadata.writeGRASSEntry(context, 'streams_rast', 'streams')
 RHESSysMetadata.writeRHESSysEntry(context, 'watershed_threshold', args.threshold)
 
@@ -255,12 +256,12 @@ result = grassLib.script.run_command('r.horizon', flags="d", elevin='dem', direc
 if result != 0:
     sys.exit("r.horizon failed, returning %s" % (result,))
 
-result = grassLib.script.write_command('r.mapcalc', stdin='east_horizon=sin(east_0)')
+result = grassLib.script.write_command('r.mapcalc', stdin='east_horizon=sin(east_0) * 1000')
 if result != 0:
     sys.exit("r.mapcalc failed to create east_horizon, returning %s" % (result,))
 RHESSysMetadata.writeGRASSEntry(context, 'east_horizon_rast', 'east_horizon')
     
-result = grassLib.script.write_command('r.mapcalc', stdin='west_horizon=sin(west_0)')
+result = grassLib.script.write_command('r.mapcalc', stdin='west_horizon=sin(west_0) * 1000')
 if result != 0:
     sys.exit("r.mapcalc failed to create west_horizon, returning %s" % (result,))
 RHESSysMetadata.writeGRASSEntry(context, 'west_horizon_rast', 'west_horizon')
@@ -271,7 +272,12 @@ if result != 0:
 RHESSysMetadata.writeGRASSEntry(context, 'slope_rast', 'slope')
 RHESSysMetadata.writeGRASSEntry(context, 'aspect_rast', 'aspect')
 
-# Generate default K, m, zero (default for roads), and patch maps
+result = grassLib.script.run_command('r.topidx', input='dem', out='wetness_index', overwrite=args.overwrite)
+if result != 0:
+    sys.exit("r.topidx failed, returning %s" % (result,))
+RHESSysMetadata.writeGRASSEntry(context, 'wetness_index_rast', 'wetness_index')
+
+# Generate default K, m, zero, one (default for roads), and patch maps
 # First set mask
 result = grassLib.script.run_command('r.mask', flags="o", input="basin", maskcats=1)
 if result != 0:
@@ -292,7 +298,12 @@ if result != 0:
     sys.exit("r.mapcalc failed to create zero map, returning %s" % (result,))
 RHESSysMetadata.writeGRASSEntry(context, 'zero_rast', 'zero')
 
-# TODO: rename this xy and add to world file as xy coordinate
+result = grassLib.script.write_command('r.mapcalc', stdin='one=1')
+if result != 0:
+    sys.exit("r.mapcalc failed to create one map, returning %s" % (result,))
+RHESSysMetadata.writeGRASSEntry(context, 'one_rast', 'one')
+
+# TODO: rename this to xy and add to world file as xy coordinate
 result = grassLib.script.write_command('r.mapcalc', 
                              stdin="patch=(row()-1) * %d + col()" % demRows)
 if result != 0:
@@ -316,8 +327,8 @@ if args.areaEstimate:
                 sys.stdout.write("OK: Delineated area of %f sq. km differs from estimated area %f sq. km by less than %f%%\n" % \
                                    (area, args.areaEstimate, AREA_THRESHOLD * 100) )
     # Write metadata
-    RHESSysMetadata.writeRHESSysEntry(context, 'watershed_area', area)
-    RHESSysMetadata.writeRHESSysEntry(context, 'watershed_area_estimate', args.areaEstimate)
+    RHESSysMetadata.writeRHESSysEntry(context, 'watershed_area_km', area)
+    RHESSysMetadata.writeRHESSysEntry(context, 'watershed_area_estimate_km', args.areaEstimate)
                 
 # Write processing history
 RHESSysMetadata.appendProcessingHistoryItem(context, cmdline)
