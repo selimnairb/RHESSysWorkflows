@@ -48,7 +48,6 @@ Pre conditions
    grass_location
    grass_mapset
    rhessys_dir
-   exec_dir
    g2w_bin
    rat_bin
    climate_stations
@@ -71,24 +70,23 @@ Pre conditions
    
 Post conditions
 ---------------
-1. Will write the following entry(ies) to the GRASS section of metadata associated with the project directory:
-
+1. Template and worldfile will be created in the RHESSys folder of the project directory.
 
 2. Will write the following entry(ies) to the RHESSys section of metadata associated with the project directory:
    template
+   worldfile
 
 Usage:
 @code
-CreateWorldfile.py -p /path/to/project_dir
+CreateWorldfile.py -p /path/to/project_dir -c climate_station_name1 ... climate_station_nameN
 @endcode
 
 @note EcoHydroWorkflowLib configuration file must be specified by environmental variable 'ECOHYDROWORKFLOW_CFG',
 or -i option must be specified. 
 """
-import os, sys, errno, shutil, string
+import string
 import re
 import argparse
-import ConfigParser
 from subprocess import *
 
 from rhessys.params import paramDB
@@ -98,10 +96,10 @@ from ecohydrolib.grasslib import *
 from ecohydrolib.spatialdata.utils import bboxFromString
 from ecohydrolib.spatialdata.utils import calculateBoundingBoxCenter
 
-from rhessysworkflows.rhessys import readParameterFile
 from rhessysworkflows.context import Context
 from rhessysworkflows.metadata import RHESSysMetadata
 from rhessysworkflows.rhessys import RHESSysPaths
+from rhessysworkflows.rhessys import readParameterFile
 
 # Handle command line options
 parser = argparse.ArgumentParser(description='Create RHESSys worldfile using GRASS GIS data and grass2world utility')
@@ -308,8 +306,9 @@ RHESSysMetadata.writeRHESSysEntry(context, 'template', templateFilename)
 sys.stdout.write('done\n')
 
 ## 4. Run grass2world
+worldfileName = templateFilename.replace('template', 'world')
 g2wPath = os.path.join(context.projectDir, metadata['g2w_bin'])
-worldfilePath = os.path.join(paths.RHESSYS_WORLD, 'worldfile')
+worldfilePath = os.path.join(paths.RHESSYS_WORLD, worldfileName)
 g2wCommand = "%s -t %s -w %s" % (g2wPath, templateFilepath, worldfilePath)
 if args.verbose:
     print(g2wCommand)
@@ -323,6 +322,9 @@ process = Popen(args, cwd=paths.RHESSYS_BIN, stdout=PIPE, stderr=PIPE)
 #sys.stderr.write(process_stderr)
 if process.returncode != 0:
     sys.exit("grass2world failed, returning %s" % (process.returncode,) )
-RHESSysMetadata.writeRHESSysEntry(context, 'worldfile', 'worldfile')
+RHESSysMetadata.writeRHESSysEntry(context, 'worldfile', worldfileName)
 
 sys.stdout.write('done\n')
+
+# Write processing history
+RHESSysMetadata.appendProcessingHistoryItem(context, cmdline)
