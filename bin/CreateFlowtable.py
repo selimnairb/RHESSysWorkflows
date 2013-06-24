@@ -50,11 +50,14 @@ Pre conditions
    grass_mapset
    rhessys_dir
    cf_bin
+   worldfile
+   template
 
 3. The following metadata entry(ies) must be present in the GRASS section of the metadata associated with the project directory:
    dem_rast
    slope_rast
    streams_rast
+   zero_rast
    roads_rast [optional]
    roofs_rast [optional]
    impervious_rast [optional]
@@ -64,7 +67,8 @@ Post conditions
 1. Flowtable will be created in the RHESSys folder of the project directory.
 
 2. Will write the following entry(ies) to the RHESSys section of metadata associated with the project directory:
-   flowtable
+   surface_flowtable
+   subsurface_flowtable
 
 Usage:
 @code
@@ -92,6 +96,8 @@ parser.add_argument('--routeRoads', dest='routeRoads', required=False, action='s
                     help='Tell createflowpaths to route flow from roads to the nearest stream pixel (requires roads_rast to be defined in metadata)')
 parser.add_argument('--routeRoofs', dest='routeRoofs', required=False, action='store_true',
                     help='Tell createflowpaths to route flow from roof tops based on roof top connectivity to nearest impervious surface (requires roofs_rast and impervious_rast to be defined in metadata)')
+parser.add_argument('-f', '--force', dest='force', action='store_true',
+                    help='Run createflowpaths even if DEM x resolution does not match y resolution')
 parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
                     help='Print detailed information about what the program is doing')
 args = parser.parse_args()
@@ -123,6 +129,10 @@ if not 'rhessys_dir' in metadata:
     sys.exit("Metadata in project directory %s does not contain a RHESSys directory" % (context.projectDir,))
 if not 'cf_bin' in metadata:
     sys.exit("Metadata in project directory %s does not contain a createflowpaths executable" % (context.projectDir,))
+if not 'worldfile' in metadata:
+    sys.exit("Metadata in project directory %s does not contain a worldfile" % (context.projectDir,))
+if not 'template' in metadata:
+    sys.exit("Metadata in project directory %s does not contain a template" % (context.projectDir,))
     
 if not 'dem_rast' in grassMetadata:
     sys.exit("Metadata in project directory %s does not contain a GRASS dataset with a DEM raster" % (context.projectDir,))
@@ -130,7 +140,9 @@ if not 'slope_rast' in grassMetadata:
     sys.exit("Metadata in project directory %s does not contain a GRASS dataset with a slope raster" % (context.projectDir,))
 if not 'streams_rast' in grassMetadata:
     sys.exit("Metadata in project directory %s does not contain a GRASS dataset with a stream raster" % (context.projectDir,))
-    
+if not 'zero_rast' in grassMetadata:
+    sys.exit("Metadata in project directory %s does not contain a GRASS dataset with a zero raster" % (context.projectDir,))
+
 if args.routeRoads:
     if not 'roads_rast' in grassMetadata:
         sys.exit("Metadata in project directory %s does not contain a GRASS dataset with a roads raster" % (context.projectDir,))
@@ -140,4 +152,55 @@ if args.routeRoofs:
         sys.exit("Metadata in project directory %s does not contain a GRASS dataset with a roofs raster" % (context.projectDir,))
     if not 'impervious_rast' in grassMetadata:
         sys.exit("Metadata in project directory %s does not contain a GRASS dataset with a impervious raster" % (context.projectDir,))
+
+demResX = float(studyArea['dem_res_x'])
+demResY = float(studyArea['dem_res_y'])
+if demResX != demResY:
+    sys.stdout.write("DEM x resolution (%f) does not match y resolution (%f)" %
+                     (demResX, demResY) )
+    if not args.force:
+        sys.exit('Exiting.  Use --force option to override')
     
+paths = RHESSysPaths(args.projectDir, metadata['rhessys_dir'])
+
+grassDbase = os.path.join(context.projectDir, metadata['grass_dbase'])
+grassConfig = GRASSConfig(context, grassDbase, metadata['grass_location'], metadata['grass_mapset'])
+grassLib = GRASSLib(grassConfig=grassConfig)
+
+cfPath = os.path.join(context.projectDir, metadata['cf_bin'])
+templatePath = os.path.join(paths.RHESSYS_TEMPLATES, metadata['template'])
+print(templatePath)
+flowTableNameBase = metadata['worldfile']
+flowOutpath = os.path.join(paths.RHESSYS_FLOW, flowTableNameBase)
+print(flowOutpath)
+
+roads = None
+if args.routeRoads:
+    roads = grassMetadata['roads_rast']
+else:
+    roads = grassMetadata['zero_rast']
+
+roofs = None
+impervious = None
+if args.routeRoofs:
+    roofs = grassMetadata['roofs_rast']
+    impervious = grassMetadata['impervious_rast']
+    surfaceFlowtable = "%s_surface.flow" % (flowTableNameBase, )
+    subsurfaceFlowtable = "%s_subsurface.flow" % (flowTableNameBase, )
+else:
+    surfaceFlowtable = subsurfaceFlowtable = "%s.flow" % (flowTableNameBase, )
+  
+# Run CF
+result = grassLib.script.read_command(cfPath, out=flowOutpath, template=templatePath,
+                                      dem=grassMetadata['dem_rast'], 
+                                      slope=grassMetadata['slope_rast'],
+                                      stream=grassMetadata['streams_rast'],
+                                      road=roads, roof=roofs, impervious=impervious,
+                                      cellsize=demResX)
+if None == result:
+    sys.exit("createflowpaths failed, returning %s" % (result,))
+RHESSysMetadata.writeRHESSysEntry(context, 'surface_flowtable', surfaceFlowtable)
+RHESSysMetadata.writeRHESSysEntry(context, 'subsurface_flowtable', subsurfaceFlowtable)
+
+# Write processing history
+RHESSysMetadata.appendProcessingHistoryItem(context, cmdline)
