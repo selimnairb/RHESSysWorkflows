@@ -80,6 +80,7 @@ GenerateLandcoverMaps.py -p /path/to/project_dir
 @note EcoHydroWorkflowLib configuration file must be specified by environmental variable 'ECOHYDROWORKFLOW_CFG',
 or -i option must be specified. 
 
+@todo Add flag for creating a rule dir with empty rules
 @todo separate out LAI: use NASA NEX min and max LAI, then run RHESSys lairead after worldfile is built (eventually we will roll lairead into g2w)
 """
 import os, sys, errno, shutil
