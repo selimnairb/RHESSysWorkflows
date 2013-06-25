@@ -62,12 +62,14 @@ Post conditions
    stratum_rast
    landuse_rast
    impervious_rast
+   roads_rast
    lai_rast
 
 2. Will write the following entry(ies) to the RHESSys section of metadata associated with the project directory:
    landcover_stratum_rule
    landcover_landuse_rule
    landcover_impervious_rule
+   landcover_road_rule
    landcover_lai_rule
 
 Usage:
@@ -94,11 +96,12 @@ from rhessysworkflows.metadata import RHESSysMetadata
 from rhessysworkflows.rhessys import RHESSysPaths
 
 KNOWN_LC_TYPES = ['NLCD2006']
+LC_RULE_ROAD = 'road.rule'
 LC_RULE_IMPERVIOUS = 'impervious.rule'
 LC_RULE_LAI = 'lai.rule'
 LC_RULE_LANDUSE = 'landuse.rule'
 LC_RULE_STRATUM = 'stratum.rule'
-LC_RULES = [LC_RULE_IMPERVIOUS, LC_RULE_LAI, LC_RULE_LANDUSE, LC_RULE_STRATUM]
+LC_RULES = [LC_RULE_ROAD, LC_RULE_IMPERVIOUS, LC_RULE_LAI, LC_RULE_LANDUSE, LC_RULE_STRATUM]
 
 # Handle command line options
 parser = argparse.ArgumentParser(description='Generate landcover maps in GRASS GIS')
@@ -139,7 +142,10 @@ else:
         ruleDir = os.path.abspath(args.ruleDir)
     else:
         sys.exit("Landcover type %s specified, but land cover conversion rule directory not specified")
-    
+
+roadRulePath = os.path.join(ruleDir, LC_RULE_ROAD)
+if not os.access(roadRulePath, os.R_OK):
+    sys.exit("Unable to read %s in rule directory %s" % (roadRulePath, ruleDir) )    
 imperviousRulePath = os.path.join(ruleDir, LC_RULE_IMPERVIOUS)
 if not os.access(imperviousRulePath, os.R_OK):
     sys.exit("Unable to read %s in rule directory %s" % (imperviousRulePath, ruleDir) )
@@ -227,6 +233,13 @@ for key in rasterVals.keys():
     assert(paramsFound)
     paramDB.writeParamFiles(paths.RHESSYS_DEF)
 
+# Reclassify landcover into road map
+result = grassLib.script.read_command('r.reclass', input='landcover', output='roads', 
+                           rules=roadRulePath, overwrite=args.overwrite)
+if None == result:
+    sys.exit("r.reclass failed to create roads map, returning %s" % (result,))
+RHESSysMetadata.writeGRASSEntry(context, 'roads_rast', 'roads')    
+
 # Reclassify landcover into impervious map
 result = grassLib.script.read_command('r.reclass', input='landcover', output='impervious', 
                            rules=imperviousRulePath, overwrite=args.overwrite)
@@ -242,6 +255,7 @@ if None == result:
 RHESSysMetadata.writeGRASSEntry(context, 'lai_rast', 'lai')
 
 # Copy rules used to into project directory
+shutil.copy(roadRulePath, context.projectDir)
 shutil.copy(stratumRulePath, context.projectDir)
 shutil.copy(landuseRulePath, context.projectDir)
 shutil.copy(imperviousRulePath, context.projectDir)
@@ -251,6 +265,7 @@ shutil.copy(laiRulePath, context.projectDir)
 RHESSysMetadata.writeRHESSysEntry(context, 'landcover_stratum_rule', os.path.basename(stratumRulePath))
 RHESSysMetadata.writeRHESSysEntry(context, 'landcover_landuse_rule', os.path.basename(landuseRulePath))
 RHESSysMetadata.writeRHESSysEntry(context, 'landcover_impervious_rule', os.path.basename(imperviousRulePath))
+RHESSysMetadata.writeRHESSysEntry(context, 'landcover_road_rule', os.path.basename(roadRulePath))
 RHESSysMetadata.writeRHESSysEntry(context, 'landcover_lai_rule', os.path.basename(laiRulePath))
 
 # Write processing history
