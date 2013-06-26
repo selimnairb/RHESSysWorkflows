@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-"""@package GenerateRoofConnectivityMap
+"""@package ImportCustomSoilMapIntoGRASS
 
-@brief Import roof raster map into a GRASS location and generate 
-connectivity map.
+@brief Import custom soil raster map into a GRASS location.
 
 This software is provided free of charge under the New BSD License. Please see
 the following license information:
@@ -42,7 +41,7 @@ Pre conditions
    'GRASS', 'GISBASE'
 
 2. The following metadata entry(ies) must be present in the manifest section of the metadata associated with the project directory:
-   roof_connectivity
+   soil
    
 3. The following metadata entry(ies) must be present in the RHESSys section of the metadata associated with the project directory:
    grass_dbase
@@ -52,11 +51,11 @@ Pre conditions
 Post conditions
 ---------------
 1. Will write the following entry(ies) to the GRASS section of metadata associated with the project directory:
-   roofs_rast
+   soil_texture_rast
 
 Usage:
 @code
-GenerateRoofConnectivityMap.py -p /path/to/project_dir
+ImportCustomSoilMapIntoGRASS.py -p /path/to/project_dir
 @endcode
 
 @note EcoHydroWorkflowLib configuration file must be specified by environmental variable 'ECOHYDROWORKFLOW_CFG',
@@ -64,7 +63,6 @@ or -i option must be specified.
 """
 import os, sys, errno, shutil
 import argparse
-import ConfigParser
 
 from ecohydrolib.grasslib import *
 
@@ -73,7 +71,7 @@ from rhessysworkflows.metadata import RHESSysMetadata
 from rhessysworkflows.rhessys import RHESSysPaths
 
 # Handle command line options
-parser = argparse.ArgumentParser(description='Generate roof connectivity map in GRASS GIS. Roof map should, defined by roof_connectivity raster, should be an floating point raster with values [0-1] representing proportion of flow from each roof pixel that should be routed to the nearest impervious surface; all other values NULL.')
+parser = argparse.ArgumentParser(description='Import custom soil raster map into a GRASS GIS. Raster values must correspond to valid soil classes defined in RHESSys ParamDB')
 parser.add_argument('-i', '--configfile', dest='configfile', required=False,
                     help='The configuration file. Must define section "GRASS" and option "GISBASE"')
 parser.add_argument('-p', '--projectDir', dest='projectDir', required=True,
@@ -91,8 +89,8 @@ context = Context(args.projectDir, configFile)
 
 # Check for necessary information in metadata
 manifest = RHESSysMetadata.readManifestEntries(context)
-if not 'roof_connectivity' in manifest:
-    sys.exit("Metadata in project directory %s does not contain a roof_connectivity raster" % (context.projectDir,))
+if not 'soil' in manifest:
+    sys.exit("Metadata in project directory %s does not contain a soil raster" % (context.projectDir,))
 
 metadata = RHESSysMetadata.readRHESSysEntries(context)
 if not 'grass_dbase' in metadata:
@@ -109,12 +107,12 @@ grassConfig = GRASSConfig(context, grassDbase, metadata['grass_location'], metad
 grassLib = GRASSLib(grassConfig=grassConfig)
 
 # Import roof_connectivity raster map into GRASS
-roofRasterPath = os.path.join(context.projectDir, manifest['roof_connectivity'])
-result = grassLib.script.run_command('r.in.gdal', input=roofRasterPath, output='roofs', overwrite=args.overwrite)
+soilRasterPath = os.path.join(context.projectDir, manifest['soil'])
+result = grassLib.script.run_command('r.in.gdal', input=soilRasterPath, output='soil', overwrite=args.overwrite)
 if result != 0:
-    sys.exit("Failed to import roof connectivity into GRASS dataset %s/%s, results:\n%s" % \
+    sys.exit("Failed to import soil raster into GRASS dataset %s/%s, result:\n%s" % \
              (grassDbase, metadata['grass_location'], result) )
-RHESSysMetadata.writeGRASSEntry(context, 'roofs_rast', 'roofs')
+RHESSysMetadata.writeGRASSEntry(context, 'soil_texture_rast', 'soil')
 
 # Write processing history
 RHESSysMetadata.appendProcessingHistoryItem(context, cmdline)
