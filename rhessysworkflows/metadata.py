@@ -65,6 +65,14 @@ class RHESSysMetadata(GenericMetadata):
     RHESSYS_SECTION = 'rhessys'
     # Patch list of valid sections
     GenericMetadata.SECTIONS.append(RHESSYS_SECTION)
+   
+    RULES_DIR = 'rules' 
+    KNOWN_LC_TYPES = ['NLCD2006']
+    LC_RULE_ROAD = 'road.rule'
+    LC_RULE_IMPERVIOUS = 'impervious.rule'
+    LC_RULE_LANDUSE = 'landuse.rule'
+    LC_RULE_STRATUM = 'stratum.rule'
+    LC_RULES = [LC_RULE_ROAD, LC_RULE_IMPERVIOUS, LC_RULE_LANDUSE, LC_RULE_STRATUM]
     
     @staticmethod
     def checkWorkflowVersion(projectDir):
