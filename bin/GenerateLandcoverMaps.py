@@ -42,8 +42,8 @@ Pre conditions
    'GRASS', 'GISBASE'
    'RHESSYS', 'PATH_OF_PARAMDB'
 
-2. The following metadata entry(ies) must be present in the manifest section of the metadata associated with the project directory:
-   landcover
+2. The following metadata entry(ies) must be present in the GRASS section of the metadata associated with the project directory:
+   landcover_rast
    
 3. The following metadata entry(ies) must be present in the RHESSys section of the metadata associated with the project directory:
    grass_dbase
@@ -59,7 +59,6 @@ Pre conditions
 Post conditions
 ---------------
 1. Will write the following entry(ies) to the GRASS section of metadata associated with the project directory:
-   landcover_rast
    roads_rast
    impervious_rast
    landuse_rast
@@ -108,9 +107,9 @@ if not os.access(paramDbPath, os.R_OK):
 paramDbPath = os.path.abspath(paramDbPath)
 
 # Check for necessary information in metadata
-manifest = RHESSysMetadata.readManifestEntries(context)
-if not 'landcover' in manifest:
-    sys.exit("Metadata in project directory %s does not contain a landcover raster" % (context.projectDir,))
+grassMetadata = RHESSysMetadata.readGRASSEntries(context)
+if not 'landcover_rast' in grassMetadata:
+    sys.exit("Metadata in project directory %s does not contain a GRASS dataset with a landcover raster" % (context.projectDir,))
 
 metadata = RHESSysMetadata.readRHESSysEntries(context)
 if not 'grass_dbase' in metadata:
@@ -142,16 +141,10 @@ grassDbase = os.path.join(context.projectDir, metadata['grass_dbase'])
 grassConfig = GRASSConfig(context, grassDbase, metadata['grass_location'], metadata['grass_mapset'])
 grassLib = GRASSLib(grassConfig=grassConfig)
 
-# Import landcover raster map into GRASS
-landcoverRasterPath = os.path.join(context.projectDir, manifest['landcover'])
-result = grassLib.script.run_command('r.in.gdal', input=landcoverRasterPath, output='landcover', overwrite=args.overwrite)
-if result != 0:
-    sys.exit("Failed to import landcover into GRASS dataset %s/%s, results:\n%s" % \
-             (grassDbase, metadata['grass_location'], result) )
-RHESSysMetadata.writeGRASSEntry(context, 'landcover_rast', 'landcover')
+landcoverRast = grassMetadata['landcover_rast']
 
 # Reclassify landcover into stratum map
-result = grassLib.script.read_command('r.reclass', input='landcover', output='stratum', 
+result = grassLib.script.read_command('r.reclass', input=landcoverRast, output='stratum', 
                            rules=stratumRulePath, overwrite=args.overwrite)
 if None == result:
     sys.exit("r.reclass failed to create stratum map, returning %s" % (result,))
@@ -173,7 +166,7 @@ for key in rasterVals.keys():
     paramDB.writeParamFiles(paths.RHESSYS_DEF)
 
 # Reclassify landcover into landuse map
-result = grassLib.script.read_command('r.reclass', input='landcover', output='landuse', 
+result = grassLib.script.read_command('r.reclass', input=landcoverRast, output='landuse', 
                            rules=landuseRulePath, overwrite=args.overwrite)
 if None == result:
     sys.exit("r.reclass failed to create stratum map, returning %s" % (result,))
@@ -195,14 +188,14 @@ for key in rasterVals.keys():
     paramDB.writeParamFiles(paths.RHESSYS_DEF)
 
 # Reclassify landcover into road map
-result = grassLib.script.read_command('r.reclass', input='landcover', output='roads', 
+result = grassLib.script.read_command('r.reclass', input=landcoverRast, output='roads', 
                            rules=roadRulePath, overwrite=args.overwrite)
 if None == result:
     sys.exit("r.reclass failed to create roads map, returning %s" % (result,))
 RHESSysMetadata.writeGRASSEntry(context, 'roads_rast', 'roads')    
 
 # Reclassify landcover into impervious map
-result = grassLib.script.read_command('r.reclass', input='landcover', output='impervious', 
+result = grassLib.script.read_command('r.reclass', input=landcoverRast, output='impervious', 
                            rules=imperviousRulePath, overwrite=args.overwrite)
 if None == result:
     sys.exit("r.reclass failed to create impervious map, returning %s" % (result,))

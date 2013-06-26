@@ -106,10 +106,6 @@ else:
 
 ## Check for necessary information in metadata
 manifest = RHESSysMetadata.readManifestEntries(context)
-#for type in typeList:
-#    if not type in manifest:
-#        sys.exit("Metadata in project directory %s does not contain a %s raster" % (context.projectDir, type))
-
 metadata = RHESSysMetadata.readRHESSysEntries(context)
 if not 'grass_dbase' in metadata:
     sys.exit("Metadata in project directory %s does not contain a GRASS Dbase" % (context.projectDir,)) 
