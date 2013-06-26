@@ -59,7 +59,7 @@ Pre conditions
    streams_rast
    zero_rast
    roads_rast [optional]
-   roofs_rast [optional]
+   roof_connectivity_rast [optional]
    impervious_rast [optional]
    
 Post conditions
@@ -95,7 +95,7 @@ parser.add_argument('-p', '--projectDir', dest='projectDir', required=True,
 parser.add_argument('--routeRoads', dest='routeRoads', required=False, action='store_true',
                     help='Tell createflowpaths to route flow from roads to the nearest stream pixel (requires roads_rast to be defined in metadata)')
 parser.add_argument('--routeRoofs', dest='routeRoofs', required=False, action='store_true',
-                    help='Tell createflowpaths to route flow from roof tops based on roof top connectivity to nearest impervious surface (requires roofs_rast and impervious_rast to be defined in metadata)')
+                    help='Tell createflowpaths to route flow from roof tops based on roof top connectivity to nearest impervious surface (requires roof_connectivity_rast and impervious_rast to be defined in metadata)')
 parser.add_argument('-f', '--force', dest='force', action='store_true',
                     help='Run createflowpaths even if DEM x resolution does not match y resolution')
 parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
@@ -148,7 +148,7 @@ if args.routeRoads:
         sys.exit("Metadata in project directory %s does not contain a GRASS dataset with a roads raster" % (context.projectDir,))
 
 if args.routeRoofs:
-    if not 'roofs_rast' in grassMetadata:
+    if not 'roof_connectivity_rast' in grassMetadata:
         sys.exit("Metadata in project directory %s does not contain a GRASS dataset with a roofs raster" % (context.projectDir,))
     if not 'impervious_rast' in grassMetadata:
         sys.exit("Metadata in project directory %s does not contain a GRASS dataset with a impervious raster" % (context.projectDir,))
@@ -183,7 +183,7 @@ else:
 roofs = None
 impervious = None
 if args.routeRoofs:
-    roofs = grassMetadata['roofs_rast']
+    roofs = grassMetadata['roof_connectivity_rast']
     impervious = grassMetadata['impervious_rast']
     surfaceFlowtable = "%s_surface.flow" % (flowTableNameBase, )
     subsurfaceFlowtable = "%s_subsurface.flow" % (flowTableNameBase, )

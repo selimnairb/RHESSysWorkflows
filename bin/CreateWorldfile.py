@@ -63,7 +63,7 @@ Pre conditions
    east_horizon_rast
    west_horizon_rast
    patch_rast
-   soils_rast
+   soil_rast
    landuse_rast
    wetness_index_rast 
    stratum_rast
@@ -277,7 +277,7 @@ subs['isohyet_rast'] = grassMetadata['zero_rast']
 subs['east_horizon_rast'] = grassMetadata['east_horizon_rast']
 subs['west_horizon_rast'] = grassMetadata['west_horizon_rast']
 subs['patch_rast'] = grassMetadata['patch_rast']
-subs['soils_rast'] = grassMetadata['soils_rast']
+subs['soil_rast'] = grassMetadata['soil_rast']
 subs['landuse_rast'] = grassMetadata['landuse_rast']
 subs['wetness_index_rast'] = grassMetadata['wetness_index_rast'] 
 subs['stratum_rast'] = grassMetadata['stratum_rast']

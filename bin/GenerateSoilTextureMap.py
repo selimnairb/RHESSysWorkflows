@@ -59,8 +59,7 @@ Post conditions
 1. Will write the following entry(ies) to the GRASS section of metadata associated with the project directory:
    soil_avgsand_rast
    soil_avgclay_rast
-   soil_texture_rast
-
+   soil_rast
 Usage:
 @code
 PYTHONPATH=${PYTHONPATH}:../EcohydroWorkflowLib python2.7 ./GenerateSoilTextureMap.py -p ../../../scratchspace/scratch7
@@ -152,7 +151,7 @@ result = grassLib.script.read_command(soilTexture, sand='soil_avgsand', clay='so
                                       scheme=schemePath, output='soil_texture', overwrite=args.overwrite)
 if None == result:
     sys.exit("r.soils.texture failed, returning %s" % (result,))
-RHESSysMetadata.writeGRASSEntry(context, 'soils_rast', 'soil_texture')
+RHESSysMetadata.writeGRASSEntry(context, 'soil_rast', 'soil_texture')
 
 # Fetch relevant soil default files from param DB
 pipe = grassLib.script.pipe_command('r.stats', flags='licn', input='soil_texture')

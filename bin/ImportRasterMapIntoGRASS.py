@@ -1,7 +1,8 @@
 #!/usr/bin/env python
-"""@package ImportCustomSoilMapIntoGRASS
+"""@package ImportRasterMapIntoGRASS
 
-@brief Import custom soil raster map into a GRASS location.
+@brief Import raster map already registered in metadata via EcohydroLib.RegisterRaster, into GRASS.
+Raster type must be one of RHESSysMetadata.RASTER_TYPES.
 
 This software is provided free of charge under the New BSD License. Please see
 the following license information:
@@ -40,8 +41,12 @@ Pre conditions
 1. Configuration file must define the following sections and values:
    'GRASS', 'GISBASE'
 
-2. The following metadata entry(ies) must be present in the manifest section of the metadata associated with the project directory:
+2. One or more of the following metadata entry(ies) must be present in the manifest section of the metadata associated with the project directory:
+   rhessysworkflows.metadata.RASTER_TYPES, currently:
+   landcover
+   roof_connectivity
    soil
+   lai
    
 3. The following metadata entry(ies) must be present in the RHESSys section of the metadata associated with the project directory:
    grass_dbase
@@ -50,18 +55,21 @@ Pre conditions
    
 Post conditions
 ---------------
-1. Will write the following entry(ies) to the GRASS section of metadata associated with the project directory:
-   soil_texture_rast
+1. Will write one or more the following entry(ies) to the GRASS section of metadata associated with the project directory:
+   landcover_rast
+   roof_connectivity_rast
+   soil_rast
+   lai_rast
 
 Usage:
 @code
-ImportCustomSoilMapIntoGRASS.py -p /path/to/project_dir
+ImportRasterMapIntoGRASS.py -t RASTER_TYPE_1 [RASTER_TYPE_2 ... RASTER_TYPE_N] -p /path/to/project_dir
 @endcode
 
 @note EcoHydroWorkflowLib configuration file must be specified by environmental variable 'ECOHYDROWORKFLOW_CFG',
 or -i option must be specified. 
 """
-import os, sys, errno, shutil
+import os, sys
 import argparse
 
 from ecohydrolib.grasslib import *
@@ -71,11 +79,15 @@ from rhessysworkflows.metadata import RHESSysMetadata
 from rhessysworkflows.rhessys import RHESSysPaths
 
 # Handle command line options
-parser = argparse.ArgumentParser(description='Import custom soil raster map into a GRASS GIS. Raster values must correspond to valid soil classes defined in RHESSys ParamDB')
+typeChoices = list(RHESSysMetadata.RASTER_TYPES)
+typeChoices.insert(0, 'all')
+parser = argparse.ArgumentParser(description='Import raster map already registered in metadata via EcohydroLib.RegisterRaster, into GRASS. Raster type must be one of RHESSysMetadata.RASTER_TYPES.')
 parser.add_argument('-i', '--configfile', dest='configfile', required=False,
                     help='The configuration file. Must define section "GRASS" and option "GISBASE"')
 parser.add_argument('-p', '--projectDir', dest='projectDir', required=True,
                     help='The directory to which metadata, intermediate, and final files should be saved')
+parser.add_argument('-t', '--type', dest='types', required=True, nargs='+', choices=typeChoices,
+                    help='The type of raster dataset to import, or all if all types should be imported.')
 parser.add_argument('--overwrite', dest='overwrite', action='store_true', required=False,
                     help='Overwrite existing datasets in the GRASS mapset.  If not specified, program will halt if a dataset already exists.')
 args = parser.parse_args()
@@ -87,10 +99,16 @@ if args.configfile:
 
 context = Context(args.projectDir, configFile) 
 
-# Check for necessary information in metadata
+if 'all' in args.types:
+    typeList = RHESSysMetadata.RASTER_TYPES
+else:
+    typeList = args.types
+
+## Check for necessary information in metadata
 manifest = RHESSysMetadata.readManifestEntries(context)
-if not 'soil' in manifest:
-    sys.exit("Metadata in project directory %s does not contain a soil raster" % (context.projectDir,))
+#for type in typeList:
+#    if not type in manifest:
+#        sys.exit("Metadata in project directory %s does not contain a %s raster" % (context.projectDir, type))
 
 metadata = RHESSysMetadata.readRHESSysEntries(context)
 if not 'grass_dbase' in metadata:
@@ -106,13 +124,19 @@ grassDbase = os.path.join(context.projectDir, metadata['grass_dbase'])
 grassConfig = GRASSConfig(context, grassDbase, metadata['grass_location'], metadata['grass_mapset'])
 grassLib = GRASSLib(grassConfig=grassConfig)
 
-# Import roof_connectivity raster map into GRASS
-soilRasterPath = os.path.join(context.projectDir, manifest['soil'])
-result = grassLib.script.run_command('r.in.gdal', input=soilRasterPath, output='soil', overwrite=args.overwrite)
-if result != 0:
-    sys.exit("Failed to import soil raster into GRASS dataset %s/%s, result:\n%s" % \
-             (grassDbase, metadata['grass_location'], result) )
-RHESSysMetadata.writeGRASSEntry(context, 'soil_texture_rast', 'soil')
+# Import raster maps into GRASS
+for type in typeList:
+    if type in manifest:
+        sys.stdout.write("Importing %s raster..." % (type,) )
+        sys.stdout.flush()
+        rasterPath = os.path.join(context.projectDir, manifest[type])
+        result = grassLib.script.run_command('r.in.gdal', input=rasterPath, output=type, overwrite=args.overwrite)
+        if result != 0:
+            sys.exit("Failed to import raster %s into GRASS dataset %s/%s, result:\n%s" % \
+                     (type, grassDbase, metadata['grass_location'], result) )
+        grassEntryKey = "%s_rast" % (type,)
+        RHESSysMetadata.writeGRASSEntry(context, grassEntryKey, type)
+        sys.stdout.write('done\n')
 
 # Write processing history
 RHESSysMetadata.appendProcessingHistoryItem(context, cmdline)
