@@ -309,6 +309,17 @@ RHESSysMetadata.writeRHESSysEntry(context, 'template', templateFilename)
 sys.stdout.write('done\n')
 
 ## 4. Run grass2world
+# Make sure mask and region are properly set
+demRast = grassMetadata['dem_rast']
+result = grassLib.script.run_command('g.region', rast=demRast)
+if result != 0:
+    sys.exit("g.region failed to set region to DEM, returning %s" % (result,))
+
+basinRast = grassMetadata['basin_rast']
+result = grassLib.script.run_command('r.mask', flags='o', input=basinRast, maskcats='1')
+if result != 0:
+    sys.exit("r.mask failed to set mask to basin, returning %s" % (result,))
+
 worldfileName = templateFilename.replace('template', 'world')
 g2wPath = os.path.join(context.projectDir, metadata['g2w_bin'])
 worldfilePath = os.path.join(paths.RHESSYS_WORLD, worldfileName)
@@ -321,8 +332,9 @@ args = g2wCommand.split()
 #print args
 process = Popen(args, cwd=paths.RHESSYS_BIN, stdout=PIPE, stderr=PIPE)
 (process_stdout, process_stderr) = process.communicate()
-#sys.stdout.write(process_stdout)
-#sys.stderr.write(process_stderr)
+if args.verbose:
+    sys.stdout.write(process_stdout)
+    sys.stderr.write(process_stderr)
 if process.returncode != 0:
     sys.exit("\n\ngrass2world failed, returning %s" % (process.returncode,) )
 RHESSysMetadata.writeRHESSysEntry(context, 'worldfile', worldfileName)
