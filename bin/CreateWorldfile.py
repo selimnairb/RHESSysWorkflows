@@ -37,13 +37,12 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 Pre conditions
 --------------
-1. Configuration file must define the following sections and values:
-   'RHESSYS', 'PATH_OF_PARAMDB'
-
-2. The following metadata entry(ies) must be present in the study area section of the metadata associated with the project directory: 
+1. The following metadata entry(ies) must be present in the study area section of the metadata associated with the project directory: 
    bbox_wgs84
 
-3. The following metadata entry(ies) must be present in the RHESSys section of the metadata associated with the project directory:
+2. The following metadata entry(ies) must be present in the RHESSys section of the metadata associated with the project directory:
+   paramdb
+   paramdb_dir
    grass_dbase
    grass_location
    grass_mapset
@@ -53,7 +52,7 @@ Pre conditions
    climate_stations
    template_template
 
-4. The following metadata entry(ies) must be present in the GRASS section of the metadata associated with the project directory:
+3. The following metadata entry(ies) must be present in the GRASS section of the metadata associated with the project directory:
    basin_rast
    dem_rast
    hillslope_rast
@@ -89,9 +88,6 @@ import re
 import argparse
 from subprocess import *
 
-from rhessys.params import paramDB
-import rhessys.constants as paramConst
-
 from ecohydrolib.grasslib import *
 from ecohydrolib.spatialdata.utils import bboxFromString
 from ecohydrolib.spatialdata.utils import calculateBoundingBoxCenter
@@ -120,11 +116,6 @@ if args.configfile:
 
 context = Context(args.projectDir, configFile) 
 
-paramDbPath = context.config.get('RHESSYS', 'PATH_OF_PARAMDB')
-if not os.access(paramDbPath, os.R_OK):
-    sys.exit("Unable to read RHESSys parameters database %s" % (paramDbPath,) )
-paramDbPath = os.path.abspath(paramDbPath)
-
 # Check for necessary information in metadata
 studyArea = RHESSysMetadata.readStudyAreaEntries(context)
 grassMetadata = RHESSysMetadata.readGRASSEntries(context)
@@ -145,16 +136,28 @@ if not 'climate_stations' in metadata:
     sys.exit("Metadata in project directory %s does not contain a list of climate stations" % (context.projectDir,))
 if not 'template_template' in metadata:
     sys.exit("Metadata in project directory %s does not contain a template template" % (context.projectDir,))
+if not 'paramdb_dir' in metadata:
+    sys.exit("Metadata in project directory %s does not contain a ParamDB directory" % (context.projectDir,))
+if not 'paramdb' in metadata:
+    sys.exit("Metadata in project directory %s does not contain a ParamDB" % (context.projectDir,))
 
 if not args.climateStations <= metadata['climate_stations']:
     sys.exit("Some of the chosen climate stations (%s) were not found in the climate station list in metadata (%s)" %
              (str(args.climateStations), str(metadata['climate_stations']) ) )
 
+paths = RHESSysPaths(args.projectDir, metadata['rhessys_dir'])
+
+# Import ParamDB from project directory
+paramDbPath = os.path.join(context.projectDir, metadata['paramdb'])
+if not os.access(paramDbPath, os.R_OK):
+    sys.exit("Unable to read RHESSys parameters database %s" % (paramDbPath,) )
+sys.path.append( os.path.join(context.projectDir, metadata['paramdb_dir']) )
+params = importlib.import_module('rhessys.params')
+paramConst = importlib.import_module('rhessys.constants')
+paramDB = params.paramDB(filename=paramDbPath)
+
 bbox = bboxFromString(studyArea['bbox_wgs84'])
 (longitude, latitude) = calculateBoundingBoxCenter(bbox)
-
-paths = RHESSysPaths(args.projectDir, metadata['rhessys_dir'])
-paramDB = paramDB(filename=paramDbPath)
 
 # Set up GRASS environment
 modulePath = context.config.get('GRASS', 'MODULE_PATH')
@@ -312,7 +315,7 @@ worldfilePath = os.path.join(paths.RHESSYS_WORLD, worldfileName)
 g2wCommand = "%s -t %s -w %s" % (g2wPath, templateFilepath, worldfilePath)
 if args.verbose:
     print(g2wCommand)
-sys.stdout.write('\nRunning grass2world...')
+sys.stdout.write("\nRunning grass2world from %s..." % (paths.RHESSYS_BIN,) )
 sys.stdout.flush()
 args = g2wCommand.split()
 #print args
@@ -321,10 +324,10 @@ process = Popen(args, cwd=paths.RHESSYS_BIN, stdout=PIPE, stderr=PIPE)
 #sys.stdout.write(process_stdout)
 #sys.stderr.write(process_stderr)
 if process.returncode != 0:
-    sys.exit("grass2world failed, returning %s" % (process.returncode,) )
+    sys.exit("\n\ngrass2world failed, returning %s" % (process.returncode,) )
 RHESSysMetadata.writeRHESSysEntry(context, 'worldfile', worldfileName)
 
-sys.stdout.write('done\n')
+sys.stdout.write('\n\nFinished creating worldfile\n')
 
 # Write processing history
 RHESSysMetadata.appendProcessingHistoryItem(context, cmdline)

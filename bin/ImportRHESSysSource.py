@@ -4,7 +4,7 @@
 @brief Import RHESSys source code into project directory; Will import either from the
 Git repository hosted on GitHub, from a local copy of the source tree.  The local 
 source tree must be root of the RHESSys source tree and contain the following source
-sub-directories: cf, g2w, and rhessys. 
+sub-directories: cf, g2w, and rhessys.  Will also import RHESSys ParamDB from GitHub.
 
 This software is provided free of charge under the New BSD License. Please see
 the following license information:
@@ -59,6 +59,11 @@ Post conditions
 3. Will write the following entry(ies) to the RHESSys section of metadata associated with the project directory:
    rhessys_src
    rhessys_branch or rhessys_tag (if specified)
+   rhessys_sha (if ImportRHESSysSource fetched source from Git repository)
+   paramdb_src
+   paramdb_sha
+   paramdb_dir
+   paramdb
    template_template
    exec_dir (directory within project directory containing executables)
    rhessys_bin
@@ -67,13 +72,12 @@ Post conditions
    g2w_bin
    lairead_bin
 
-
 Usage:
 @code
 ImportRHESSysSource.py -p /path/to/project_dir
 @endcode
 
-@todo Save commend SHA to metadata (for GitHub import)
+@todo Clear tag, branch, sha metadata fields when -s 
 """
 import os, sys, errno, stat
 import argparse
@@ -86,6 +90,10 @@ from rhessysworkflows.context import Context
 from rhessysworkflows.metadata import RHESSysMetadata
 from rhessysworkflows.rhessys import RHESSysPaths
 
+PARAM_DB_REPO_URL = 'https://github.com/RHESSys/ParamDB.git'
+paramDBDir = 'ParamDB'
+paramDBName = 'params.sqlite'
+
 RHESSYS_REPO_URL = 'https://github.com/RHESSys/RHESSys.git'
 TEMPLATE_PATH = os.path.join('util', 'templates', 'template.template')
 
@@ -96,10 +104,11 @@ parser.add_argument('-i', '--configfile', dest='configfile', required=False,
 parser.add_argument('-p', '--projectDir', dest='projectDir', required=True,
                     help='The directory to which metadata, intermediate, and final files should be saved')
 parser.add_argument('-s', '--sourceDir', dest='sourceDir', required=False,
-                    help='The directory from which RHESys source should be copied')
-parser.add_argument('-t', '--tag', dest='tag', required=False,
+                    help='The directory from which RHESys source should be copied. NOTE: will delete any sources already in the project directory')
+group = parser.add_mutually_exclusive_group()
+group.add_argument('-t', '--tag', dest='tag', required=False,
                     help='Use source code from the specified tagged version of RHESSys; applies only when code is cloned from Git directory (i.e. -s not specified)')
-parser.add_argument('-b', '--branch', dest='branch', required=False,
+group.add_argument('-b', '--branch', dest='branch', required=False,
                     help='Use source code from the specified branch of the RHESSys source; applies only when code is cloned from Git directory (i.e. -s not specified)')
 parser.add_argument('--overwrite', dest='overwrite', action='store_true', required=False,
                     help='Overwrite existing source code in the project directory; If specified, will delete existing code before importing new code.  If not specified, new code will be added to existing code.')
@@ -119,21 +128,72 @@ makePath = context.config.get('RHESSYS', 'PATH_OF_MAKE')
 # Check for necessary information in metadata
 metadata = RHESSysMetadata.readRHESSysEntries(context)
 paths = RHESSysPaths(args.projectDir, metadata['rhessys_dir'])
+
+paramDBPath = os.path.join(paths.DB_DIR, paramDBDir)
     
 if args.overwrite:
-    print("Deleting existing source code in %s" % (paths.RHESSYS_SRC,) )
+    sys.stdout.write("Deleting existing paramDB in %s\n" % (paramDBPath,) )
     # Delete any existing source
-    contents = os.listdir(paths.RHESSYS_SRC)
-    for entry in contents:
-        toDelete = os.path.join(paths.RHESSYS_SRC, entry)
-        if os.path.isdir(toDelete):
-            shutil.rmtree(toDelete)
-        else:
-            os.unlink(toDelete)
+    try:
+        contents = os.listdir(paramDBPath)
+        for entry in contents:
+            toDelete = os.path.join(paramDBPath, entry)
+            if os.path.isdir(toDelete):
+                shutil.rmtree(toDelete)
+            else:
+                os.unlink(toDelete)
+    except OSError as e:
+        if e.errno != errno.ENOENT:
+            raise e
+        
+    sys.stdout.write("Deleting existing source code in %s\n" % (paths.RHESSYS_SRC,) )
+    # Delete any existing source
+    try:
+        contents = os.listdir(paths.RHESSYS_SRC)
+        for entry in contents:
+            toDelete = os.path.join(paths.RHESSYS_SRC, entry)
+            if os.path.isdir(toDelete):
+                shutil.rmtree(toDelete)
+            else:
+                os.unlink(toDelete)
+    except OSError as e:
+        if e.errno != errno.ENOENT:
+            raise e
 
-## 1. Import code from local disk, or from GitHub            
+## 1. Fetch ParamDB
+gitCommand = "%s clone %s %s" % (gitPath, PARAM_DB_REPO_URL, paramDBPath)
+sha1Identifier = 'HEAD'
+returnCode = os.system(gitCommand)
+if returnCode != 0:
+    sys.exit("Git command '%s' failed." % (gitCommand, ) )
+# Write metadata
+RHESSysMetadata.writeRHESSysEntry(context, 'paramdb_src', PARAM_DB_REPO_URL)
+# Get SHA1 hash for version of ParamDB we are using, then store the hash in metadata
+gitCommand = "%s rev-parse %s" % (gitPath, sha1Identifier)
+process = Popen(gitCommand, shell=True, stdout=PIPE, cwd=paramDBPath)
+(processStdout, processStderr) = process.communicate()
+try:
+    sha = processStdout.splitlines()[0]
+    RHESSysMetadata.writeRHESSysEntry(context, 'paramdb_sha', sha)
+except IndexError:
+    pass
+# Find ParamDB
+contents = os.listdir(paramDBPath)
+found = False
+for entry in contents:
+    if entry == paramDBName:
+        found = True
+        break
+if not found:
+    sys.exit("Unable to find parameter database %s in %s" % (paramDBName, paramDBPath) )
+paramDBDir = os.path.join(metadata['rhessys_dir'], paths._DB, paramDBDir)
+paramDBPath = os.path.join(paramDBDir, paramDBName)
+RHESSysMetadata.writeRHESSysEntry(context, 'paramdb_dir', paramDBDir)
+RHESSysMetadata.writeRHESSysEntry(context, 'paramdb', paramDBPath)
+
+## 2. Import code from local disk, or from GitHub            
 if args.sourceDir:
-    # sourceDir specified, import source code from sourceDir
+    # Import source code from sourceDir
     if not os.access(args.sourceDir, os.R_OK):
         sys.exit("The specified path of the RHESSys source directory, %s, is not readable" % (args.sourceDir,) )
     if not os.path.isdir(args.sourceDir):
@@ -160,17 +220,18 @@ if args.sourceDir:
                  (args.sourceDir, TEMPLATE_PATH) )
     
     # Delete paths.RHESSYS_SRC so that we can use shutil.copytree (which will recreate paths.RHESSYS_SRC)
+    sys.stdout.write("Copying RHESSys source from %s..." % (args.sourceDir,) )
+    sys.stdout.flush()
     shutil.rmtree(paths.RHESSYS_SRC)
     shutil.copytree(args.sourceDir, paths.RHESSYS_SRC)
+    sys.stdout.write('done\n')
     # Write metadata
     RHESSysMetadata.writeRHESSysEntry(context, 'rhessys_src', os.path.abspath(args.sourceDir) )
     
-else:
-    if args.branch and args.tag:
-        sys.exit("You can only specify either a branch or a tag, not both")
-    
+else:   
     # Import from GitHub
     gitCommand = "%s clone %s %s" % (gitPath, RHESSYS_REPO_URL, paths.RHESSYS_SRC)
+    sha1Identifier = 'HEAD'
     returnCode = os.system(gitCommand)
     if returnCode != 0:
         sys.exit("Git command '%s' failed." % (gitCommand, ) )
@@ -179,6 +240,7 @@ else:
     
     if args.branch or args.tag:
         gitCommand = None
+        gitSHA1Command = None
         # Check out desired branch or tag
         if args.branch:
             branchRegex = re.compile('^\s*origin/(.+)$')
@@ -195,6 +257,7 @@ else:
                 sys.stdout.write("Branch %s not found, using default branch\n" % (args.branch,) )
             else:
                 gitCommand = "%s checkout %s" % (gitPath, args.branch)
+                sha1Identifier = args.branch
             # Write metadata
             RHESSysMetadata.writeRHESSysEntry(context, 'rhessys_branch', args.branch)
         if args.tag:
@@ -210,6 +273,7 @@ else:
                 sys.stdout.write("Tag %s not found, using default tag\n" % (args.tag,) )
             else:
                 gitCommand = "%s checkout %s" % (gitPath, args.tag)
+                sha1Identifier = args.tag
             # Write metadata
             RHESSysMetadata.writeRHESSysEntry(context, 'rhessys_tag', args.tag)
         if gitCommand:        
@@ -218,6 +282,16 @@ else:
             returnCode = process.wait()
             if returnCode != 0:
                 sys.exit("Git command '%s' failed" % (gitCommand,) )
+    # Get SHA1 hash for version of RHESSys we are using, then store the hash in metadata
+    if sha1Identifier:
+        gitCommand = "%s rev-parse %s" % (gitPath, sha1Identifier)
+        process = Popen(gitCommand, shell=True, stdout=PIPE, cwd=paths.RHESSYS_SRC)
+        (processStdout, processStderr) = process.communicate()
+        try:
+            sha = processStdout.splitlines()[0]
+            RHESSysMetadata.writeRHESSysEntry(context, 'rhessys_sha', sha)
+        except IndexError:
+            pass
                 
 # Make sure there is a template in the imported source
 templatePath = os.path.join(paths.RHESSYS_SRC, TEMPLATE_PATH)
@@ -225,7 +299,7 @@ print(templatePath)
 if not os.path.exists(templatePath):
     sys.exit("Template template not found in source imported to %s" % (paths.RHESSYS_SRC,) )
             
-## 2. Compile code
+## 3. Compile code
 # Set GISBASE (needed to compile g2w, cf, lairead)
 os.environ['GISBASE'] = gisBase
 permissions = stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR
@@ -322,6 +396,8 @@ os.chmod(rhessysDest, permissions)
 RHESSysMetadata.writeRHESSysEntry(context, 'rhessys_bin', os.path.join(metadata['rhessys_dir'], 'bin', rhessysBin) )
 RHESSysMetadata.writeRHESSysEntry(context, 'exec_dir', os.path.join(metadata['rhessys_dir'], 'bin') )
 RHESSysMetadata.writeRHESSysEntry(context, 'template_template', os.path.join(metadata['rhessys_dir'], 'src', TEMPLATE_PATH) )
+
+sys.stdout.write('\n\nFinished importing RHESSys source\n')
 
 # Write processing history
 RHESSysMetadata.appendProcessingHistoryItem(context, cmdline)

@@ -40,13 +40,14 @@ Pre conditions
 --------------
 1. Configuration file must define the following sections and values:
    'GRASS', 'GISBASE'
-   'RHESSYS', 'PATH_OF_PARAMDB'
 
 2. The following metadata entry(ies) must be present in the manifest section of the metadata associated with the project directory:
    soil_raster_avgsand
    soil_raster_avgclay
 
 3. The following metadata entry(ies) must be present in the RHESSys section of the metadata associated with the project directory:
+   paramdb
+   paramdb_dir
    grass_dbase
    grass_location
    grass_mapset
@@ -60,6 +61,7 @@ Post conditions
    soil_avgsand_rast
    soil_avgclay_rast
    soil_rast
+   
 Usage:
 @code
 PYTHONPATH=${PYTHONPATH}:../EcohydroWorkflowLib python2.7 ./GenerateSoilTextureMap.py -p ../../../scratchspace/scratch7
@@ -70,9 +72,6 @@ or -i option must be specified.
 """
 import os, sys, errno
 import argparse
-
-from rhessys.params import paramDB
-import rhessys.constants as paramConst
 
 from ecohydrolib.grasslib import *
 
@@ -97,11 +96,6 @@ if args.configfile:
 
 context = Context(args.projectDir, configFile) 
 
-paramDbPath = context.config.get('RHESSYS', 'PATH_OF_PARAMDB')
-if not os.access(paramDbPath, os.R_OK):
-    sys.exit("Unable to read RHESSys parameters database %s" % (paramDbPath,) )
-paramDbPath = os.path.abspath(paramDbPath)
-
 # Check for necessary information in metadata
 manifest = RHESSysMetadata.readManifestEntries(context)
 if not 'soil_raster_avgsand' in manifest:
@@ -116,9 +110,21 @@ if not 'grass_location' in metadata:
     sys.exit("Metadata in project directory %s does not contain a GRASS location" % (context.projectDir,)) 
 if not 'grass_mapset' in metadata:
     sys.exit("Metadata in project directory %s does not contain a GRASS mapset" % (context.projectDir,))
+if not 'paramdb_dir' in metadata:
+    sys.exit("Metadata in project directory %s does not contain a ParamDB directory" % (context.projectDir,))
+if not 'paramdb' in metadata:
+    sys.exit("Metadata in project directory %s does not contain a ParamDB" % (context.projectDir,))
 
 paths = RHESSysPaths(args.projectDir, metadata['rhessys_dir'])
-paramDB = paramDB(filename=paramDbPath)
+
+# Import ParamDB from project directory
+paramDbPath = os.path.join(context.projectDir, metadata['paramdb'])
+if not os.access(paramDbPath, os.R_OK):
+    sys.exit("Unable to read RHESSys parameters database %s" % (paramDbPath,) )
+sys.path.append( os.path.join(context.projectDir, metadata['paramdb_dir']) )
+params = importlib.import_module('rhessys.params')
+paramConst = importlib.import_module('rhessys.constants')
+paramDB = params.paramDB(filename=paramDbPath)
 
 # Set up GRASS environment
 modulePath = context.config.get('GRASS', 'MODULE_PATH')
