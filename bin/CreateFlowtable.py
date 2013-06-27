@@ -165,7 +165,8 @@ if demResX != demResY:
     if not args.force:
         sys.exit('Exiting.  Use --force option to override')
     
-paths = RHESSysPaths(args.projectDir, metadata['rhessys_dir'])
+rhessysDir = metadata['rhessys_dir']
+paths = RHESSysPaths(args.projectDir, rhessysDir)
 
 # Set up GRASS environment
 grassDbase = os.path.join(context.projectDir, metadata['grass_dbase'])
@@ -190,9 +191,9 @@ else:
         sys.exit("r.mask filed, returning %s" % (result,) )
 
 cfPath = os.path.join(context.projectDir, metadata['cf_bin'])
-templatePath = os.path.join(paths.RHESSYS_TEMPLATES, metadata['template'])
+templatePath = os.path.join(context.projectDir, metadata['template'])
 print(templatePath)
-flowTableNameBase = metadata['worldfile']
+flowTableNameBase = os.path.basename(metadata['worldfile'])
 flowOutpath = os.path.join(paths.RHESSYS_FLOW, flowTableNameBase)
 print(flowOutpath)
 
@@ -221,8 +222,8 @@ result = grassLib.script.read_command(cfPath, out=flowOutpath, template=template
                                       cellsize=demResX)
 if None == result:
     sys.exit("createflowpaths failed, returning %s" % (result,))
-RHESSysMetadata.writeRHESSysEntry(context, 'surface_flowtable', surfaceFlowtable)
-RHESSysMetadata.writeRHESSysEntry(context, 'subsurface_flowtable', subsurfaceFlowtable)
+RHESSysMetadata.writeRHESSysEntry(context, 'surface_flowtable', os.path.join(rhessysDir, paths._FLOW, surfaceFlowtable) )
+RHESSysMetadata.writeRHESSysEntry(context, 'subsurface_flowtable', os.path.join(rhessysDir, paths._FLOW, subsurfaceFlowtable) )
 
 sys.stdout.write('\n\nFinished creating flowtable\n')
 

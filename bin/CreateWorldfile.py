@@ -147,7 +147,8 @@ if not args.climateStations <= metadata['climate_stations']:
     sys.exit("Some of the chosen climate stations (%s) were not found in the climate station list in metadata (%s)" %
              (str(args.climateStations), str(metadata['climate_stations']) ) )
 
-paths = RHESSysPaths(args.projectDir, metadata['rhessys_dir'])
+rhessysDir = metadata['rhessys_dir']
+paths = RHESSysPaths(args.projectDir, rhessysDir)
 
 # Import ParamDB from project directory
 paramDbPath = os.path.join(context.projectDir, metadata['paramdb'])
@@ -308,7 +309,7 @@ templateFilepath = os.path.join(paths.RHESSYS_TEMPLATES, templateFilename)
 f = open(templateFilepath, 'w')
 f.write(templateStr)
 f.close()
-RHESSysMetadata.writeRHESSysEntry(context, 'template', templateFilename)
+RHESSysMetadata.writeRHESSysEntry(context, 'template', os.path.join(rhessysDir, paths._TEMPLATES, templateFilename) )
 
 sys.stdout.write('done\n')
 
@@ -340,7 +341,7 @@ if args.verbose:
     sys.stderr.write(process_stderr)
 if process.returncode != 0:
     sys.exit("\n\ngrass2world failed, returning %s" % (process.returncode,) )
-RHESSysMetadata.writeRHESSysEntry(context, 'worldfile', worldfileName)
+RHESSysMetadata.writeRHESSysEntry(context, 'worldfile', os.path.join(rhessysDir, paths._WORLD, worldfileName) )
 
 sys.stdout.write('\n\nFinished creating worldfile\n')
 
