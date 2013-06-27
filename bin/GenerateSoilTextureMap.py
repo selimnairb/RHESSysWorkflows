@@ -53,7 +53,10 @@ Pre conditions
    grass_mapset
    rhessys_dir
    
-4. Requires r.soils.texture GRASS extension: http://grasswiki.osgeo.org/wiki/GRASS_AddOns#r.soils.texture
+4. The following metadata entry(ies) must be present in the GRASS section of the metadata associated with the project directory:
+   dem_rast
+   
+5. Requires r.soils.texture GRASS extension: http://grasswiki.osgeo.org/wiki/GRASS_AddOns#r.soils.texture
 
 Post conditions
 ---------------
@@ -69,6 +72,8 @@ PYTHONPATH=${PYTHONPATH}:../EcohydroWorkflowLib python2.7 ./GenerateSoilTextureM
 
 @note EcoHydroWorkflowLib configuration file must be specified by environmental variable 'ECOHYDROWORKFLOW_CFG',
 or -i option must be specified. 
+
+@todo Remove mask before running
 """
 import os, sys, errno
 import argparse
@@ -115,6 +120,11 @@ if not 'paramdb_dir' in metadata:
 if not 'paramdb' in metadata:
     sys.exit("Metadata in project directory %s does not contain a ParamDB" % (context.projectDir,))
 
+grassMetadata = RHESSysMetadata.readGRASSEntries(context)
+if not 'dem_rast' in grassMetadata:
+    sys.exit("Metadata in project directory %s does not contain a DEM raster in a GRASS mapset" % (context.projectDir,)) 
+demRast = grassMetadata['dem_rast']
+
 paths = RHESSysPaths(args.projectDir, metadata['rhessys_dir'])
 
 # Import ParamDB from project directory
@@ -132,6 +142,14 @@ moduleEtc = context.config.get('GRASS', 'MODULE_ETC')
 grassDbase = os.path.join(context.projectDir, metadata['grass_dbase'])
 grassConfig = GRASSConfig(context, grassDbase, metadata['grass_location'], metadata['grass_mapset'])
 grassLib = GRASSLib(grassConfig=grassConfig)
+
+# Make sure mask and region are properly set
+result = grassLib.script.run_command('r.mask', flags='r')
+if result != 0:
+    sys.exit("r.mask filed, returning %s" % (result,) )
+result = grassLib.script.run_command('g.region', rast=demRast)
+if result != 0:
+    sys.exit("g.region failed to set region to DEM, returning %s" % (result,))
 
 # Import percent sand and percent clay raster maps into GRASS
 percentSandRasterPath = os.path.join(context.projectDir, manifest['soil_raster_avgsand'])

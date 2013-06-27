@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-"""@package ImportRasterMapIntoGRASS
+"""@package GeneratePatchMap
 
-@brief Import raster map already registered in metadata via EcohydroLib.RegisterRaster, into GRASS.
-Raster type must be one of RHESSysMetadata.RASTER_TYPES.
+@brief Generate patch maps or in GRASS location associated with the project directory.
 
 This software is provided free of charge under the New BSD License. Please see
 the following license information:
@@ -41,57 +40,49 @@ Pre conditions
 1. Configuration file must define the following sections and values:
    'GRASS', 'GISBASE'
 
-2. One or more of the following metadata entry(ies) must be present in the manifest section of the metadata associated with the project directory:
-   rhessysworkflows.metadata.RASTER_TYPES, currently:
-   landcover
-   roof_connectivity
-   soil
-   lai
-   patch
+2. The following metadata entry(ies) must be present in the study area section of the metadata associated with the project directory:
+   dem_rows (if patch type is grid)
+
+3. The following metadata entry(ies) must be present in the GRASS section of the metadata associated with the project directory:
+   basin_rast
+   dem_rast
    
-3. The following metadata entry(ies) must be present in the RHESSys section of the metadata associated with the project directory:
+4. The following metadata entry(ies) must be present in the RHESSys section of the metadata associated with the project directory:
    grass_dbase
    grass_location
    grass_mapset
    
 Post conditions
 ---------------
-1. Will write one or more the following entry(ies) to the GRASS section of metadata associated with the project directory:
-   dem_rast
-   landcover_rast
-   roof_connectivity_rast
-   soil_rast
-   lai_rast
-
+1. Will write the following entry(ies) to the GRASS section of metadata associated with the project directory:
+   patch_rast
+ 
 Usage:
 @code
-ImportRasterMapIntoGRASS.py -t RASTER_TYPE_1 [RASTER_TYPE_2 ... RASTER_TYPE_N] -p /path/to/project_dir
+GeneratePatchMap.py -p /path/to/project_dir
 @endcode
 
 @note EcoHydroWorkflowLib configuration file must be specified by environmental variable 'ECOHYDROWORKFLOW_CFG',
 or -i option must be specified. 
-
-@todo Remove mask before running
 """
-import os, sys
+import os, sys, shutil
 import argparse
 
 from ecohydrolib.grasslib import *
 
 from rhessysworkflows.context import Context
 from rhessysworkflows.metadata import RHESSysMetadata
-from rhessysworkflows.rhessys import RHESSysPaths
+
+PATCH_RAST = 'patch'
 
 # Handle command line options
-typeChoices = list(RHESSysMetadata.RASTER_TYPES)
-typeChoices.insert(0, 'all')
-parser = argparse.ArgumentParser(description='Import raster map already registered in metadata via EcohydroLib.RegisterRaster, into GRASS. Raster type must be one of RHESSysMetadata.RASTER_TYPES.')
+parser = argparse.ArgumentParser(description='Generate patch maps or in GRASS location associated with the project directory.')
 parser.add_argument('-i', '--configfile', dest='configfile', required=False,
                     help='The configuration file. Must define section "GRASS" and option "GISBASE"')
 parser.add_argument('-p', '--projectDir', dest='projectDir', required=True,
                     help='The directory to which metadata, intermediate, and final files should be saved')
-parser.add_argument('-t', '--type', dest='types', required=True, nargs='+', choices=typeChoices,
-                    help='The type of raster dataset to import, or all if all types should be imported.')
+parser.add_argument('-t', '--patchType', dest='patchType', required=True, choices=['grid', 'clump'],
+                    help='Type of patch to be generated: uniform grid or clumps based on elevation')
 parser.add_argument('--overwrite', dest='overwrite', action='store_true', required=False,
                     help='Overwrite existing datasets in the GRASS mapset.  If not specified, program will halt if a dataset already exists.')
 args = parser.parse_args()
@@ -103,13 +94,17 @@ if args.configfile:
 
 context = Context(args.projectDir, configFile) 
 
-if 'all' in args.types:
-    typeList = RHESSysMetadata.RASTER_TYPES
-else:
-    typeList = args.types
+# Check for necessary information in metadata
+studyArea = RHESSysMetadata.readStudyAreaEntries(context)
+if not 'dem_rows' in studyArea:
+    sys.exit("Metadata in project directory %s does not contain DEM rows entry" % (context.projectDir,))
+    
+grassMetadata = RHESSysMetadata.readGRASSEntries(context)
+if not 'basin_rast' in grassMetadata:
+    sys.exit("Metadata in project directory %s does not contain a GRASS dataset with a basin raster" % (context.projectDir,))
+if (args.patchType == 'clump') and (not 'dem_rast' in grassMetadata):
+    sys.exit("Metadata in project directory %s does not contain a GRASS dataset with a DEM raster" % (context.projectDir,))
 
-## Check for necessary information in metadata
-manifest = RHESSysMetadata.readManifestEntries(context)
 metadata = RHESSysMetadata.readRHESSysEntries(context)
 if not 'grass_dbase' in metadata:
     sys.exit("Metadata in project directory %s does not contain a GRASS Dbase" % (context.projectDir,)) 
@@ -118,11 +113,6 @@ if not 'grass_location' in metadata:
 if not 'grass_mapset' in metadata:
     sys.exit("Metadata in project directory %s does not contain a GRASS mapset" % (context.projectDir,))
 
-grassMetadata = RHESSysMetadata.readGRASSEntries(context)
-if not 'dem_rast' in grassMetadata:
-    sys.exit("Metadata in project directory %s does not contain a DEM raster in a GRASS mapset" % (context.projectDir,)) 
-demRast = grassMetadata['dem_rast']
-
 # Set up GRASS environment
 modulePath = context.config.get('GRASS', 'MODULE_PATH')
 grassDbase = os.path.join(context.projectDir, metadata['grass_dbase'])
@@ -130,26 +120,30 @@ grassConfig = GRASSConfig(context, grassDbase, metadata['grass_location'], metad
 grassLib = GRASSLib(grassConfig=grassConfig)
 
 # Make sure mask and region are properly set
-result = grassLib.script.run_command('r.mask', flags='r')
-if result != 0:
-    sys.exit("r.mask filed, returning %s" % (result,) )
+demRast = grassMetadata['dem_rast']
 result = grassLib.script.run_command('g.region', rast=demRast)
 if result != 0:
     sys.exit("g.region failed to set region to DEM, returning %s" % (result,))
 
-# Import raster maps into GRASS
-for type in typeList:
-    if type in manifest:
-        sys.stdout.write("Importing %s raster..." % (type,) )
-        sys.stdout.flush()
-        rasterPath = os.path.join(context.projectDir, manifest[type])
-        result = grassLib.script.run_command('r.in.gdal', input=rasterPath, output=type, overwrite=args.overwrite)
-        if result != 0:
-            sys.exit("Failed to import raster %s into GRASS dataset %s/%s, result:\n%s" % \
-                     (type, grassDbase, metadata['grass_location'], result) )
-        grassEntryKey = "%s_rast" % (type,)
-        RHESSysMetadata.writeGRASSEntry(context, grassEntryKey, type)
-        sys.stdout.write('done\n')
+basinRast = grassMetadata['basin_rast']
+result = grassLib.script.run_command('r.mask', flags='o', input=basinRast, maskcats='1')
+if result != 0:
+    sys.exit("r.mask failed to set mask to basin, returning %s" % (result,))
+
+if args.patchType == 'grid':
+    demRows = int(studyArea['dem_rows'])
+    result = grassLib.script.write_command('r.mapcalc', 
+                             stdin="%s=(row()-1) * %d + col()" % (PATCH_RAST, demRows) )
+    if result != 0:
+        sys.exit("r.mapcalc failed to create patch map, returning %s" % (result,))
+    
+if args.patchType == 'clump':
+    result = grassLib.script.run_command('r.clump', input=demRast, output=PATCH_RAST, overwrite=args.overwrite)
+    if result != 0:
+        sys.exit("r.mapcalc failed to create patch map, returning %s" % (result,))
+
+# Write metadata    
+RHESSysMetadata.writeGRASSEntry(context, 'patch_rast', PATCH_RAST)
 
 # Write processing history
 RHESSysMetadata.appendProcessingHistoryItem(context, cmdline)
