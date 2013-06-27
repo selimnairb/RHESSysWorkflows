@@ -66,6 +66,8 @@ Pre conditions
    landuse_rast
    wetness_index_rast 
    stratum_rast
+   xmap_rast
+   ymap_rast
    
 Post conditions
 ---------------
@@ -284,6 +286,8 @@ subs['soil_rast'] = grassMetadata['soil_rast']
 subs['landuse_rast'] = grassMetadata['landuse_rast']
 subs['wetness_index_rast'] = grassMetadata['wetness_index_rast'] 
 subs['stratum_rast'] = grassMetadata['stratum_rast']
+subs['xmap_rast'] = grassMetadata['xmap_rast']
+subs['ymap_rast'] = grassMetadata['ymap_rast']
 
 # Third, substitute into the template template, producing the template, which we write to disk for g2w
 templateStr = ''
@@ -328,9 +332,8 @@ if args.verbose:
     print(g2wCommand)
 sys.stdout.write("\nRunning grass2world from %s..." % (paths.RHESSYS_BIN,) )
 sys.stdout.flush()
-args = g2wCommand.split()
-#print args
-process = Popen(args, cwd=paths.RHESSYS_BIN, stdout=PIPE, stderr=PIPE)
+cmdArgs = g2wCommand.split()
+process = Popen(cmdArgs, cwd=paths.RHESSYS_BIN, stdout=PIPE, stderr=PIPE)
 (process_stdout, process_stderr) = process.communicate()
 if args.verbose:
     sys.stdout.write(process_stdout)

@@ -83,7 +83,8 @@ Post conditions
    m_rast [default decay of Ksat with depth map]
    zero_rast [Map where all cells are set to zero]
    one_rast [Map where all cells are set to one]
-   patch_rast [patch map]
+   xmap_rast
+   ymap_rast
    
 
 Usage:
@@ -307,13 +308,16 @@ if result != 0:
     sys.exit("r.mapcalc failed to create one map, returning %s" % (result,))
 RHESSysMetadata.writeGRASSEntry(context, 'one_rast', 'one')
 
-# TODO: rename this to xy and add to world file as xy coordinate
-#result = grassLib.script.write_command('r.mapcalc', 
-#                             stdin="patch=(row()-1) * %d + col()" % demRows)
-#if result != 0:
-#    sys.exit("r.mapcalc failed to create patch map, returning %s" % (result,))
-#RHESSysMetadata.writeGRASSEntry(context, 'patch_rast', 'patch')
+result = grassLib.script.write_command('r.mapcalc', stdin='ymap=y()')
+if result != 0:
+    sys.exit("r.mapcalc failed to create ymap raster, returning %s" % (result,))
+RHESSysMetadata.writeGRASSEntry(context, 'ymap_rast', 'ymap')
     
+result = grassLib.script.write_command('r.mapcalc', stdin='xmap=x()')
+if result != 0:
+    sys.exit("r.mapcalc failed to create xmap raster, returning %s" % (result,))
+RHESSysMetadata.writeGRASSEntry(context, 'xmap_rast', 'xmap')
+
 # Check delineated basin area
 if args.areaEstimate:
     area = -1.0
