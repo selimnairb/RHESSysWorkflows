@@ -71,6 +71,18 @@ class RHESSysPaths(object):
     _OUT = 'output'
     _OBS = 'obs'
     
+    def relpath(self, path):
+        """ Return the portion of path relative to self.basedir
+        
+            @param path String representing a path within self.basedir
+            @return The relative path, or None if path was not
+            rooted at self.basedir
+        """
+        relpath = os.path.relpath(path, self.basedir)
+        if relpath.find('../') != -1:
+            relpath = None
+        return relpath
+    
     def __init__(self, basedir, rhessysDir=_DIR):
             """ Verify that RHESSys directory structure is present,
                 creating directories as needed.

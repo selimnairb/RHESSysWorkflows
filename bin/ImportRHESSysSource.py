@@ -71,6 +71,7 @@ Post conditions
    rat_bin
    g2w_bin
    lairead_bin
+   allometric_table
 
 Usage:
 @code
@@ -96,6 +97,7 @@ paramDBName = 'params.sqlite'
 
 RHESSYS_REPO_URL = 'https://github.com/RHESSys/RHESSys.git'
 TEMPLATE_PATH = os.path.join('util', 'templates', 'template.template')
+ALLOMETRIC_PATH = os.path.join('util', 'templates', 'allometric.txt')
 
 # Handle command line options
 parser = argparse.ArgumentParser(description='Import RHESSys source code into project directory')
@@ -186,10 +188,9 @@ for entry in contents:
         break
 if not found:
     sys.exit("Unable to find parameter database %s in %s" % (paramDBName, paramDBPath) )
-paramDBDir = os.path.join(metadata['rhessys_dir'], paths._DB, paramDBDir)
-paramDBPath = os.path.join(paramDBDir, paramDBName)
-RHESSysMetadata.writeRHESSysEntry(context, 'paramdb_dir', paramDBDir)
-RHESSysMetadata.writeRHESSysEntry(context, 'paramdb', paramDBPath)
+paramDB = os.path.join(paramDBPath, paramDBName)
+RHESSysMetadata.writeRHESSysEntry(context, 'paramdb_dir', paths.relpath(paramDBPath) )
+RHESSysMetadata.writeRHESSysEntry(context, 'paramdb', paths.relpath(paramDB) )
 
 ## 2. Import code from local disk, or from GitHub            
 if args.sourceDir:
@@ -218,6 +219,11 @@ if args.sourceDir:
     if not os.path.exists(template) or not os.access(template, os.R_OK):
         sys.exit("The specified path of the RHESSys source directory, %s, does not seem to contain a RHESSys template in the subpath %s" %
                  (args.sourceDir, TEMPLATE_PATH) )
+        
+    allometric = os.path.join(args.sourceDir, ALLOMETRIC_PATH)
+    if not os.path.exists(allometric) or not os.access(allometric, os.R_OK):
+        sys.exit("The specified path of the RHESSys source directory, %s, does not seem to contain an allometric table in the subpath %s" %
+                 (args.sourceDir, ALLOMETRIC_PATH) )
     
     # Delete paths.RHESSYS_SRC so that we can use shutil.copytree (which will recreate paths.RHESSYS_SRC)
     sys.stdout.write("Copying RHESSys source from %s..." % (args.sourceDir,) )
@@ -298,6 +304,12 @@ templatePath = os.path.join(paths.RHESSYS_SRC, TEMPLATE_PATH)
 print(templatePath)
 if not os.path.exists(templatePath):
     sys.exit("Template template not found in source imported to %s" % (paths.RHESSYS_SRC,) )
+
+# Make sure there is an allometric.txt in the imported source
+allometricPath = os.path.join(paths.RHESSYS_SRC, ALLOMETRIC_PATH)
+print(allometricPath)
+if not os.path.exists(allometricPath):
+    sys.exit("Allometric table not found in source imported to %s" % (paths.RHESSYS_SRC,) )
             
 ## 3. Compile code
 # Set GISBASE (needed to compile g2w, cf, lairead)
@@ -316,14 +328,14 @@ g2wDest = os.path.join(paths.RHESSYS_BIN, 'g2w')
 shutil.copyfile(g2wSrc, g2wDest)
 os.chmod(g2wDest, permissions)
 # Write metadata
-RHESSysMetadata.writeRHESSysEntry(context, 'g2w_bin', os.path.join(metadata['rhessys_dir'], 'bin', 'g2w') )
+RHESSysMetadata.writeRHESSysEntry(context, 'g2w_bin', paths.relpath(g2wDest) )
 
 ratSrc = os.path.join(buildPath, 'AverageTables_Unix', 'rat')
 ratDest = os.path.join(paths.RHESSYS_BIN, 'rat')
 shutil.copyfile(ratSrc, ratDest)
 os.chmod(ratDest, permissions)
 # Write metadata
-RHESSysMetadata.writeRHESSysEntry(context, 'rat_bin', os.path.join(metadata['rhessys_dir'], 'bin', 'rat') )
+RHESSysMetadata.writeRHESSysEntry(context, 'rat_bin', paths.relpath(ratDest) )
 
 # Build cf
 buildPath = os.path.join(paths.RHESSYS_SRC, 'cf')
@@ -350,7 +362,7 @@ cfDest = os.path.join(paths.RHESSYS_BIN, cfBin)
 shutil.copyfile(cfSrc, cfDest)
 os.chmod(cfDest, permissions)
 # Write metadata
-RHESSysMetadata.writeRHESSysEntry(context, 'cf_bin', os.path.join(metadata['rhessys_dir'], 'bin', cfBin) )
+RHESSysMetadata.writeRHESSysEntry(context, 'cf_bin', paths.relpath(cfDest) )
 
 # Build lairead
 buildPath = os.path.join(paths.RHESSYS_SRC, 'util', 'GRASS', 'lairead')
@@ -365,7 +377,7 @@ dest = os.path.join(paths.RHESSYS_BIN, 'lairead')
 shutil.copyfile(src, dest)
 os.chmod(dest, permissions)
 # Write metadata
-RHESSysMetadata.writeRHESSysEntry(context, 'lairead_bin', os.path.join(metadata['rhessys_dir'], 'bin', 'lairead') )
+RHESSysMetadata.writeRHESSysEntry(context, 'lairead_bin', paths.relpath(dest) )
 
 # Build RHESSys
 buildPath = os.path.join(paths.RHESSYS_SRC, 'rhessys')
@@ -391,11 +403,18 @@ rhessysSrc = os.path.join(buildPath, rhessysBin)
 rhessysDest = os.path.join(paths.RHESSYS_BIN, rhessysBin)
 shutil.copyfile(rhessysSrc, rhessysDest)
 os.chmod(rhessysDest, permissions)
+# Write metadata
+RHESSysMetadata.writeRHESSysEntry(context, 'rhessys_bin', paths.relpath(rhessysDest) )
+
+# Copy allometric table
+allometricName = os.path.basename(ALLOMETRIC_PATH)
+allometricDest = os.path.join(paths.RHESSYS_TEMPLATES, allometricName)
+shutil.copyfile(allometricPath, allometricDest)
 
 # Write metadata
-RHESSysMetadata.writeRHESSysEntry(context, 'rhessys_bin', os.path.join(metadata['rhessys_dir'], 'bin', rhessysBin) )
-RHESSysMetadata.writeRHESSysEntry(context, 'exec_dir', os.path.join(metadata['rhessys_dir'], 'bin') )
-RHESSysMetadata.writeRHESSysEntry(context, 'template_template', os.path.join(metadata['rhessys_dir'], 'src', TEMPLATE_PATH) )
+RHESSysMetadata.writeRHESSysEntry(context, 'exec_dir', paths.relpath(paths.RHESSYS_BIN) )
+RHESSysMetadata.writeRHESSysEntry(context, 'template_template', paths.relpath(templatePath) )
+RHESSysMetadata.writeRHESSysEntry(context, 'allometric_table', paths.relpath(allometricDest) )
 
 sys.stdout.write('\n\nFinished importing RHESSys source\n')
 

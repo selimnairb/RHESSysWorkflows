@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 """@package CreateWorldfile
 
-@brief Create RHESSys worldfile.
+@brief Create RHESSys worldfile.  This will create an initial worldfile used for input into the
+lairead utility, which initializes vegetation carbon stores.
 
 This software is provided free of charge under the New BSD License. Please see
 the following license information:
@@ -75,7 +76,7 @@ Post conditions
 
 2. Will write the following entry(ies) to the RHESSys section of metadata associated with the project directory:
    template
-   worldfile
+   worldfile_zero
 
 Usage:
 @code
@@ -325,7 +326,7 @@ result = grassLib.script.run_command('r.mask', flags='o', input=basinRast, maskc
 if result != 0:
     sys.exit("r.mask failed to set mask to basin, returning %s" % (result,))
 
-worldfileName = templateFilename.replace('template', 'world')
+worldfileName = "%s_init" % (templateFilename.replace('template', 'world'), )
 g2wPath = os.path.join(context.projectDir, metadata['g2w_bin'])
 worldfilePath = os.path.join(paths.RHESSYS_WORLD, worldfileName)
 g2wCommand = "%s -t %s -w %s" % (g2wPath, templateFilepath, worldfilePath)
@@ -341,7 +342,7 @@ if args.verbose:
     sys.stderr.write(process_stderr)
 if process.returncode != 0:
     sys.exit("\n\ngrass2world failed, returning %s" % (process.returncode,) )
-RHESSysMetadata.writeRHESSysEntry(context, 'worldfile', os.path.join(rhessysDir, paths._WORLD, worldfileName) )
+RHESSysMetadata.writeRHESSysEntry(context, 'worldfile_zero', os.path.join(rhessysDir, paths._WORLD, worldfileName) )
 
 sys.stdout.write('\n\nFinished creating worldfile\n')
 

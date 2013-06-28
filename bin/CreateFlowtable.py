@@ -50,7 +50,7 @@ Pre conditions
    grass_mapset
    rhessys_dir
    cf_bin
-   worldfile
+   worldfile_zero
    template
 
 3. The following metadata entry(ies) must be present in the GRASS section of the metadata associated with the project directory:
@@ -132,8 +132,8 @@ if not 'rhessys_dir' in metadata:
     sys.exit("Metadata in project directory %s does not contain a RHESSys directory" % (context.projectDir,))
 if not 'cf_bin' in metadata:
     sys.exit("Metadata in project directory %s does not contain a createflowpaths executable" % (context.projectDir,))
-if not 'worldfile' in metadata:
-    sys.exit("Metadata in project directory %s does not contain a worldfile" % (context.projectDir,))
+if not 'worldfile_zero' in metadata:
+    sys.exit("Metadata in project directory %s does not contain an initial worldfile" % (context.projectDir,))
 if not 'template' in metadata:
     sys.exit("Metadata in project directory %s does not contain a template" % (context.projectDir,))
 if not 'basin_rast' in grassMetadata:
@@ -193,7 +193,8 @@ else:
 cfPath = os.path.join(context.projectDir, metadata['cf_bin'])
 templatePath = os.path.join(context.projectDir, metadata['template'])
 print(templatePath)
-flowTableNameBase = os.path.basename(metadata['worldfile'])
+# We don't want the '_init' in the flow table name
+flowTableNameBase = os.path.basename(metadata['worldfile_zero']).split('_')[0]
 flowOutpath = os.path.join(paths.RHESSYS_FLOW, flowTableNameBase)
 print(flowOutpath)
 
