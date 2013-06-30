@@ -77,8 +77,6 @@ Usage:
 @code
 ImportRHESSysSource.py -p /path/to/project_dir
 @endcode
-
-@todo Clear tag, branch, sha metadata fields when -s 
 """
 import os, sys, errno, stat
 import argparse
@@ -233,6 +231,10 @@ if args.sourceDir:
     sys.stdout.write('done\n')
     # Write metadata
     RHESSysMetadata.writeRHESSysEntry(context, 'rhessys_src', os.path.abspath(args.sourceDir) )
+    # Remove information about RHESSys if previously fetched from the Git repository 
+    RHESSysMetadata.deleteRHESSysEntry(context, 'rhessys_branch')
+    RHESSysMetadata.deleteRHESSysEntry(context, 'rhessys_tag')
+    RHESSysMetadata.deleteRHESSysEntry(context, 'rhessys_sha')
     
 else:   
     # Import from GitHub

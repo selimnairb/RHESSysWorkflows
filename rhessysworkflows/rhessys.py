@@ -32,8 +32,65 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 @author Brian Miles <brian_miles@unc.edu>
+
+@todo Add unit tests
 """
 import os, errno
+
+
+def generateCommandString(binPath, outputPrefix, startDate, endDate, tecPath,
+                          worldPath, surfaceFlowPath, subsurfaceFlowPath=None,
+                          flags="", **kwargs):
+    """ Return a string representing a properly formatted RHESSys command with
+        the executable and all command line options and arguments specified.
+        
+        @param binPath String representing path to RHESSys binary
+        @param startDate datetime
+        @param endDate datetime
+        @param tecPath String representing tec file to be used
+        @param worldPath String representing world file to be used
+        @param surfaceFlowPath String representing surface flowtable to be used
+        @param subsurfaceFlowPath String representing subsurface flowtable to be used
+        @params flags String representing flags to include (e.g. b for -b or basin output)
+        @params **kwargs Mapping type describing calibration options, with key
+        representing the parameter name and value a tuple of arguments to pass to the
+        calibration option
+        
+        @return String representing the RHESSys command line 
+    """
+    cmd = "%s -st %s -ed %s -t %s -w %s -r %s" % \
+            (binPath,
+             datetimeToString(startDate), datetimeToString(endDate),
+             tecPath, worldPath, surfaceFlowPath)
+    if outputPrefix:
+        cmd = "%s -pre %s" % (cmd, outputPrefix)
+    if subsurfaceFlowPath:
+        cmd = "%s %s" % (cmd, subsurfaceFlowPath)
+    # Add flags
+    flagsStr = ''
+    if len(flags) > 0:
+        flagsStr = "-%s" % (flags[0],)
+        for c in flags[1:]:
+            flagSstr = "%s -%s" % (c,)
+        cmd = "%s %s" % (cmd, flagsStr,)
+    # Add calibration parameters
+    for opt, val in kwargs.iteritems():
+        valStr = ' '.join(map(str, val))
+        cmd = "%s -%s %s" % (cmd, opt, valStr)
+    return cmd
+    
+    
+def datetimeToString(dt):
+    """ Return string representing the year, month, day, and hour of a datetime
+        object.
+        
+        @param dt Python datetime object
+        
+        @return String of the form 'YYYY MM DD HH'
+    """
+    return "%d %d %d %d" % \
+        (dt.year, dt.month, dt.day, dt.hour)
+
 
 def readParameterFile(paramFilepath):
     """ Read a RHESSys parameter file into a dictionary with

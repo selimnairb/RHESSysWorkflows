@@ -74,6 +74,7 @@ Post conditions
    basin_rast [delineated watershed boundary]
    subbasins_rast [sub basins within the watershed boundary]
    hillslope_rast [hillslopes within the watershed boundary]
+   zone_rast [climate zones, same as hillslope_rast]
    streams_rast [streams within the watershed boundary]
    east_horizon_rast
    west_horizon_rast
@@ -96,11 +97,7 @@ DelineateWatershedForGRASSLocation.py -p /path/to/project_dir -t 500
 or -i option must be specified. 
 
 @todo fill pits in DEM with GRASS tool, have an argument to turn it off
-@todo complete with steps such as convert stream map to binary
-@todo separate out patch map creation.  for urban environment workflow, need a non-grid way to create patches
-@todo make zone the patch map
-@todo Factor out gage snapping into a separate script
-@todo Generate wetness index raster
+@todo Factor out gage snapping into a separate script?
 """
 import os, sys, errno
 import argparse
@@ -248,8 +245,14 @@ result = grassLib.script.run_command('r.watershed', **rWatershedOptions)
 if result != 0:
     sys.exit("r.watershed failed creating subbasins, returning %s" % (result,))
 
+# Make binary stream layer
+result = grassLib.script.write_command('r.mapcalc', stdin='streams=(streams >= 0)')
+if result != 0:
+    sys.exit("r.mapcalc failed to create binary streams, returning %s" % (result,))
+
 RHESSysMetadata.writeGRASSEntry(context, 'subbasins_rast', 'subbasins')
 RHESSysMetadata.writeGRASSEntry(context, 'hillslope_rast', 'hillslopes')
+RHESSysMetadata.writeGRASSEntry(context, 'zone_rast', 'hillslopes')
 RHESSysMetadata.writeGRASSEntry(context, 'streams_rast', 'streams')
 RHESSysMetadata.writeRHESSysEntry(context, 'watershed_threshold', args.threshold)
 

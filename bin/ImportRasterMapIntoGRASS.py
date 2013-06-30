@@ -48,6 +48,7 @@ Pre conditions
    soil
    lai
    patch
+   zone
    
 3. The following metadata entry(ies) must be present in the RHESSys section of the metadata associated with the project directory:
    grass_dbase
@@ -62,6 +63,8 @@ Post conditions
    roof_connectivity_rast
    soil_rast
    lai_rast
+   patch_rast
+   zone_rast
 
 Usage:
 @code
@@ -70,8 +73,6 @@ ImportRasterMapIntoGRASS.py -t RASTER_TYPE_1 [RASTER_TYPE_2 ... RASTER_TYPE_N] -
 
 @note EcoHydroWorkflowLib configuration file must be specified by environmental variable 'ECOHYDROWORKFLOW_CFG',
 or -i option must be specified. 
-
-@todo Remove mask before running
 """
 import os, sys
 import argparse

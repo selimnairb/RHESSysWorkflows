@@ -42,6 +42,7 @@
 from unittest import TestCase
 import os
 
+from rhessysworkflows.context import Context
 from rhessysworkflows.metadata import RHESSysMetadata
 
 class TestMetadata(TestCase):
@@ -53,17 +54,29 @@ class TestMetadata(TestCase):
         testMetadataPath = os.path.join("/tmp", RHESSysMetadata.METADATA_LOCKFILE)
         if os.path.exists(testMetadataPath):
             os.unlink(testMetadataPath)
+        self.context = Context("/tmp", None)
     
     
     def test_empty_read(self):
-        metadata = RHESSysMetadata.readRHESSysEntries("/tmp")
+        metadata = RHESSysMetadata.readRHESSysEntries(self.context)
         self.assertTrue(len(metadata) == 0)
         
         
     def test_write_and_read(self):
-        RHESSysMetadata.writeRHESSysEntry("/tmp", "key1", "value_one")
-        RHESSysMetadata.writeRHESSysEntry("/tmp", "key2", "value_two")
-        metadata = RHESSysMetadata.readRHESSysEntries("/tmp")
+        RHESSysMetadata.writeRHESSysEntry(self.context, "key1", "value_one")
+        RHESSysMetadata.writeRHESSysEntry(self.context, "key2", "value_two")
+        metadata = RHESSysMetadata.readRHESSysEntries(self.context)
         self.assertTrue(metadata["key1"] == "value_one")
         
+        
+    def test_delete(self):
+        RHESSysMetadata.writeRHESSysEntry(self.context, "key1", "value_one")
+        RHESSysMetadata.writeRHESSysEntry(self.context, "key2", "value_two")
+        metadata = RHESSysMetadata.readRHESSysEntries(self.context)
+        self.assertTrue(metadata["key1"] == "value_one")    
+        RHESSysMetadata.deleteRHESSysEntry(self.context, "key1")
+        metadata = RHESSysMetadata.readRHESSysEntries(self.context)
+        self.assertTrue(not 'key1' in metadata)
+        # Delete and empty entry
+        RHESSysMetadata.deleteRHESSysEntry(self.context, "not_in_store")
         

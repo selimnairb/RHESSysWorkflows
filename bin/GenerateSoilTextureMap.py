@@ -72,8 +72,6 @@ PYTHONPATH=${PYTHONPATH}:../EcohydroWorkflowLib python2.7 ./GenerateSoilTextureM
 
 @note EcoHydroWorkflowLib configuration file must be specified by environmental variable 'ECOHYDROWORKFLOW_CFG',
 or -i option must be specified. 
-
-@todo Remove mask before running
 """
 import os, sys, errno
 import argparse

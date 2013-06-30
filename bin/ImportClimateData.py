@@ -107,8 +107,6 @@ for entry in contents:
     m = stationRegex.match(entry)
     if m:
         stations.append(m.group(1))    
-       
-#print("Climate stations: %s" % (str(stations),) )
 
 # Copy station file and climate data
 for station in stations:

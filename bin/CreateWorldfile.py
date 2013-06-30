@@ -236,9 +236,9 @@ for key in defFiles.keys():
             print("%s: %d" % (numDefinKey, numDefin) )
         subs[numDefinKey] = str(numDefin)
     
-        defStr = os.path.join('..', paths._DEF, defs[0])
+        defStr = os.path.join(paths._DEF, defs[0])
         for defin in defs[1:]:
-            defStr += os.linesep + os.path.join('..', paths._DEF, defin)
+            defStr += os.linesep + os.path.join(paths._DEF, defin)
         defStrKey = "%s_defs" % (key,)
         if args.verbose:
             print("%s: %s" % (defStrKey, defStr) )
@@ -254,13 +254,13 @@ subs['zone_num_base_stations'] = str(numClimateStations)
 
 # The first climate stations
 climParamFilename = "%s.base" % (args.climateStations[0],)
-climateStationsStr = os.path.join('..', paths._CLIM, climParamFilename)
+climateStationsStr = os.path.join(paths._CLIM, climParamFilename)
 climParams = readParameterFile(os.path.join(paths.RHESSYS_CLIM, climParamFilename))
 climateStationIDStr = "base_station_ID\tdvalue %s" % (climParams['base_station_id'], )
 # The rest of the climate stations
 for clim in args.climateStations[1:]:
     climParamFilename = "%s.base" % (clim,)
-    climateStationsStr += os.linesep + os.path.join('..', paths._CLIM, climParamFilename)
+    climateStationsStr += os.linesep + os.path.join(paths._CLIM, climParamFilename)
     climParams = readParameterFile(os.path.join(paths.RHESSYS_CLIM, climParamFilename))
     climateStationIDStr += "%sbase_station_ID\tdvalue %s" % (os.linesep, climParams['base_station_id'], )
 climateStationsKey = 'climate_stations'
@@ -277,7 +277,7 @@ subs['basin_rast'] = grassMetadata['basin_rast']
 subs['dem_rast'] = grassMetadata['dem_rast']
 subs['latitude_float'] = str(latitude)
 subs['hillslope_rast'] = grassMetadata['hillslope_rast']
-subs['zone_rast'] = grassMetadata['hillslope_rast']
+subs['zone_rast'] = grassMetadata['zone_rast']
 subs['slope_rast'] = grassMetadata['slope_rast']
 subs['aspect_rast'] = grassMetadata['aspect_rast']
 subs['isohyet_rast'] = grassMetadata['zero_rast']

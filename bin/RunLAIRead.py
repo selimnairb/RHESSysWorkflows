@@ -43,6 +43,7 @@ Pre conditions
    grass_location
    grass_mapset
    rhessys_dir
+   rhessys_bin
    lairead_bin
    worldfile_zero
    surface_flowtable
@@ -50,6 +51,8 @@ Pre conditions
    allometric_table
 
 2. The following metadata entry(ies) must be present in the GRASS section of the metadata associated with the project directory:
+   basin_rast
+   dem_rast
    hillslope_rast
    zone_rast
    patch_rast
@@ -62,28 +65,30 @@ Post conditions
 
 2. Will write the following entry(ies) to the RHESSys section of metadata associated with the project directory:
    worldfile
+   tec_lairead
 
 Usage:
 @code
-CreateWorldfile.py -p /path/to/project_dir -c climate_station_name1 ... climate_station_nameN
+RunLAIRead.py -p /path/to/project_dir
 @endcode
 
 @note EcoHydroWorkflowLib configuration file must be specified by environmental variable 'ECOHYDROWORKFLOW_CFG',
 or -i option must be specified. 
 """
-import string
-import re
 import argparse
+import datetime
 from subprocess import *
+import shutil
 
 from ecohydrolib.grasslib import *
-from ecohydrolib.spatialdata.utils import bboxFromString
-from ecohydrolib.spatialdata.utils import calculateBoundingBoxCenter
 
 from rhessysworkflows.context import Context
 from rhessysworkflows.metadata import RHESSysMetadata
 from rhessysworkflows.rhessys import RHESSysPaths
-from rhessysworkflows.rhessys import readParameterFile
+from rhessysworkflows.rhessys import datetimeToString
+from rhessysworkflows.rhessys import generateCommandString
+from rhessysworkflows.worldfileio import getClimateBaseStationFilenames
+from rhessysworkflows.climateio import getStartAndEndDateForClimateStation
 
 # Handle command line options
 parser = argparse.ArgumentParser(description='Create RHESSys worldfile using GRASS GIS data and grass2world utility')
@@ -103,10 +108,13 @@ if args.configfile:
 context = Context(args.projectDir, configFile) 
 
 # Check for necessary information in metadata
-#studyArea = RHESSysMetadata.readStudyAreaEntries(context)
 grassMetadata = RHESSysMetadata.readGRASSEntries(context)
+if not 'basin_rast' in grassMetadata:
+    sys.exit("Metadata in project directory %s does not contain a GRASS dataset with a basin raster" % (context.projectDir,))
+if not 'dem_rast' in grassMetadata:
+    sys.exit("Metadata in project directory %s does not contain a GRASS dataset with a DEM raster" % (context.projectDir,))
 if not 'hillslope_rast' in grassMetadata:
-    sys.exit("Metadata in project directory %s does not contain a GRASS dataset with a hillslope raster" % (context.projectDir,)) 
+    sys.exit("Metadata in project directory %s does not contain a GRASS dataset with a hillslope raster" % (context.projectDir,))  
 if not 'zone_rast' in grassMetadata:
     sys.exit("Metadata in project directory %s does not contain a GRASS dataset with a zone raster" % (context.projectDir,)) 
 if not 'patch_rast' in grassMetadata:
@@ -125,6 +133,8 @@ if not 'grass_mapset' in metadata:
     sys.exit("Metadata in project directory %s does not contain a GRASS mapset" % (context.projectDir,))
 if not 'rhessys_dir' in metadata:
     sys.exit("Metadata in project directory %s does not contain a RHESSys directory" % (context.projectDir,))
+if not 'rhessys_bin' in metadata:
+    sys.exit("Metadata in project directory %s does not contain a RHESSys binary" % (context.projectDir,))
 if not 'lairead_bin' in metadata:
     sys.exit("Metadata in project directory %s does not contain a lairead executable" % (context.projectDir,))
 if not 'worldfile_zero' in metadata:
@@ -139,23 +149,134 @@ if not 'allometric_table' in metadata:
 rhessysDir = metadata['rhessys_dir']
 paths = RHESSysPaths(args.projectDir, rhessysDir)
 
+worldfileZero = metadata['worldfile_zero']
+worldfileZeroPath = os.path.join(context.projectDir, worldfileZero)
+worldfileDir = os.path.dirname(worldfileZeroPath)
+
 # Set up GRASS environment
 modulePath = context.config.get('GRASS', 'MODULE_PATH')
 grassDbase = os.path.join(context.projectDir, metadata['grass_dbase'])
 grassConfig = GRASSConfig(context, grassDbase, metadata['grass_location'], metadata['grass_mapset'])
 grassLib = GRASSLib(grassConfig=grassConfig)
 
+# Make sure mask and region are properly set
+#demRast = grassMetadata['dem_rast']
+#result = grassLib.script.run_command('r.mask', flags='r')
+#if result != 0:
+#    sys.exit("r.mask filed, returning %s" % (result,) )
+#result = grassLib.script.run_command('g.region', rast=demRast)
+#if result != 0:
+#    sys.exit("g.region failed to set region to DEM, returning %s" % (result,))
+
+## Make sure mask and region are properly set
+demRast = grassMetadata['dem_rast']
+result = grassLib.script.run_command('g.region', rast=demRast)
+if result != 0:
+    sys.exit("g.region failed to set region to DEM, returning %s" % (result,))
+
+basinRast = grassMetadata['basin_rast']
+result = grassLib.script.run_command('r.mask', flags='o', input=basinRast, maskcats='1')
+if result != 0:
+    sys.exit("r.mask failed to set mask to basin, returning %s" % (result,))
+
 ## 1. Determine legal simulation start and date from climate data 
 # Read first climate station from worldfile
+stations = getClimateBaseStationFilenames(worldfileZeroPath)
+assert( len(stations) )
+firstStationPath = os.path.normpath( os.path.join(paths.RHESSYS_DIR, stations[0]) )
+if args.verbose:
+    sys.stdout.write("First climate station in worldfile: %s\n" % (firstStationPath,) )
 
 # Read climate timeseries for start and end date, write to metadata
+(startDate, endDate) = getStartAndEndDateForClimateStation(firstStationPath, paths)
+if args.verbose:
+    sys.stdout.write("start date: %s, end date: %s\n" % ( str(startDate), str(endDate) ) )
+fourDays = datetime.timedelta(days=4)
+if endDate - startDate < fourDays:
+    sys.exit("Climate time-series defined by station %s is too short to run lairead (less than four-days long)" %
+             (firstStationPath,) )
 
 ## 2. Run LAI read to generate redefine worldfile
+tecDurRedef = datetime.timedelta(days=1)
+tecRedef = startDate + tecDurRedef
+laireadPath = os.path.join(context.projectDir, metadata['lairead_bin'])
+oldWorldPath = os.path.join(context.projectDir, worldfileZero)
+redefWorldName = "%s.Y%dM%dD%dH%d" % \
+    (worldfileZero, tecRedef.year, tecRedef.month, tecRedef.day, tecRedef.hour)
+redefWorldPath = os.path.join(context.projectDir, redefWorldName)
+allomPath = os.path.join(context.projectDir, metadata['allometric_table'])
+
+result = grassLib.script.run_command(laireadPath, old=oldWorldPath, redef=redefWorldPath,
+                                      allom=allomPath, lai=grassMetadata['lai_rast'],
+                                      vegid=grassMetadata['stratum_rast'],
+                                      zone=grassMetadata['zone_rast'],
+                                      hill=grassMetadata['hillslope_rast'],
+                                      patch=grassMetadata['patch_rast'],
+                                      mask=grassMetadata['basin_rast'])
+if result != 0:
+    sys.exit("lairead failed, returning %s" % (result,))
 
 ## 3. Write TEC file for redefining the initial flow table
 ##    Redefine on the second day of the simulation, write output
 ##    on the third day
+tecName = 'tec.lairead'
+tecPath = os.path.join(paths.RHESSYS_TEC, tecName)
+tecDurOutput = datetime.timedelta(days=2)
+tecOutput = startDate + tecDurOutput
+
+f = open(tecPath, 'w')
+f.write("%s redefine_world%s" % 
+        (datetimeToString(tecRedef), os.linesep) )
+f.write("%s output_current_state%s" %
+        (datetimeToString(tecOutput), os.linesep) )
+f.close()
+RHESSysMetadata.writeRHESSysEntry( context, 'tec_lairead', paths.relpath(tecPath) )
 
 ## 4. Run RHESSys for the first 4 legal days with redefine TEC
+rhessysStart = startDate
+rhessysDur = datetime.timedelta(days=3)
+rhessysEnd = startDate + rhessysDur
+surfaceFlowtablePath = os.path.join(context.projectDir, metadata['surface_flowtable'])
+subSurfaceFlowtablePath = os.path.join(context.projectDir, metadata['subsurface_flowtable'])
+rhessysBinPath = os.path.join(context.projectDir, metadata['rhessys_bin'])
 
-## 5. Rename redefine worldfile, write to metadata   
+rhessysCmd = generateCommandString(rhessysBinPath, None,
+                                   rhessysStart, rhessysEnd,
+                                   tecPath, oldWorldPath,
+                                   surfaceFlowtablePath, subSurfaceFlowtablePath)
+if args.verbose:
+    print(rhessysCmd)
+sys.stdout.write('\nRunning RHESSys to redefine worldfile with vegetation carbon stores...')
+sys.stdout.flush()
+
+cmdArgs = rhessysCmd.split()
+process = Popen(cmdArgs, cwd=paths.RHESSYS_DIR, stdout=PIPE, stderr=PIPE)
+(process_stdout, process_stderr) = process.communicate()
+if args.verbose:
+    sys.stdout.write(process_stdout)
+    sys.stderr.write(process_stderr)
+if process.returncode != 0:
+    sys.exit("\n\nRHESSys failed, returning %s" % (process.returncode,) )
+
+sys.stdout.write('done\n')
+
+## 5. Rename redefine worldfile, write to metadata
+outputWorldName = "%s.Y%dM%dD%dH%d.state" % \
+    (worldfileZero, tecOutput.year, tecOutput.month, tecOutput.day, tecOutput.hour)
+outputWorldPath = os.path.join(context.projectDir, outputWorldName)
+
+if not os.access(outputWorldPath, os.W_OK):
+    sys.exit("Unable to find redefined worldfile %s" % (outputWorldPath,) )
+    
+newWorldName = 'world'
+newWorldPath = os.path.join(paths.RHESSYS_WORLD, newWorldName)
+
+shutil.move(outputWorldPath, newWorldPath)
+if not os.path.exists(newWorldPath):
+    sys.exit("Failed to copy redefined worldfile %s to %s" % (outputWorldPath, newWorldPath) )
+RHESSysMetadata.writeRHESSysEntry( context, 'worldfile', paths.relpath(newWorldPath) )
+
+sys.stdout.write('\n\nSuccessfully used lairead to initialize vegetation carbon stores.\n')
+
+# Write processing history
+RHESSysMetadata.appendProcessingHistoryItem(context, cmdline)

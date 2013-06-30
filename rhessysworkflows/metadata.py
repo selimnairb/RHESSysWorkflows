@@ -137,6 +137,21 @@ class RHESSysMetadata(GenericMetadata):
         """
         GenericMetadata.writeEntryToSection(context, RHESSysMetadata.RHESSYS_SECTION, key, value, \
                                             RHESSysMetadata._writeWorkflowVersionToMetadata)
+    
+    
+    @staticmethod
+    def deleteRHESSysEntry(context, key):
+        """ Delete a RHESSys entry from the metadata store for a given project.
+        
+            @param context Context object containing projectDir, the path of the project whose 
+            metadata store is to be deleted from
+            @param key The key to be deleted from the RHESSys section of the project metadata
+            
+            @exception IOError(errno.EACCES) if the metadata store for the project is not writable
+        """
+        GenericMetadata.deleteEntryFromSection(context, RHESSysMetadata.RHESSYS_SECTION, key, \
+                                               RHESSysMetadata._writeWorkflowVersionToMetadata)
+         
      
     @staticmethod
     def readRHESSysEntries(context):

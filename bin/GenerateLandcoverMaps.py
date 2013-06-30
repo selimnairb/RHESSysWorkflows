@@ -73,8 +73,6 @@ GenerateLandcoverMaps.py -p /path/to/project_dir
 
 @note EcoHydroWorkflowLib configuration file must be specified by environmental variable 'ECOHYDROWORKFLOW_CFG',
 or -i option must be specified. 
-
-@todo Remove mask before running
 """
 import os, sys, shutil
 import argparse
