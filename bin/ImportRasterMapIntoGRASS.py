@@ -148,6 +148,11 @@ for type in typeList:
         if result != 0:
             sys.exit("Failed to import raster %s into GRASS dataset %s/%s, result:\n%s" % \
                      (type, grassDbase, metadata['grass_location'], result) )
+        # Resample the raster to ensure it is the same resolution as the geographic region defined by the DEM
+        result = grassLib.script.run_command('r.resample', input=type, output=type, overwrite=True)
+        if result != 0:
+            sys.exit("Failed to resample imported raster %s of GRASS dataset %s/%s, result:\n%s" % \
+                     (type, grassDbase, metadata['grass_location'], result) )
         grassEntryKey = "%s_rast" % (type,)
         RHESSysMetadata.writeGRASSEntry(context, grassEntryKey, type)
         sys.stdout.write('done\n')

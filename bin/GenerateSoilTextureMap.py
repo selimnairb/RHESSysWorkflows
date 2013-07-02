@@ -186,7 +186,8 @@ pipe.wait()
 print("Writing soil default files to %s" % (paths.RHESSYS_DEF) )
 for key in textures.keys():
     print("soil '%s' has dn %d" % (key, textures[key]) )
-    paramsFound = paramDB.search(paramConst.SEARCH_TYPE_CONSTRAINED, None, key, None, None, None, None, None, None, None, None)
+    paramsFound = paramDB.search(paramConst.SEARCH_TYPE_CONSTRAINED, None, key, None, None, None, None, None, None, None, None,
+                                 limitToBaseClasses=True, defaultIdOverride=textures[key])
     assert(paramsFound)
     paramDB.writeParamFiles(paths.RHESSYS_DEF)
     

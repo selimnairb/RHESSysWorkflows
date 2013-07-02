@@ -70,6 +70,7 @@ Post conditions
 2. Will write the following entry(ies) to the RHESSys section of metadata associated with the project directory:
    surface_flowtable
    subsurface_flowtable
+   flowtable_cmd
 
 Usage:
 @code
@@ -97,8 +98,6 @@ parser.add_argument('--routeRoads', dest='routeRoads', required=False, action='s
                     help='Tell createflowpaths to route flow from roads to the nearest stream pixel (requires roads_rast to be defined in metadata)')
 parser.add_argument('--routeRoofs', dest='routeRoofs', required=False, action='store_true',
                     help='Tell createflowpaths to route flow from roof tops based on roof top connectivity to nearest impervious surface (requires roof_connectivity_rast and impervious_rast to be defined in metadata)')
-parser.add_argument('-m', '--mask', dest='mask', action='store_true',
-                    help='Set GRASS raster mask to basin; by default no mask is used.')
 parser.add_argument('-f', '--force', dest='force', action='store_true',
                     help='Run createflowpaths even if DEM x resolution does not match y resolution')
 parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
@@ -179,16 +178,10 @@ result = grassLib.script.run_command('g.region', rast=demRast)
 if result != 0:
     sys.exit("g.region failed to set region to DEM, returning %s" % (result,))
 
-if args.mask:
-    basinRast = grassMetadata['basin_rast']
-    result = grassLib.script.run_command('r.mask', flags='o', input=basinRast, maskcats='1')
-    if result != 0:
-        sys.exit("r.mask failed to set mask to basin, returning %s" % (result,))
-else:
-    # Remove mask
-    result = grassLib.script.run_command('r.mask', flags='r')
-    if result != 0:
-        sys.exit("r.mask filed, returning %s" % (result,) )
+basinRast = grassMetadata['basin_rast']
+result = grassLib.script.run_command('r.mask', flags='o', input=basinRast, maskcats='1')
+if result != 0:
+    sys.exit("r.mask failed to set mask to basin, returning %s" % (result,))
 
 cfPath = os.path.join(context.projectDir, metadata['cf_bin'])
 templatePath = os.path.join(context.projectDir, metadata['template'])
@@ -223,6 +216,10 @@ result = grassLib.script.read_command(cfPath, out=flowOutpath, template=template
                                       cellsize=demResX)
 if None == result:
     sys.exit("createflowpaths failed, returning %s" % (result,))
+cfCmd = "%s out=%s template=%s dem=%s slope=%s stream=%s road=%s roof=%s impervious=%s cellsize=%s" % \
+    (cfPath, flowOutpath, templatePath, grassMetadata['dem_rast'], grassMetadata['slope_rast'],
+     grassMetadata['streams_rast'], roads, roofs, impervious, demResX)
+RHESSysMetadata.writeRHESSysEntry(context, 'flowtable_cmd', cfCmd)
 RHESSysMetadata.writeRHESSysEntry(context, 'surface_flowtable', os.path.join(rhessysDir, paths._FLOW, surfaceFlowtable) )
 RHESSysMetadata.writeRHESSysEntry(context, 'subsurface_flowtable', os.path.join(rhessysDir, paths._FLOW, subsurfaceFlowtable) )
 

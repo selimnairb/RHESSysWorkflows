@@ -172,13 +172,16 @@ grassLib = GRASSLib(grassConfig=grassConfig)
 ## 1. Get default files for basin, hillslope, and zone from default database
 sys.stdout.write('Getting parameter definitions files for basin, hillslope, and zone...')
 sys.stdout.flush()
-paramsFound = paramDB.search(paramConst.SEARCH_TYPE_CONSTRAINED, None, 'basin', None, None, None, None, None, None, None, None)
+paramsFound = paramDB.search(paramConst.SEARCH_TYPE_CONSTRAINED, None, 'basin', None, None, None, None, None, None, None, None,
+                             limitToBaseClasses=True, defaultIdOverride=str(1))
 assert(paramsFound)
 paramDB.writeParamFiles(paths.RHESSYS_DEF)
-paramsFound = paramDB.search(paramConst.SEARCH_TYPE_CONSTRAINED, None, 'hillslope', None, None, None, None, None, None, None, None)
+paramsFound = paramDB.search(paramConst.SEARCH_TYPE_CONSTRAINED, None, 'hillslope', None, None, None, None, None, None, None, None,
+                             limitToBaseClasses=True, defaultIdOverride=str(1))
 assert(paramsFound)
 paramDB.writeParamFiles(paths.RHESSYS_DEF)
-paramsFound = paramDB.search(paramConst.SEARCH_TYPE_CONSTRAINED, None, 'zone', None, None, None, None, None, None, None, None)
+paramsFound = paramDB.search(paramConst.SEARCH_TYPE_CONSTRAINED, None, 'zone', None, None, None, None, None, None, None, None,
+                             limitToBaseClasses=True, defaultIdOverride=str(1))
 assert(paramsFound)
 paramDB.writeParamFiles(paths.RHESSYS_DEF)
 sys.stdout.write('done\n')
