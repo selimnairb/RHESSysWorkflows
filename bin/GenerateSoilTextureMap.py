@@ -60,14 +60,17 @@ Pre conditions
 
 Post conditions
 ---------------
-1. Will write the following entry(ies) to the GRASS section of metadata associated with the project directory:
+1. Will write the following entry(ies) to the RHESSys section of metadata associated with the project directory:
+   soil_defs
+   
+2. Will write the following entry(ies) to the GRASS section of metadata associated with the project directory:
    soil_avgsand_rast
    soil_avgclay_rast
    soil_rast
    
 Usage:
 @code
-PYTHONPATH=${PYTHONPATH}:../EcohydroWorkflowLib python2.7 ./GenerateSoilTextureMap.py -p ../../../scratchspace/scratch7
+GenerateSoilTextureMap.py -p /path/to/project_dir
 @endcode
 
 @note EcoHydroWorkflowLib configuration file must be specified by environmental variable 'ECOHYDROWORKFLOW_CFG',
@@ -183,14 +186,16 @@ for line in pipe.stdout:
     if cat != 'NULL':
         textures[cat] = int(dn)
 pipe.wait()
-print("Writing soil default files to %s" % (paths.RHESSYS_DEF) )
+print("Writing soil definition files to %s" % (paths.RHESSYS_DEF) )
 for key in textures.keys():
     print("soil '%s' has dn %d" % (key, textures[key]) )
     paramsFound = paramDB.search(paramConst.SEARCH_TYPE_CONSTRAINED, None, key, None, None, None, None, None, None, None, None,
                                  limitToBaseClasses=True, defaultIdOverride=textures[key])
     assert(paramsFound)
     paramDB.writeParamFiles(paths.RHESSYS_DEF)
-    
+
+# Write metadata
+RHESSysMetadata.writeRHESSysEntry(context, 'soil_defs', True)
 
 # Write processing history
 RHESSysMetadata.appendProcessingHistoryItem(context, cmdline)

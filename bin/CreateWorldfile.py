@@ -42,6 +42,9 @@ Pre conditions
    bbox_wgs84
 
 2. The following metadata entry(ies) must be present in the RHESSys section of the metadata associated with the project directory:
+   stratum_defs
+   landuse_defs
+   soil_defs
    paramdb
    paramdb_dir
    grass_dbase
@@ -122,7 +125,20 @@ context = Context(args.projectDir, configFile)
 # Check for necessary information in metadata
 studyArea = RHESSysMetadata.readStudyAreaEntries(context)
 grassMetadata = RHESSysMetadata.readGRASSEntries(context)
+if not 'dem_rast' in grassMetadata:
+    sys.exit("Metadata in project directory %s does not contain a DEM raster in a GRASS mapset" % (context.projectDir,)) 
+if not 'soil_rast' in grassMetadata:
+    sys.exit("Metadata in project directory %s does not contain a soil raster in a GRASS mapset" % (context.projectDir,))
+if not 'patch_rast' in grassMetadata:
+    sys.exit("Metadata in project directory %s does not contain a patch raster in a GRASS mapset" % (context.projectDir,))
+
 metadata = RHESSysMetadata.readRHESSysEntries(context)
+if not 'stratum_defs' in metadata:
+    sys.exit("Metadata in project directory %s does not contain stratum definitions" % (context.projectDir,)) 
+if not 'landuse_defs' in metadata:
+    sys.exit("Metadata in project directory %s does not contain land use definitions" % (context.projectDir,)) 
+if not 'soil_defs' in metadata:
+    sys.exit("Metadata in project directory %s does not contain soil definitions" % (context.projectDir,)) 
 if not 'grass_dbase' in metadata:
     sys.exit("Metadata in project directory %s does not contain a GRASS Dbase" % (context.projectDir,)) 
 if not 'grass_location' in metadata:
@@ -170,7 +186,7 @@ grassConfig = GRASSConfig(context, grassDbase, metadata['grass_location'], metad
 grassLib = GRASSLib(grassConfig=grassConfig)
 
 ## 1. Get default files for basin, hillslope, and zone from default database
-sys.stdout.write('Getting parameter definitions files for basin, hillslope, and zone...')
+sys.stdout.write('Getting parameter definition files for basin, hillslope, and zone...')
 sys.stdout.flush()
 paramsFound = paramDB.search(paramConst.SEARCH_TYPE_CONSTRAINED, None, 'basin', None, None, None, None, None, None, None, None,
                              limitToBaseClasses=True, defaultIdOverride=str(1))
@@ -313,7 +329,7 @@ templateFilepath = os.path.join(paths.RHESSYS_TEMPLATES, templateFilename)
 f = open(templateFilepath, 'w')
 f.write(templateStr)
 f.close()
-RHESSysMetadata.writeRHESSysEntry(context, 'template', os.path.join(rhessysDir, paths._TEMPLATES, templateFilename) )
+RHESSysMetadata.writeRHESSysEntry(context, 'template', paths.relpath(templateFilepath) )
 
 sys.stdout.write('done\n')
 
@@ -345,7 +361,7 @@ if args.verbose:
     sys.stderr.write(process_stderr)
 if process.returncode != 0:
     sys.exit("\n\ngrass2world failed, returning %s" % (process.returncode,) )
-RHESSysMetadata.writeRHESSysEntry(context, 'worldfile_zero', os.path.join(rhessysDir, paths._WORLD, worldfileName) )
+RHESSysMetadata.writeRHESSysEntry(context, 'worldfile_zero', paths.relpath(worldfilePath) )
 
 sys.stdout.write('\n\nFinished creating worldfile\n')
 

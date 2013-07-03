@@ -73,6 +73,8 @@ class RHESSysMetadata(GenericMetadata):
     LC_RULE_LANDUSE = 'landuse.rule'
     LC_RULE_STRATUM = 'stratum.rule'
     LC_RULES = [LC_RULE_ROAD, LC_RULE_IMPERVIOUS, LC_RULE_LANDUSE, LC_RULE_STRATUM]
+    SOILS_RULE = 'soils.rule'
+    SOILS_RULES = [SOILS_RULE]
     
     @staticmethod
     def checkWorkflowVersion(projectDir):

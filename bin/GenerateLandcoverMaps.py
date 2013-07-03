@@ -60,7 +60,11 @@ Pre conditions
    
 Post conditions
 ---------------
-1. Will write the following entry(ies) to the GRASS section of metadata associated with the project directory:
+1. Will write the following entry(ies) to the RHESSys section of metadata associated with the project directory:
+   stratum_defs
+   landuse_defs
+   
+2. Will write the following entry(ies) to the GRASS section of metadata associated with the project directory:
    roads_rast
    impervious_rast
    landuse_rast
@@ -182,7 +186,7 @@ for line in pipe.stdout:
     if cat != 'NULL':
         rasterVals[cat] = int(dn)
 pipe.wait()
-print("Writing stratum default files to %s" % (paths.RHESSYS_DEF) )
+print("Writing stratum definition files to %s" % (paths.RHESSYS_DEF) )
 for key in rasterVals.keys():
     print("stratum '%s' has dn %d" % (key, rasterVals[key]) )
     paramsFound = paramDB.search(paramConst.SEARCH_TYPE_CONSTRAINED, None, key, None, None, None, None, None, None, None, None,
@@ -205,7 +209,7 @@ for line in pipe.stdout:
     if cat != 'NULL':
         rasterVals[cat] = int(dn)
 pipe.wait()
-print("Writing landuse default files to %s" % (paths.RHESSYS_DEF) )
+print("Writing landuse definition files to %s" % (paths.RHESSYS_DEF) )
 for key in rasterVals.keys():
     print("landuse '%s' has dn %d" % (key, rasterVals[key]) )
     paramsFound = paramDB.search(paramConst.SEARCH_TYPE_CONSTRAINED, None, key, None, None, None, None, None, None, None, None,
@@ -226,6 +230,10 @@ result = grassLib.script.read_command('r.reclass', input=landcoverRast, output='
 if None == result:
     sys.exit("r.reclass failed to create impervious map, returning %s" % (result,))
 RHESSysMetadata.writeGRASSEntry(context, 'impervious_rast', 'impervious')    
+
+# Write metadata
+RHESSysMetadata.writeRHESSysEntry(context, 'stratum_defs', True)
+RHESSysMetadata.writeRHESSysEntry(context, 'landuse_defs', True)
 
 # Write processing history
 RHESSysMetadata.appendProcessingHistoryItem(context, cmdline)

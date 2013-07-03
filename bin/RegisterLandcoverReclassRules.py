@@ -42,6 +42,9 @@ Pre conditions
    
 2. The following metadata entry(ies) must be present in the study area section of the metadata associated with the project directory:
    landcover_type [required only if --generateKnownRules is supplied]
+   
+3. The following metadata entry(ies) must be present in the RHESSys section of the metadata associated with the project directory:
+   rhessys_dir
 
 Post conditions
 ---------------
@@ -61,9 +64,11 @@ or -i option must be specified.
 """
 import os, sys, errno, shutil
 import argparse
+import textwrap
 
 from rhessysworkflows.context import Context
 from rhessysworkflows.metadata import RHESSysMetadata
+from rhessysworkflows.rhessys import RHESSysPaths
 
 # Handle command line options
 parser = argparse.ArgumentParser(description='Generate landcover maps in GRASS GIS')
@@ -87,19 +92,20 @@ if args.configfile:
 
 context = Context(args.projectDir, configFile) 
 
+# Check for necessary information in metadata
+metadata = RHESSysMetadata.readRHESSysEntries(context)
 studyArea = RHESSysMetadata.readStudyAreaEntries(context)
 manifest = RHESSysMetadata.readManifestEntries(context)
 
-# Create directory within project directory to store rules in
-projectDirRuleDir = os.path.join(args.projectDir, RHESSysMetadata.RULES_DIR)
-try:
-    os.mkdir(projectDirRuleDir)
-except OSError as e:
-    if e.errno != errno.EEXIST:
-        raise e
+paths = RHESSysPaths(args.projectDir, metadata['rhessys_dir'])
+
+# Get path of place to store reclass rules
+projectDirRuleDir = paths.getReclassRulesDirectory()
 
 # Write prototype landcover reclass rules to the project directory
 if args.buildPrototypeRules:
+    sys.stdout.write('Generating prototype landcover reclass rules...')
+    sys.stdout.flush()
     # Road rule
     roadRulePath = os.path.join(projectDirRuleDir, RHESSysMetadata.LC_RULE_ROAD)
     with open(roadRulePath, 'w') as f:
@@ -113,17 +119,18 @@ if args.buildPrototypeRules:
     # Landuse rule
     landuseRulePath = os.path.join(projectDirRuleDir, RHESSysMetadata.LC_RULE_LANDUSE)
     with open(landuseRulePath, 'w') as f:
-        f.write('81 82 = 1 agriculture\n')
-        f.write('11 12 31 41 42 43 51 52 71 thru 74 90 95 = 2 undeveloped\n')
+        f.write('11 12 31 41 42 43 51 52 71 thru 74 90 95 = 1 undeveloped\n')
+        f.write('81 82 = 2 agriculture\n')
         f.write('21 22 23 24 = 3 urban\n')
     # Stratum rule
     stratumRulePath = os.path.join(projectDirRuleDir, RHESSysMetadata.LC_RULE_STRATUM)
     with open(stratumRulePath, 'w') as f:
-        f.write('42 51 52 = 1 evergreen\n')
-        f.write('41 43 90 = 2 deciduous\n')
-        f.write('71 72 81 95 = 3 grass\n')
-        f.write('11 12 21 22 23 24 31 73 74 82 = 4 nonveg\n')
+        f.write('11 12 21 22 23 24 31 73 74 82 = 1 nonveg\n')
+        f.write('71 72 81 95 = 2 grass\n')
+        f.write('41 43 90 = 3 deciduous\n')
+        f.write('42 51 52 = 4 evergreen\n')
     ruleDir = None
+    sys.stdout.write('done\n')
 
 # Generate rules for known landcover type
 if args.generateKnownRules:
@@ -144,6 +151,8 @@ if args.ruleDir:
     ruleDir = os.path.abspath(args.ruleDir)
 
 if ruleDir:
+    sys.stdout.write(textwrap.fill("Importing landcover reclass rules from %s ..." % (ruleDir,) ) )
+    sys.stdout.flush()
     # Copy rules into project directory
     roadRulePath = os.path.join(ruleDir, RHESSysMetadata.LC_RULE_ROAD)
     shutil.copy(roadRulePath, projectDirRuleDir)
@@ -153,6 +162,7 @@ if ruleDir:
     shutil.copy(landuseRulePath, projectDirRuleDir)
     stratumRulePath = os.path.join(ruleDir, RHESSysMetadata.LC_RULE_STRATUM)
     shutil.copy(stratumRulePath, projectDirRuleDir)
+    sys.stdout.write('done\n')
     
 # Write metadata
 RHESSysMetadata.writeRHESSysEntry(context, 'landcover_stratum_rule', os.path.join(RHESSysMetadata.RULES_DIR, os.path.basename(stratumRulePath)) )

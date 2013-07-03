@@ -56,6 +56,7 @@ import os, sys, errno
 import argparse
 import re
 import shutil
+import textwrap
 
 from rhessysworkflows.context import Context
 from rhessysworkflows.metadata import RHESSysMetadata
@@ -109,8 +110,12 @@ for entry in contents:
         stations.append(m.group(1))    
 
 # Copy station file and climate data
+sys.stdout.write(textwrap.fill("Importing climate data from %s...\n" % (args.sourceDir,) ) )
+sys.stdout.flush()
 for station in stations:
     # Copy station file
+    sys.stdout.write("\tStation '%s'\n" % (station,) )
+    sys.stdout.flush()
     stationFileName = "%s%s%s" % (station, os.extsep, STATION_FILE_EXTENSION)
     stationFilePath = os.path.join(args.sourceDir, stationFileName)
     shutil.copy(stationFilePath, paths.RHESSYS_CLIM)
@@ -122,6 +127,7 @@ for station in stations:
             extension = m.group(1)
             if extension != STATION_FILE_EXTENSION:
                 shutil.copy( os.path.join(args.sourceDir, entry), paths.RHESSYS_CLIM )
+sys.stdout.write('done\n')
 
 # Write metadata
 RHESSysMetadata.writeRHESSysEntry(context, 'climate_stations', RHESSysMetadata.VALUE_DELIM.join(stations))

@@ -46,6 +46,7 @@ Pre conditions
 3. The following metadata entry(ies) must be present in the GRASS section of the metadata associated with the project directory:
    basin_rast
    dem_rast
+   wetness_index_rast [if clump map wetness_index is selected]
    
 4. The following metadata entry(ies) must be present in the RHESSys section of the metadata associated with the project directory:
    grass_dbase
@@ -83,6 +84,8 @@ parser.add_argument('-p', '--projectDir', dest='projectDir', required=True,
                     help='The directory to which metadata, intermediate, and final files should be saved')
 parser.add_argument('-t', '--patchType', dest='patchType', required=True, choices=['grid', 'clump'],
                     help='Type of patch to be generated: uniform grid or clumps based on elevation')
+parser.add_argument('-c', '--clumpMap', dest='clumpMap', required=False, default='elevation', choices=['elevation', 'wetness_index'],
+                    help='Type of patch to be generated: uniform grid or clumps based on elevation')
 parser.add_argument('--overwrite', dest='overwrite', action='store_true', required=False,
                     help='Overwrite existing datasets in the GRASS mapset.  If not specified, program will halt if a dataset already exists.')
 args = parser.parse_args()
@@ -104,6 +107,9 @@ if not 'basin_rast' in grassMetadata:
     sys.exit("Metadata in project directory %s does not contain a GRASS dataset with a basin raster" % (context.projectDir,))
 if (args.patchType == 'clump') and (not 'dem_rast' in grassMetadata):
     sys.exit("Metadata in project directory %s does not contain a GRASS dataset with a DEM raster" % (context.projectDir,))
+if (args.clumpMap == 'wetness_index') and (not 'wetness_index_rast' in grassMetadata):
+    sys.exit("Metadata in project directory %s does not contain a GRASS dataset with a wetness index raster" % (context.projectDir,))
+
 
 metadata = RHESSysMetadata.readRHESSysEntries(context)
 if not 'grass_dbase' in metadata:
@@ -131,6 +137,10 @@ if result != 0:
     sys.exit("r.mask failed to set mask to basin, returning %s" % (result,))
 
 if args.patchType == 'grid':
+    
+    sys.stdout.write('Generating gridded patch map...\n')
+    sys.stdout.flush()
+    
     demRows = int(studyArea['dem_rows'])
     result = grassLib.script.write_command('r.mapcalc', 
                              stdin="%s=(row()-1) * %d + col()" % (PATCH_RAST, demRows) )
@@ -138,9 +148,19 @@ if args.patchType == 'grid':
         sys.exit("r.mapcalc failed to create patch map, returning %s" % (result,))
     
 if args.patchType == 'clump':
-    result = grassLib.script.run_command('r.clump', input=demRast, output=PATCH_RAST, overwrite=args.overwrite)
+    if args.clumpMap == 'wetness_index':
+        clumpMap = grassMetadata['wetness_index_rast']
+    else:
+        clumpMap = demRast
+    
+    sys.stdout.write("Generating clumped patch map based on %s raster...\n" % (clumpMap) )
+    sys.stdout.flush()
+    
+    result = grassLib.script.run_command('r.clump', input=clumpMap, output=PATCH_RAST, overwrite=args.overwrite)
     if result != 0:
         sys.exit("r.mapcalc failed to create patch map, returning %s" % (result,))
+
+sys.stdout.write('done\n')
 
 # Write metadata    
 RHESSysMetadata.writeGRASSEntry(context, 'patch_rast', PATCH_RAST)

@@ -103,6 +103,7 @@ import os, sys, errno
 import argparse
 import ConfigParser
 import re
+import textwrap
 
 from ecohydrolib.spatialdata.utils import transformCoordinates
 from ecohydrolib.grasslib import *
@@ -332,11 +333,11 @@ if args.areaEstimate:
         if m:
             area = float(m.group(1))
             if abs(area - args.areaEstimate) / args.areaEstimate > AREA_THRESHOLD:
-                sys.stdout.write("WARNING: Delineated area of %f sq. km differs from estimated area %f sq. km by MORE than %f%%. Try increasing or decreasing the stream threshold used for gage snapping.\n" % \
-                                   (area, args.areaEstimate, AREA_THRESHOLD * 100) )
+                sys.stdout.write(textwrap.fill("WARNING: Delineated area of %.2f sq. km differs from estimated area %.2f sq. km by MORE than %.0f%%. Try increasing or decreasing the stream threshold used for gage snapping.\n" % \
+                                   (area, args.areaEstimate, AREA_THRESHOLD * 100) ) )
             else:
-                sys.stdout.write("OK: Delineated area of %f sq. km differs from estimated area %f sq. km by less than %f%%\n" % \
-                                   (area, args.areaEstimate, AREA_THRESHOLD * 100) )
+                sys.stdout.write(textwrap.fill("OK: Delineated area of %.2f sq. km differs from estimated area %.2f sq. km by less than %.0f%%\n" % \
+                                   (area, args.areaEstimate, AREA_THRESHOLD * 100) ) )
     # Write metadata
     RHESSysMetadata.writeRHESSysEntry(context, 'watershed_area_km', area)
     RHESSysMetadata.writeRHESSysEntry(context, 'watershed_area_estimate_km', args.areaEstimate)

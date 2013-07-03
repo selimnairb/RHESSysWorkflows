@@ -185,11 +185,13 @@ if result != 0:
 
 cfPath = os.path.join(context.projectDir, metadata['cf_bin'])
 templatePath = os.path.join(context.projectDir, metadata['template'])
-print(templatePath)
+if args.verbose:
+    print(templatePath)
 # We don't want the '_init' in the flow table name
 flowTableNameBase = os.path.basename(metadata['worldfile_zero']).split('_')[0]
 flowOutpath = os.path.join(paths.RHESSYS_FLOW, flowTableNameBase)
-print(flowOutpath)
+if args.verbose:
+    print(flowOutpath)
 
 roads = None
 if args.routeRoads:
@@ -208,6 +210,8 @@ else:
     surfaceFlowtable = subsurfaceFlowtable = "%s.flow" % (flowTableNameBase, )
   
 # Run CF
+sys.stdout.write('Running createflowpaths (this may take a few minutes)...')
+sys.stdout.flush()
 result = grassLib.script.read_command(cfPath, out=flowOutpath, template=templatePath,
                                       dem=grassMetadata['dem_rast'], 
                                       slope=grassMetadata['slope_rast'],
@@ -220,10 +224,10 @@ cfCmd = "%s out=%s template=%s dem=%s slope=%s stream=%s road=%s roof=%s impervi
     (cfPath, flowOutpath, templatePath, grassMetadata['dem_rast'], grassMetadata['slope_rast'],
      grassMetadata['streams_rast'], roads, roofs, impervious, demResX)
 RHESSysMetadata.writeRHESSysEntry(context, 'flowtable_cmd', cfCmd)
-RHESSysMetadata.writeRHESSysEntry(context, 'surface_flowtable', os.path.join(rhessysDir, paths._FLOW, surfaceFlowtable) )
-RHESSysMetadata.writeRHESSysEntry(context, 'subsurface_flowtable', os.path.join(rhessysDir, paths._FLOW, subsurfaceFlowtable) )
+RHESSysMetadata.writeRHESSysEntry(context, 'surface_flowtable', paths.relpath(os.path.join(paths.RHESSYS_FLOW, surfaceFlowtable) ) )
+RHESSysMetadata.writeRHESSysEntry(context, 'subsurface_flowtable', paths.relpath(os.path.join(paths.RHESSYS_FLOW, subsurfaceFlowtable) ) )
 
-sys.stdout.write('\n\nFinished creating flowtable\n')
+sys.stdout.write('\nFinished creating flowtable\n')
 
 # Write processing history
 RHESSysMetadata.appendProcessingHistoryItem(context, cmdline)

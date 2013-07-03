@@ -37,6 +37,7 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 import os, errno
 
+from rhessysworkflows.metadata import RHESSysMetadata
 
 def generateCommandString(binPath, outputPrefix, startDate, endDate, tecPath,
                           worldPath, surfaceFlowPath, subsurfaceFlowPath=None,
@@ -140,6 +141,22 @@ class RHESSysPaths(object):
             relpath = None
         return relpath
     
+    
+    def getReclassRulesDirectory(self):
+        """ Get path to directory, within the project directory, for storing raster reclass rules in.  
+            If the directory does not exist it will be created.
+            
+            @return String representing the path of the rules directory
+        """
+        projectDirRuleDir = os.path.join(self.basedir, RHESSysMetadata.RULES_DIR)
+        try:
+            os.mkdir(projectDirRuleDir)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise e
+        return projectDirRuleDir
+    
+    
     def __init__(self, basedir, rhessysDir=_DIR):
             """ Verify that RHESSys directory structure is present,
                 creating directories as needed.
@@ -150,7 +167,7 @@ class RHESSysPaths(object):
                 @raise IOError is self.basedir is not writeable.  
                 @raise OSError if any directory creation fails.
             """
-            self.basedir = basedir
+            self.basedir = os.path.abspath(basedir)
             self.rhessysDir = rhessysDir
             self.RHESSYS_DIR = os.path.join(self.basedir, self.rhessysDir)
             
