@@ -152,6 +152,9 @@ result = grassLib.script.run_command('g.region', rast=demRast)
 if result != 0:
     sys.exit("g.region failed to set region to DEM, returning %s" % (result,))
 
+sys.stdout.write('Generating soil texture map from percent sand and clay maps...')
+sys.stdout.flush()
+
 # Import percent sand and percent clay raster maps into GRASS
 percentSandRasterPath = os.path.join(context.projectDir, manifest['soil_raster_avgsand'])
 result = grassLib.script.run_command('r.in.gdal', input=percentSandRasterPath, output='soil_avgsand', overwrite=args.overwrite)
@@ -177,6 +180,8 @@ result = grassLib.script.read_command(soilTexture, sand='soil_avgsand', clay='so
 if None == result:
     sys.exit("r.soils.texture failed, returning %s" % (result,))
 RHESSysMetadata.writeGRASSEntry(context, 'soil_rast', 'soil_texture')
+
+sys.stdout.write('done\n')
 
 # Fetch relevant soil default files from param DB
 pipe = grassLib.script.pipe_command('r.stats', flags='licn', input='soil_texture')

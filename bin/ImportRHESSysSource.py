@@ -127,6 +127,9 @@ makePath = context.config.get('RHESSYS', 'PATH_OF_MAKE')
 
 # Check for necessary information in metadata
 metadata = RHESSysMetadata.readRHESSysEntries(context)
+if not 'rhessys_dir' in metadata:
+    sys.exit("Metadata in project directory %s does not contain a RHESSys directory" % (context.projectDir,))
+
 paths = RHESSysPaths(args.projectDir, metadata['rhessys_dir'])
 
 paramDBPath = os.path.join(paths.DB_DIR, paramDBDir)
