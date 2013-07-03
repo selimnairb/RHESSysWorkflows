@@ -68,6 +68,7 @@ Pre conditions
    patch_rast
    soil_rast
    landuse_rast
+   impervious_rast
    wetness_index_rast 
    stratum_rast
    xmap_rast
@@ -305,6 +306,7 @@ subs['west_horizon_rast'] = grassMetadata['west_horizon_rast']
 subs['patch_rast'] = grassMetadata['patch_rast']
 subs['soil_rast'] = grassMetadata['soil_rast']
 subs['landuse_rast'] = grassMetadata['landuse_rast']
+subs['impervious_rast'] = grassMetadata['impervious_rast']
 subs['wetness_index_rast'] = grassMetadata['wetness_index_rast'] 
 subs['stratum_rast'] = grassMetadata['stratum_rast']
 subs['xmap_rast'] = grassMetadata['xmap_rast']
