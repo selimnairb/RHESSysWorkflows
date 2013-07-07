@@ -46,9 +46,9 @@ Federation Consortium.
 
 Introduction
 ------------
-RHESSysWorkflows provides a series of Python scripts for performing 
-[RHESSys](http://fiesta.bren.ucsb.edu/~rhessys/) data preparation workflows.  These scripts 
-build on the workflow system defined by
+RHESSysWorkflows provides a series of Python scripts for performing
+[RHESSys](http://fiesta.bren.ucsb.edu/~rhessys/) data preparation
+workflows.  These scripts build on the workflow system defined by
 [EcohydrologyWorkflowLib](https://github.com/selimnairb/EcohydrologyWorkflowLibWorkflow).
 
 
@@ -63,9 +63,10 @@ Using Python PyPi:
 
 easy_install --script-dir /path/to/install/scripts rhessysworkflows
 
-It is recommended that you install the workflow scripts in a location distinct from
-where your Python packages are installed (usually 'site-packages').  This is accomplished by 
-specifying the --script-dir option to easy install (see above).  
+It is recommended that you install the workflow scripts in a location
+distinct from where your Python packages are installed (usually
+'site-packages').  This is accomplished by specifying the --script-dir
+option to easy install (see above).
 
 
 Required runtime software
@@ -76,10 +77,12 @@ Required runtime software
 
 Configuration files
 -------------------
-Many scripts in both RHESSysWorkflows and EcohydrologyWorkflowLib require a configuration 
-file to specify locations to executables and datasets required by the ecohydrology 
-workflow libraries.  The configuration file can be specified via the environmental variable
-ECOHYDROWORKFLOW_CFG or via command line option. Here is an example configuration file:
+Many scripts in both RHESSysWorkflows and EcohydroLib
+require a configuration file to specify locations to executables and
+datasets required by the ecohydrology workflow libraries.  The
+configuration file can be specified via the environmental variable
+ECOHYDROLIB_CFG or via command line option. Here is an example
+configuration file:
 
 		[GDAL/OGR]
 		PATH_OF_OGR2OGR = /Library/Frameworks/GDAL.framework/Versions/Current/Programs/ogr2ogr
@@ -120,9 +123,12 @@ scripts.
 
 How to use - Typical workflow
 -------------------------------
-A typical workflow will consist of running data processing/registration scripts from EcohydrologyWorkflowLib. 
-Once the required datasets are in place (e.g. DEM, soils, landcover, etc.) the following RHESSysWorkflows
-scripts should be run (in the order listed):
+A typical workflow will consist of running data
+processing/registration scripts from EcohydrologyWorkflowLib.  Once
+the required datasets are in place (e.g. DEM, soils, landcover, etc.)
+the following RHESSysWorkflows scripts should be run (in the order
+listed):
+
 1. CreateGRASSLocationFromDEM.py
 2. DelineateWatershed.py
 3. GenerateLandcoverMaps.py

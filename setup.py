@@ -5,11 +5,11 @@ def readme():
         return f.read()
 
 setup(name='rhessysworkflows',
-      version='0.9',
+      version='1.0',
       description='Libraries and command-line scripts for performing RHESSys data preparation workflows.',
       long_description=readme(),
       classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 5 - Production/Stable',
         'Environment :: Console',
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: BSD License',
@@ -21,16 +21,28 @@ setup(name='rhessysworkflows',
       author='Brian Miles',
       author_email='brian_miles@unc.edu',
       license='BSD',
-      packages=[],
+      packages=['rhessysworkflows',
+                'rhessysworkflows.tests'
+                ],
       install_requires=[
-        'ecohydroworkflowlib'
+        'ecohydrolib'
       ],
-      scripts=['bin/DelineateWatershed.py',
+      scripts=['bin/CreateFlowtable.py',
+               'bin/CreateGRASSLocationFromDEM.py',
+               'bin/CreateWorldfile.py',
+               'bin/DelineateWatershed.py',
+               'bin/GenerateCustomSoilDefinitions.py',
+               'bin/GenerateLandcoverMaps.py',
+               'bin/GeneratePatchMap.py',
                'bin/GenerateSoilTextureMap.py',
-               'bin/ImportDEMIntoNewGRASSLocation.py',
-               'bin/GenerateLandcoverMaps.py'
+               'bin/ImportClimateData.py',
+               'bin/ImportRHESSysSource.py',
+               'bin/ImportRasterMapIntoGRASS.py',
+               'bin/RegisterCustomSoilReclassRules.py',
+               'bin/RegisterLandcoverReclassRules.py',
+               'bin/RunLAIRead.py'
       ],
-      data_files=[(directory, [file1, file2]),
-                  (directory), [file1, file2]
-      ],
+      package_data = {
+                      'etc/NLCD2006': ['*.rule'],
+                      },
       zip_safe=False)
