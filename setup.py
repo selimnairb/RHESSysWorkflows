@@ -25,7 +25,7 @@ setup(name='rhessysworkflows',
                 'rhessysworkflows.tests'
                 ],
       install_requires=[
-        'ecohydrolib'
+        'ecohydrolib==1.0'
       ],
       scripts=['bin/CreateFlowtable.py',
                'bin/CreateGRASSLocationFromDEM.py',
@@ -42,7 +42,10 @@ setup(name='rhessysworkflows',
                'bin/RegisterLandcoverReclassRules.py',
                'bin/RunLAIRead.py'
       ],
-      package_data = {
-                      'etc/NLCD2006': ['*.rule'],
-                      },
+      data_files=[('rhessysworkflows/etc/NLCD2006', ['etc/NLCD2006/impervious.rule',
+                           'etc/NLCD2006/landuse.rule',
+                           'etc/NLCD2006/road.rule',
+                           'etc/NLCD2006/stratum.rule'] )
+                  ],
+                 
       zip_safe=False)
