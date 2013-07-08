@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 """@package CreateWorldfile
 
 @brief Create RHESSys worldfile.  This will create an initial worldfile used for input into the
@@ -348,15 +348,22 @@ if result != 0:
     sys.exit("r.mask failed to set mask to basin, returning %s" % (result,))
 
 worldfileName = "%s_init" % (templateFilename.replace('template', 'world'), )
-g2wPath = os.path.join(context.projectDir, metadata['g2w_bin'])
 worldfilePath = os.path.join(paths.RHESSYS_WORLD, worldfileName)
+
+g2wPath = os.path.join(context.projectDir, metadata['g2w_bin'])
 g2wCommand = "%s -t %s -w %s" % (g2wPath, templateFilepath, worldfilePath)
+
+# Make sure g2w can find rat
+g2wEnv = dict(os.environ)
+g2wEnv['PATH'] = paths.RHESSYS_BIN + os.pathsep + g2wEnv['PATH']
+
 if args.verbose:
     print(g2wCommand)
 sys.stdout.write("\nRunning grass2world from %s..." % (paths.RHESSYS_BIN,) )
 sys.stdout.flush()
 cmdArgs = g2wCommand.split()
-process = Popen(cmdArgs, cwd=paths.RHESSYS_BIN, stdout=PIPE, stderr=PIPE)
+process = Popen(cmdArgs, cwd=paths.RHESSYS_BIN, env=g2wEnv, 
+                stdout=PIPE, stderr=PIPE)
 (process_stdout, process_stderr) = process.communicate()
 if args.verbose:
     sys.stdout.write(process_stdout)
