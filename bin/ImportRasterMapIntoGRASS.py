@@ -81,12 +81,16 @@ or -i option must be specified.
 """
 import os, sys
 import argparse
+import textwrap
 
 from ecohydrolib.grasslib import *
 
 from rhessysworkflows.context import Context
 from rhessysworkflows.metadata import RHESSysMetadata
 from rhessysworkflows.rhessys import RHESSysPaths
+
+RESAMPLE_METHODS = list(GRASS_RASTER_RESAMPLE_METHODS)
+RESAMPLE_METHODS.insert(0, 'none')
 
 # Handle command line options
 typeChoices = list(RHESSysMetadata.RASTER_TYPES)
@@ -98,6 +102,9 @@ parser.add_argument('-p', '--projectDir', dest='projectDir', required=True,
                     help='The directory to which metadata, intermediate, and final files should be saved')
 parser.add_argument('-t', '--type', dest='types', required=True, nargs='+', choices=typeChoices,
                     help='The type of raster dataset to import, or all if all types should be imported.')
+parser.add_argument('-m', '--method', dest='method', required=True, 
+                    nargs='+', choices=RESAMPLE_METHODS,
+                    help='The method to use to resample each raster.')
 parser.add_argument('--overwrite', dest='overwrite', action='store_true', required=False,
                     help='Overwrite existing datasets in the GRASS mapset.  If not specified, program will halt if a dataset already exists.')
 args = parser.parse_args()
@@ -109,10 +116,16 @@ if args.configfile:
 
 context = Context(args.projectDir, configFile) 
 
+if len(args.types) != len(args.method):
+    sys.exit(textwrap.fill("%d raster type(s) specified for import, but %d resample method(s) supplied. Please specify a resample method for each raster type" % \
+             (len(args.types), len(args.method)) ) )
+
 if 'all' in args.types:
     typeList = RHESSysMetadata.RASTER_TYPES
+    methodList = [args.method[0] for type in typeList]
 else:
     typeList = args.types
+    methodList = args.method
 
 ## Check for necessary information in metadata
 manifest = RHESSysMetadata.readManifestEntries(context)
@@ -144,8 +157,9 @@ if result != 0:
     sys.exit("g.region failed to set region to DEM, returning %s" % (result,))
 
 # Import raster maps into GRASS
-for type in typeList:
+for index, type in enumerate(typeList):
     if type in manifest:
+        method = methodList[index]
         sys.stdout.write("Importing %s raster..." % (type,) )
         sys.stdout.flush()
         rasterPath = os.path.join(context.projectDir, manifest[type])
@@ -153,11 +167,14 @@ for type in typeList:
         if result != 0:
             sys.exit("Failed to import raster %s into GRASS dataset %s/%s, result:\n%s" % \
                      (type, grassDbase, metadata['grass_location'], result) )
-        # Resample the raster to ensure it is the same resolution as the geographic region defined by the DEM
-        result = grassLib.script.run_command('r.resample', input=type, output=type, overwrite=True)
-        if result != 0:
-            sys.exit("Failed to resample imported raster %s of GRASS dataset %s/%s, result:\n%s" % \
-                     (type, grassDbase, metadata['grass_location'], result) )
+        if method != 'none':
+            # Resample the raster to ensure it is the same resolution as the geographic region defined by the DEM
+            sys.stdout.write("Resampling %s raster using method %s...\n" % (type, method) )
+            sys.stdout.flush()
+            result = grassLib.script.run_command('r.resamp.interp', input=type, output=type, method=method, overwrite=True)
+            if result != 0:
+                sys.exit("Failed to resample imported raster %s of GRASS dataset %s/%s, result:\n%s" % \
+                         (type, grassDbase, metadata['grass_location'], result) )
         grassEntryKey = "%s_rast" % (type,)
         RHESSysMetadata.writeGRASSEntry(context, grassEntryKey, type)
         sys.stdout.write('done\n')
