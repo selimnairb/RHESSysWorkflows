@@ -142,7 +142,9 @@ sudo pip install rhessysworkflows
     - For example, under OS X, create a folder called 'data' in your home directory
 
   - Unpack NLCD2006 data
-    - For example, under OS X, double-click on the NLCD2006 archive
+    - For example, under OS X, DO NOT double-click on the NLCD2006 archive, but instead
+      unzip the data from Terminal:
+      	unzip NLCD2005_landcover_4-20-11.se5.zip
 
 
 5. Setup pre-packaged NHDPlusV2 data [optional]
@@ -150,12 +152,14 @@ sudo pip install rhessysworkflows
 If you want to determine your study area based on an NHD catchment drained by a USGS streamflow gage, do the following:
 
   - Download pre-packaged NHDPlusV2 data from:
+  
+  	Note, this may take a while to download
 
   - Copy the pre-packaged NHDPlusV2 archive to the parent folder where you would like to store it
     - For example, under OS X, create a folder called 'data' in your home directory
 
   - Unpack NHDPlusV2 data (e.g. into your "Documents" folder)
-    - For example, under OS X, double-click on the NHDPlusV2 archive
+    - For example, under OS X, double-click on the NHDPlusV2 archive. Note, this may take a while to unpack
 
 
 6. Setup EcohydroLib and RHESSys workflows configuration file
@@ -192,4 +196,4 @@ listed):
 3. GenerateLandcoverMaps.py
 4. GenerateSoilTextureMap.py
 
-
+Import RHESSys source (requires RHESSys 5.16 or later, for now use the develop branch)
