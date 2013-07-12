@@ -67,50 +67,6 @@ Source code
 Source code can be found at: https://github.com/selimnairb/RHESSysWorkflows
 
 Documentation can be found at: http://pythonhosted.org/rhessysworkflows
-
-
-Configuration files
--------------------
-Many scripts in both RHESSysWorkflows and EcohydroLib
-require a configuration file to specify locations to executables and
-datasets required by the ecohydrology workflow libraries.  The
-configuration file can be specified via the environmental variable
-ECOHYDROLIB_CFG or via command line option. Here is an example
-configuration file:
-
-		[GDAL/OGR]
-		PATH_OF_OGR2OGR = /Library/Frameworks/GDAL.framework/Versions/Current/Programs/ogr2ogr
-		PATH_OF_GDAL_RASTERIZE = /Library/Frameworks/GDAL.framework/Versions/Current/Programs/gdal_rasterize
-		PATH_OF_GDAL_WARP = /Library/Frameworks/GDAL.framework/Versions/Current/Programs/gdalwarp
-		PATH_OF_GDAL_TRANSLATE = /Library/Frameworks/GDAL.framework/Versions/Current/Programs/gdal_translate
-		
-		[NHDPLUS2]
-		PATH_OF_NHDPLUS2_DB = /Users/<myusername>/data/NHDPlusDB.sqlite
-		PATH_OF_NHDPLUS2_CATCHMENT = /Users/<myusername>/data/Catchment.sqlite
-		PATH_OF_NHDPLUS2_GAGELOC = /Users/<myusername>/data/GageLoc.sqlite
-		
-		[NLCD]
-		PATH_OF_NLCD2006 = /Users/<myusername>/data/nlcd2006_landcover_4-20-11_se5.img
-		
-		[UTIL]
-		PATH_OF_FIND = /usr/bin/find
-		#PATH_OF_SEVEN_ZIP = /opt/local/bin/7z
-		PATH_OF_SQLITE = /usr/bin/sqlite3
-		
-		[SCRIPT]
-		ETC = /System/Library/Frameworks/Python.framework/Versions/2.7/rhessysworkflows/etc
-		
-		[GRASS]
-		GISBASE = /Applications/GRASS-6.4.app/Contents/MacOS
-		MODULE_PATH = /Library/GRASS/6.4/Modules/bin
-		MODULE_ETC = /Library/GRASS/6.4/Modules/etc
-		
-		[RHESSYS]
-		PATH_OF_GIT = /usr/bin/git
-		PATH_OF_MAKE = /usr/bin/make
-
-Prototype configuration files for OS X are available here: https://github.com/selimnairb/RHESSysWorkflows/tree/master/docs/config
-We'll cover how to setup your configuration file during the installation process.
 		
 
 Installation instructions
@@ -140,13 +96,26 @@ support for OS X 10.6 will also be dropped from subsequent releases of
 RHESSysWorkflows.  If you were thinking of upgrading from OS X 10.6 to
 10.7 or 10.8 for other reasons, this may add another.
 
+> You will need to use the *sudo* command line tool to install many of
+> the components needed for EcohydroLib/RHESSysWorkflows.  The sudo
+> command allows you to run other commands as a super user.  Under OS
+> X, by default, only users who are 'admins' have permission to run
+> sudo.  To check if your user account is an administrator, or to make
+> your user an administrator open *System Preferences > Users &
+> Groups*.  Note that to use sudo, your account will also have to have
+> a non-blank password.  See this Apple support
+> [article](http://support.apple.com/kb/HT4103?viewlocale=en_US&locale=en_US)
+> for more information.
+
 ### OS X 10.6 only: Install Python 2.7
 
 #### Download and install Python 2.7 (for Mac OS 10.6 and later) from: http://www.python.org/download/
 
 Once installation has completed, make sure that Python 2.7 is the
 default Python version by doing the following from the Terminal:
+
     python
+    
 This will load the Python interpreter.  The first line of output will
 display the Python version number.  Type *exit()* to exit the
 interpreter.
@@ -155,13 +124,18 @@ interpreter.
 Install setuptools as follows:
 1. Unpack the archive by double-clicking on it in Finder
 2. From Terminal:
+
     cd setuptools-0.8
     sudo python ez_setup.py
 
 ### Install non-Python dependencies
 
 #### OS X 10.6: Install Xcode (OS X developer tools)
-1. Download and install Xcode 3.2.6 and iOS SDK 4.3 for Snow Leopard from https://developer.apple.com/downloads/index.action (This requires you to register for a free developer account)
+
+1. Download and install Xcode 3.2.6 and iOS SDK 4.3 for Snow Leopard
+[here](https://developer.apple.com/downloads/index.action) (This
+requires you to register for a free developer account)
+
 2. Download and install Git from http://git-scm.com/download/mac
 
 RHESSysWorkflows uses Git to download RHESSys source code so you don't have to.
@@ -180,6 +154,7 @@ to use GRASS to visualize the results from some workflow steps.
 To install GRASS on OS X, visit http://www.kyngchaos.com/software/grass
 
 Here you will need to download and install the following:
+
 1. GDAL Complete 1.9 framework
 2. FreeType framework
 3. cairo framework
@@ -188,6 +163,7 @@ Here you will need to download and install the following:
 While you are there, I recommend you also install QGIS (Quantum GIS) from http://www.kyngchaos.com/software/qgis
 
 In addition to GRASS and components installed above, install:
+
 1. GSL framework
 2. QGIS
 
@@ -248,21 +224,31 @@ Plus (NHD Plus) to locate USGS streamflow gages, or use the National
 Landcover Dataset (NLCD 2006). Unfortunately, these are large datasets
 and this are currently no way to query subsets of these data over the
 web.  If you want to use NHDPlus or NLCD2006 in your workflows, you
-will have to download local copies of these datasets.
+will have to download local copies of these datasets.  However, the
+installation is a one-time process, and once you have the data,
+EcohydroLib/RHESSysWorkflows makes it very easy to use them.
  
 #### Setup NLCD2006 data [optional]
 If you want to use NLCD2006 land cover data, do the following:
 - Download NLCD2006 data [here](https://docs.google.com/file/d/0B7aK-9pTSLS-MHRrRTVVRV9zdVk/edit?usp=sharing)
 
-    It is important that you download this version of the dataset, and not the official data from 
-    http://www.mrlc.gov/nlcd06_data.php.  The offical data are packaged using a version of PkZip that
-    is not compatible with OS X's GUI or commandline unzip utilities.
+    It is important that you download this version of the dataset, and
+    not the official data from http://www.mrlc.gov/nlcd06_data.php.
+    The offical data are packaged using a version of PkZip that is not
+    compatible with OS X's GUI or commandline unzip utilities.
 
 - Copy NLCD2006 archive to the parent folder where you would like to store it
 
-    For example, under OS X, create a folder called 'data' in your home directory
+    For example, under OS X, create a folder called 'data' in your
+    home directory
 
-- Unpack NLCD2006 data by double-clicking on the archive
+- Unpack NLCD2006 data (this will take a while...time for a coffee break):
+    
+    + OS X 10.6: From the command line:
+    
+        tar xvjf nlcd2006_landcover_4-20-11_se5.tar.bz2
+        
+    + OS X 10.7/10.8: double-click on the archive in Finder
 
 #### Setup pre-packaged NHDPlusV2 data [optional]
 If you want to determine your study area based on an NHD catchment
@@ -277,34 +263,58 @@ To download and unpack the pre-built data, do the following:
 
 - Download pre-packaged NHDPlusV2 database [here](https://docs.google.com/file/d/0B7aK-9pTSLS-dGVzWGRCd1NwNzQ/edit?usp=sharing)
 
-    Note, the compressed data are nearly 7 GB, nearly 11 GB uncompressed, the download may take a while
+    Note, the compressed data are nearly 7 GB, nearly 11 GB
+    uncompressed, the download may take a while
 
-- Copy the pre-packaged NHDPlusV2 database archive to the parent folder where you would like to store it
+- Copy the pre-packaged NHDPlusV2 database archive to the parent
+  folder where you would like to store it
     
-    For example, under OS X, create a folder called 'data' in your home directory
+    For example, under OS X, create a folder called 'data' in your
+    home directory
 
-- Unpack NHDPlusV2 database archive
+- Unpack NHDPlusV2 database archive (this will take a while...have a
+    cup of tea) 
+
+    + OS X 10.6: From the command line:
     
-    For example, under OS X, double-click on the NHDPlusV2 archive. Note, this may take a while to unpack
+        tar xvjf NHDPlusV2.tar.bz2
+        
+    + OS X 10.7/10.8: double-click on the archive in Finder
 
 ### Setup EcohydroLib and RHESSysWorkflows configuration file
-- Choose the appropriate prototype configuration file from https://github.com/selimnairb/RHESSysWorkflows/tree/master/docs/config
-- Copy and paste the prototype configuration into a text file named '.ecohydro.cfg'
-- Save '.ecohydro.cfg' in your home directory
-- Modify the example configuration to point to your NHDPlusV2 and NLCD2006 data:
+- Choose the appropriate prototype configuration file:
 
-    If you are using OS X, and if you placed the data in a directory called 'data' in your
-    home directory, the only changes you need to make is to substitute '<myusername>' with your user name.
-    To find out your OS X user name, use the *whoami* command in Terminal
+    + [OS X 10.6](https://raw.github.com/selimnairb/RHESSysWorkflows/master/docs/config/ecohydro-OSX_10.6.cfg)
+
+    + [OS X 10.7/10.8](https://raw.github.com/selimnairb/RHESSysWorkflows/master/docs/config/ecohydro-OSX.cfg)
+
+- Save into a file named '.ecohydro.cfg' stored in your home directory
+
+- Modify the example configuration to point to your NHDPlusV2 and
+  NLCD2006 data:
+
+    If you are using OS X, and if you placed the data in a directory
+    called 'data' in your home directory, the only changes you need to
+    make is to substitute '<myusername>' with your user name.  To find
+    out your OS X user name, use the *whoami* command in Terminal
     
-- Set ECOHYDROLIB_CFG environment variable so that RHESSysWorkflows can find your configuration file
+- Set ECOHYDROLIB_CFG environment variable so that RHESSysWorkflows
+  can find your configuration file
+
     For example, under OS X, from Terminal, do the following:
+
 	+ Open your bash profile in an editor:
+
 		nano ~/.bash_profile
+
 	+ Add the following at the end of the file:
+
 		export ECOHYDROLIB_CFG=${HOME}/.ecohydro.cfg
+
 	+ Save the file
+
 	+ Re-load bash profile (or close and open a new Terminal window):
+
 		source ~/.bash_profile
 
 
@@ -337,8 +347,11 @@ information required can be queried from the metadata.
 
 Each workflow script will print usage information when run on its own
 for example running:
+
     GetNHDStreamflowGageIdentifiersAndLocation.py 
+
 Will yield:
+
     usage: GetNHDStreamflowGageIdentifiersAndLocation.py [-h] [-i CONFIGFILE] -p
     PROJECTDIR -g GAGEID
     GetNHDStreamflowGageIdentifiersAndLocation.py: error: argument -p/--projectDir is required
@@ -480,6 +493,26 @@ Note that EcohydroLib/RHESSysWorkflows uses the DEM resolution,
 extent, and sptial reference the reference for all other rasters
 imported into or generated by subsequent workflow scripts.
 
+You may sometimes encounter an error from
+GetDEMExplorerDEMForBoundingbox that looks something like the
+following:
+
+    ERROR 4: `/Users/miles/Dropbox/EarthCube-Multilayered/RHESSys-workflow/scratchspace/standard/DEM-TEMP.tif' not recognised as a supported file format.
+
+    Traceback (most recent call last):
+    File "/Users/miles/Dropbox/EarthCube-Multilayered/RHESSys-workflow/eclipse/EcohydroWorkflowLib/bin/GetDEMExplorerDEMForBoundingbox.py", line 153, in <module>
+    demSrs = getSpatialReferenceForRaster(tmpDEMFilepath)
+    File "/Users/miles/Dropbox/EarthCube-Multilayered/RHESSys-workflow/eclipse/EcohydroWorkflowLib/ecohydrolib/spatialdata/utils.py", line 747, in getSpatialReferenceForRaster
+    return (pixelWidth, pixelHeight, linearUnitsName, linearUnitsConversionFactor, pszProjection, epsgStr)
+    UnboundLocalError: local variable 'epsgStr' referenced before assignment
+
+This is caused when the DEM Explorer service is down for maintenance.
+When this happens, try waiting for an hour or so.  If there is an
+extended outage visit the DEM Explorer
+[site](http://ws.csiss.gmu.edu/DEMExplorer/) to contact the
+administrators.  The next release of RHESSysWorkflows will gracefully
+recognize when the DEM Explorer service is not available.
+
 Lastly, you are not required to use a DEM from DEM Explorer.  See the
 *Custom local data workflow* example below for more information.
 
@@ -578,7 +611,7 @@ to initialize vegetation carbon and nitrogen stores.  RHESSysWorkflows
 relies can use a user-supplied LAI rasters to supply these initial LAI
 data to RHESSys.  For this example workflow, you can download an LAI
 image
-(here)[https://docs.google.com/file/d/0B7aK-9pTSLS-eEJaZXctaEtkb2s/edit?usp=sharing].
+[here](https://docs.google.com/file/d/0B7aK-9pTSLS-eEJaZXctaEtkb2s/edit?usp=sharing).
 Use the following command to register this user-supplied raster into
 your project:
 

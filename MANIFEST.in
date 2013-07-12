@@ -1,4 +1,4 @@
-include README.txt
+include README.md
 include etc/NLCD2006/impervious.rule
 include etc/NLCD2006/landuse.rule
 include etc/NLCD2006/road.rule
