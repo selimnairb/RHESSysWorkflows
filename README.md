@@ -32,9 +32,9 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 Authors
 -------
-Brian Miles <brian_miles@unc.edu>
+Brian Miles - brian_miles@unc.edu
 
-Lawrence E. Band <lband@email.unc.edu>
+Lawrence E. Band - lband@email.unc.edu
 
 For questions or support contact [Brian Miles](brian_miles@unc.edu)
 
@@ -177,7 +177,7 @@ are also available for installation from the GRASS addons repository
 via g.extension.  You can download r.findtheriver
 [here](http://grasswiki.osgeo.org/wiki/AddOns/GRASS_6#r.findtheriver)
 and r.soils.texture
-[here](http://grasswiki.osgeo.org/wiki/AddOns/GRASS_6#r.soils.texture)
+[here](http://grasswiki.osgeo.org/wiki/AddOns/GRASS_6#r.soils.texture).
 
 ### Install Python modules
 #### Install PIP, a tool for installing Python modules
@@ -246,7 +246,7 @@ If you want to use NLCD2006 land cover data, do the following:
     
     + OS X 10.6: From the command line:
     
-        tar xvjf nlcd2006_landcover_4-20-11_se5.tar.bz2
+      tar xvjf nlcd2006_landcover_4-20-11_se5.tar.bz2
         
     + OS X 10.7/10.8: double-click on the archive in Finder
 
@@ -497,12 +497,12 @@ You may sometimes encounter an error from
 GetDEMExplorerDEMForBoundingbox that looks something like the
 following:
 
-    ERROR 4: `/Users/miles/Dropbox/EarthCube-Multilayered/RHESSys-workflow/scratchspace/standard/DEM-TEMP.tif' not recognised as a supported file format.
+    ERROR 4: `/Users/test/workflows/standard/DEM-TEMP.tif' not recognised as a supported file format.
 
     Traceback (most recent call last):
-    File "/Users/miles/Dropbox/EarthCube-Multilayered/RHESSys-workflow/eclipse/EcohydroWorkflowLib/bin/GetDEMExplorerDEMForBoundingbox.py", line 153, in <module>
+    File "/usr/local/bin/GetDEMExplorerDEMForBoundingbox.py", line 153, in <module>
     demSrs = getSpatialReferenceForRaster(tmpDEMFilepath)
-    File "/Users/miles/Dropbox/EarthCube-Multilayered/RHESSys-workflow/eclipse/EcohydroWorkflowLib/ecohydrolib/spatialdata/utils.py", line 747, in getSpatialReferenceForRaster
+    File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/ecohydrolib/spatialdata/utils.py", line 747, in getSpatialReferenceForRaster
     return (pixelWidth, pixelHeight, linearUnitsName, linearUnitsConversionFactor, pszProjection, epsgStr)
     UnboundLocalError: local variable 'epsgStr' referenced before assignment
 
