@@ -41,10 +41,17 @@ For questions or support contact [Brian Miles](brian_miles@unc.edu)
 
 Funding
 -------
-This work was supported by NSF grant #1239678 EAGER: Collaborative
-Research: Interoperability Testbed-Assessing a Layered Architecture for
-Integration of Existing Capabilities, and NSF grant #0940841 DataNet
-Federation Consortium.
+This work was supported by the following NSF grants
+
+- #1239678 EAGER: Collaborative Research: Interoperability
+   Testbed-Assessing a Layered Architecture for Integration of
+   Existing Capabilities
+
+- #0940841 DataNet Federation Consortium.
+
+- #1148090 Collaborative Research: SI2-SSI: An Interactive Software
+   Infrastructure for Sustaining Collaborative Innovation in the
+   Hydrologic Sciences
 
 
 Introduction
@@ -57,7 +64,8 @@ workflows.  These scripts build on the workflow system defined by
 
 Source code
 -----------
-Source code can be found at https://github.com/selimnairb/RHESSysWorkflows
+Source code can be found at: https://github.com/selimnairb/RHESSysWorkflows
+Documentation can be found at:
 
 
 Configuration files
@@ -993,27 +1001,271 @@ RHESSys world file and flow table using standard spatial data
 infrastructure.
 
 ### Custom local data workflow
-RegisterDEM.py -p /Users/miles/Dropbox/EarthCube-Multilayered/RHESSys-workflow/scratchspace/dr5_5m-roofs -d /Users/miles/Dropbox/BES-DeadRun/imagery/DEM/DR5_DEM_5m_2m-burn-filled.tif
-RegisterGage.py -p /Users/miles/Dropbox/EarthCube-Multilayered/RHESSys-workflow/scratchspace/dr5_5m-roofs -g /Users/miles/Dropbox/BES-DeadRun/ARCData/gageNAD83.shp -l gageNAD83 -a gage_id -d 01589312
-RegisterRaster.py -p /Users/miles/Dropbox/EarthCube-Multilayered/RHESSys-workflow/scratchspace/dr5_5m-roofs -t landcover -r /Users/miles/Dropbox/BES-DeadRun/imagery/LULC/LandCover_BACO_2007_DR5_planburn_grassfix_1km_UTM.tif --noresample -b "Baltimore Ecosystem Study" --force
-RegisterRaster.py -p /Users/miles/Dropbox/EarthCube-Multilayered/RHESSys-workflow/scratchspace/dr5_5m-roofs -t roof_connectivity -r /Users/miles/Dropbox/BES-DeadRun/imagery/LULC/rooftops_baco_2007_dr5_planburn_1km.tif --noresample --force
-RegisterRaster.py -p /Users/miles/Dropbox/EarthCube-Multilayered/RHESSys-workflow/scratchspace/dr5_5m-roofs -t lai -r /Users/miles/Dropbox/BES-DeadRun/imagery/LAI/static_lai.tif --force
-GetSSURGOFeaturesForBoundingbox.py -p /Users/miles/Dropbox/EarthCube-Multilayered/RHESSys-workflow/scratchspace/dr5_5m-roofs
-GenerateSoilPropertyRastersFromSOLIM.py -p /Users/miles/Dropbox/EarthCube-Multilayered/RHESSys-workflow/scratchspace/dr5_5m-roofs
-CreateGRASSLocationFromDEM.py -p /Users/miles/Dropbox/EarthCube-Multilayered/RHESSys-workflow/scratchspace/dr5_5m-roofs -d "Dead Run 5 near Catonsville, MD"
-DelineateWatershed.py -p /Users/miles/Dropbox/EarthCube-Multilayered/RHESSys-workflow/scratchspace/dr5_5m-roofs -t 2000 -a 1.6
-ImportRHESSysSource.py -p /Users/miles/Dropbox/EarthCube-Multilayered/RHESSys-workflow/scratchspace/dr5_5m-roofs -b develop
-GenerateSoilTextureMap.py -p /Users/miles/Dropbox/EarthCube-Multilayered/RHESSys-workflow/scratchspace/dr5_5m-roofs
-GenerateSoilPropertyRastersFromSSURGO.py -p /Users/miles/Dropbox/EarthCube-Multilayered/RHESSys-workflow/scratchspace/dr5_5m-roofs
-GenerateSoilTextureMap.py -p /Users/miles/Dropbox/EarthCube-Multilayered/RHESSys-workflow/scratchspace/dr5_5m-roofs --overwrite
-GeneratePatchMap.py -p /Users/miles/Dropbox/EarthCube-Multilayered/RHESSys-workflow/scratchspace/dr5_5m-roofs -t grid
-ImportClimateData.py -p /Users/miles/Dropbox/EarthCube-Multilayered/RHESSys-workflow/scratchspace/dr5_5m-roofs -s /Users/miles/Dropbox/BES-DeadRun/RHESSys/clim
-RegisterLandcoverReclassRules.py -p /Users/miles/Dropbox/EarthCube-Multilayered/RHESSys-workflow/scratchspace/dr5_5m-roofs -b
-ImportRasterMapIntoGRASS.py -p /Users/miles/Dropbox/EarthCube-Multilayered/RHESSys-workflow/scratchspace/dr5_5m-roofs -t lai -m none
-ImportRasterMapIntoGRASS.py -p /Users/miles/Dropbox/EarthCube-Multilayered/RHESSys-workflow/scratchspace/dr5_5m-roofs -t landcover -m nearest --overwrite
-ImportRasterMapIntoGRASS.py -p /Users/miles/Dropbox/EarthCube-Multilayered/RHESSys-workflow/scratchspace/dr5_5m-roofs -t roof_connectivity -m nearest --overwrite
-GenerateLandcoverMaps.py -p /Users/miles/Dropbox/EarthCube-Multilayered/RHESSys-workflow/scratchspace/dr5_5m-roofs
-CreateWorldfile.py -p /Users/miles/Dropbox/EarthCube-Multilayered/RHESSys-workflow/scratchspace/dr5_5m-roofs -c bwi
-CreateFlowtable.py -p /Users/miles/Dropbox/EarthCube-Multilayered/RHESSys-workflow/scratchspace/dr5_5m-roofs --routeRoads --routeRoofs
-RunLAIRead.py -p /Users/miles/Dropbox/EarthCube-Multilayered/RHESSys-workflow/scratchspace/dr5_5m-roofs 
+
+The following sections outline how one might use RHESSysWorkflows to
+build RHESSys input files using custom data already available on your
+computer.  Unlike the above standard spatial data tutorial, we won't
+provide data for the workflow steps below.  Instead, we'll describe
+how your data should be formatted to work with each workflow script.
+To avoid duplication, only those concepts specific to using local data
+in RHESSysWorkflows will be discussed.  You are encouraged to read the
+standard spatial data tutorial above as well.  The workflow sequence
+covered below is not the only possible workflow involving local data.
+Also, it is possible to combine steps from this example workflow with
+steps from the standard spatial data tutorial.
+
+#### Import a DEM into your project
+
+When working in watersheds outside the coverage of the NHD (such as
+when working outside of the U.S.) the first workflow step is to import
+a digital elevation model data using the RegisterDEM script.  The DEM
+to be imported must be in a format readable by
+[GDAL](http://www.gdal.org/formats_list.html).  
+
+Run RegisterDEM as follows:
+
+    RegisterDEM.py -p PROJECT_DIR -d /path/to/my/DEM.tif -b "City of Springfield, Custom LIDAR"
+
+To run this command, replace *PROJECT_DIR* with the absolute or
+relative path of an empty directory where you would like the data and
+metadata for your project to be stored (i.e. your project directory).
+It is also possible to reproject or resample the DEM on import.  See
+RegisterDEM's help for more information (i.e. run with the *-h*
+option).
+
+RegisterDEM will result in the DEM being copied to your project
+directory, also the DEM extent will be used to determine the bounding
+box for the study area; a polygon of the DEM extent will be generated
+and saved as a shapefile in your project directory.
+
+#### Import streamflow gage coordinates 
+
+The coordinates of the streamflow gage associated with your watershed
+are registered with the workflow using the RegisterGage script.  The
+script takes as input a point shapefile containing one or more points;
+the WGS84 lat-lon coordinates for the desired gage will be extracted
+from the shapefile.  These coordinates will be written to the metadata
+store, and a new point shapefile containing a point only for the
+selected gage will be created in the project directory.
+
+A typical way to run RegisterGage is:
+
+    RegisterGage.py -p PROJECT_DIR -g /path/to/gage/shapefile.shp -l DATASET_NAME -a GAGE_ID_ATTRIBUTE -d GAGE_ID
+
+To run this comment, replace *PROJECT_DIR* as above, specify the input
+shapefile you'd like to use, the name of the dataset within the
+shapefile, the name of the ID gage attribute in the dataset, and the
+ID of the desired gage.  The name of the dataset is usually the same
+as the filename of the shapefile (minus the .shp).  If you are unsure,
+you can use the command line tool
+[ogrinfo](http://www.gdal.org/ogrinfo.html), which ships with GDAL.
+
+#### Importing data into GRASS for use with RHESSys
+
+The following workflow steps are identical whether using standard
+spatial data or custom local data and will not be covered here:
+
+- Create a new GRASS location
+- Import RHESSys source code into your project
+- Import RHESSys climate data
+- Delineate watershed and generate derived data products
+- Generate landcover maps in GRASS
+
+See the above standard spatial data tutorial for detailed information
+on these steps.
+
+
+#### Importing other raster layers
+
+For a list of all of the current raster map types supported by
+EcohydroLib, run the RegisterRaster script as follows:
+
+    RegisterRaster.py -h
+
+This will also show all of the resampling and other import options
+available.
+
+What follows is a series of examples showing how to input some of
+these raster types.  All rasters must be stored in a file format
+readable by GDAL (see above).
+
+##### Landcover data
+
+    RegisterRaster.py -p PROJECT_DIR -t landcover -r /path/to/my/landcover_map.tif --noresample -b "Baltimore Ecosystem Study LTER" --force
+
+Here we are importing a landcover raster map obtained from the
+Baltimore Ecosystem Study LTER where we've asked RegisterRaster not to
+resample the raster (unless its spatial reference system differs from
+the DEM; i.e. the resolution of the raster cells won't be changed).
+We're also telling RegisterRaster to ignore the fact that the extent
+of the landcover raster does not exactly match the extent of the
+DEM/study area.  After import, you are strongly encouraged to
+visualize the landcover map overlaid on the DEM using QGIS to ensure
+that the landcover will cover an adequate portion of your study area.
+
+> For landcover maps, we recommend that you do not resample when
+> registering the raster using RegisterRaster, but instead let GRASS
+> handle the resampling.
+
+To make the landcover map in the project directory available to
+RHESSys, it must be imported into GRASS as follows:
+
+    ImportRasterMapIntoGRASS.py -p PROJECT_DIR -t landcover -m nearest
+
+This will import the landcover raster into GRASS, and then resample
+the raster using the nearest neighbor method.  For a list of valid
+resampling methods, run ImportRasterMapIntoGRASS with the *-h* option;
+you may also specify *none* as the resampling method and the raster
+will not be resampled.
+
+##### Rooftop connectivity
+
+Starting with RHESSys 5.16, the createflowpaths (CF) utility is able
+to create surface flow tables that can incorporate non-topographic
+routing of flow from rooftops to nearby impervious and pervious areas.
+RHESSys 5.16 can use separate surface and subsurface flow tables to
+simulate the effect of such non-topographic routing on the landscape.
+You can find more information on using surface flowtable routing in RHESSys
+[here](https://github.com/RHESSys/RHESSys/wiki/Surface-Flowtable-Routing).
+
+To import a rooftop connectivity raster, use RegisterRaster as follows:
+
+    RegisterRaster.py -p PROJECT_DIR -t roof_connectivity -r /path/to/my/roof_map.tif --noresample --force
+
+> As with landcover maps, we recommend do not let RegisterRaster
+> resample roof connectivity rasters, instead letting GRASS handle the
+> resampling.  RegisterRaster uses GDAL to resample rasters.  GDAL
+> ignore null/nodata pixels when resampling, whereas GRASS's
+> r.resamp.interp does not.  Thus, when a landcover and a roof top
+> connectivity raster, which contains nodata values for all non-roof
+> pixels, are resampled in RegisterRaster, they can become
+> mis-registered, which will result in an invalid surface routing
+> table.
+
+Then make your rooftop connectivity raster available for RHESSys by
+importing it into GRASS:
+
+    ImportRasterMapIntoGRASS.py -p PROJECT_DIR -t roof_connectivity -m nearest
+
+##### Vegetation LAI
+
+As described in the standard spatial data tutorial above,
+EcohydroLib/RHESSysWorkflows requires that the user provide their own
+LAI data, which can be imported into a project using RegisterRaster:
+
+     RegisterRaster.py -p PROJECT_DIR -t lai -r /path/to/my/lai_map.tif --force
+
+Now make your LAI raster available for RHESSys by importing it into
+GRASS:
+
+    ImportRasterMapIntoGRASS.py -p PROJECT_DIR -t lai -m none
+
+##### Custom patch map
+
+A custom patch map can be imported into a project as follows:
+
+    RegisterRaster.py -p PROJECT_DIR -t patch -r /path/to/my/patch_map.tif --noresample
+
+Then make your patch raster available for RHESSys by importing it into
+GRASS:
+
+    ImportRasterMapIntoGRASS.py -p PROJECT_DIR -t patch -m none
+
+##### Custom soils data
+
+A custom soils map can be imported into a project as follows:
+
+    RegisterRaster.py -p PROJECT_DIR -t soil -r /path/to/my/soils_map.tif -b "Brian Miles <brian_miles@unc.edu>, based on field observations"
+
+Then make your soil raster available for RHESSys by importing it into
+GRASS:
+
+    ImportRasterMapIntoGRASS.py -p PROJECT_DIR -t soils -m none
+
+##### Climate station zone map
+
+The DelineateWatershed script will use the hillslope map as the zone
+map.  If you wish to use another map for the zone map, do the
+following after running DelineateWatershed:
+
+    RegisterRaster.py -p PROJECT_DIR -t zone -r /path/to/my/zone_map.tif -b "Brian Miles <brian_miles@unc.edu>, climate station zones based on isohyet"
+
+Then make your zone raster available for RHESSys by importing it into
+GRASS:
+
+    ImportRasterMapIntoGRASS.py -p PROJECT_DIR -t zone -m none
+
+#### Generating RHESSys definitions for custom soil data
+
+When using custom soil data with RHESSysWorkflows you need to create
+soil definition files before you can create a worldfile.  To create
+soil definitions, you must first create raster reclass rules that map
+between your soil type and a soil type known to RHESSys ParamDB.  At
+present, ParamDB contains definitions drawn from the literature for
+USDA soil textures.  However you may load custom soil parameters into
+your own local copy of ParamDB.  For more information, see the ParamDB
+[README](https://github.com/RHESSys/ParamDB).
+
+To create prototype soil reclass rules for a project, do the following:
+
+    RegisterCustomSoilReclassRules.py -p PROJECT_DIR -b
+
+Here we're using the *-b* (a.k.a. *--buildPrototypeRules*) command
+line option.  This will result in the creation of a file called
+*soils.rule* in the *rules* directory of your project directory. You
+will need to edit this file as necessary to map your custom soil types
+to ParamDB soil types.  
+
+> Make sure that the soil class names on the righthand side of each
+> reclass rule correspond to soil class names in ParamDB
+
+You can also import existing soil reclass rules as follows:
+
+    RegisterCustomSoilReclassRules.py -p PROJECT_DIR -r /path/to/my/existing/reclass_rules/
+
+The *-r* (a.k.a. *--ruleDir*) parameter must point to a directory that
+contains a file named soils.rule.  This will will be copied into the
+*rules* directory of your project directory.
+
+Once you have valid soil reclass rules in place, you can generate
+RHESSys soil parameter definition files for your custom soils using
+the following command:
+
+    GenerateCustomSoilDefinitions.py -p PROJECT_DIR 
+
+This script will print information to the screen about each soil type
+encountered and the RHESSys ParamDB soil parameter classes they map
+to.  If you see no such print out, check your soil reclass rule file
+to make sure it is correct.  The resulting soil definition files will
+be written to the *defs* directory in the *rhessys* directory of your
+project directory.
+
+> Remember most RHESSysWorkflows commands support the *--overwrite*
+> command line option for overwriting existing data stored in the
+> project directory or in GRASS.
+
+
+#### Creating a surface flow table using a roof connectivity map
+
+If you are using a roof connectivity map in your workflow, you need to
+explicitly tell CreateFlowtable to use the roof connectivity map to
+generate a surface flow table.  Do so as follows:
+
+    CreateFlowtable.py -p PROJECT_DIR --routeRoofs --routeRoads
+
+Here we're using both the *--routeRoofs* and *--routeRoads* options.
+You are not required to use both together, but usually when modeling
+rooftop connectivity you will be working in a watershed that also has
+roads whose effects on routing you will also want to consider.
+
+#### Creating the worldfile and initializing vegetation carbon stores
+
+The following workflow steps are identical whether using standard
+spatial data or custom local data and will not be covered here:
+
+- Creating the worldfile for a watershed
+- Initializing vegetation carbon stores
+
+See the above standard spatial data tutorial for detailed information
+on these steps.
 
