@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 """@package CreateWorldfile
 
 @brief Create RHESSys worldfile.  This will create an initial worldfile used for input into the

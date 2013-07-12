@@ -43,13 +43,13 @@ Funding
 -------
 This work was supported by the following NSF grants
 
-- #1239678 EAGER: Collaborative Research: Interoperability
+- Award no. 1239678 EAGER: Collaborative Research: Interoperability
    Testbed-Assessing a Layered Architecture for Integration of
    Existing Capabilities
 
-- #0940841 DataNet Federation Consortium.
+- Award no. 0940841 DataNet Federation Consortium.
 
-- #1148090 Collaborative Research: SI2-SSI: An Interactive Software
+- Award no. 1148090 Collaborative Research: SI2-SSI: An Interactive Software
    Infrastructure for Sustaining Collaborative Innovation in the
    Hydrologic Sciences
 
@@ -65,7 +65,8 @@ workflows.  These scripts build on the workflow system defined by
 Source code
 -----------
 Source code can be found at: https://github.com/selimnairb/RHESSysWorkflows
-Documentation can be found at:
+
+Documentation can be found at: http://pythonhosted.org/rhessysworkflows
 
 
 Configuration files
