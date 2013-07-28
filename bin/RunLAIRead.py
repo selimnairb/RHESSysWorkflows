@@ -150,6 +150,7 @@ rhessysDir = metadata['rhessys_dir']
 paths = RHESSysPaths(args.projectDir, rhessysDir)
 
 worldfileZero = metadata['worldfile_zero']
+headerZero = "%s.hdr" % (worldfileZero,)
 worldfileZeroPath = os.path.join(context.projectDir, worldfileZero)
 worldfileDir = os.path.dirname(worldfileZeroPath)
 
@@ -158,15 +159,6 @@ modulePath = context.config.get('GRASS', 'MODULE_PATH')
 grassDbase = os.path.join(context.projectDir, metadata['grass_dbase'])
 grassConfig = GRASSConfig(context, grassDbase, metadata['grass_location'], metadata['grass_mapset'])
 grassLib = GRASSLib(grassConfig=grassConfig)
-
-# Make sure mask and region are properly set
-#demRast = grassMetadata['dem_rast']
-#result = grassLib.script.run_command('r.mask', flags='r')
-#if result != 0:
-#    sys.exit("r.mask filed, returning %s" % (result,) )
-#result = grassLib.script.run_command('g.region', rast=demRast)
-#if result != 0:
-#    sys.exit("g.region failed to set region to DEM, returning %s" % (result,))
 
 ## Make sure mask and region are properly set
 demRast = grassMetadata['dem_rast']
@@ -181,7 +173,8 @@ if result != 0:
 
 ## 1. Determine legal simulation start and date from climate data 
 # Read first climate station from worldfile
-stations = getClimateBaseStationFilenames(worldfileZeroPath)
+headerZeroPath = os.path.join(context.projectDir, headerZero)
+stations = getClimateBaseStationFilenames(headerZeroPath)
 assert( len(stations) )
 firstStationPath = os.path.normpath( os.path.join(paths.RHESSYS_DIR, stations[0]) )
 if args.verbose:
@@ -206,15 +199,18 @@ redefWorldName = "%s.Y%dM%dD%dH%d" % \
 redefWorldPath = os.path.join(context.projectDir, redefWorldName)
 allomPath = os.path.join(context.projectDir, metadata['allometric_table'])
 
-result = grassLib.script.run_command(laireadPath, old=oldWorldPath, redef=redefWorldPath,
+p = grassLib.script.pipe_command(laireadPath, old=oldWorldPath, redef=redefWorldPath,
                                       allom=allomPath, lai=grassMetadata['lai_rast'],
                                       vegid=grassMetadata['stratum_rast'],
                                       zone=grassMetadata['zone_rast'],
                                       hill=grassMetadata['hillslope_rast'],
                                       patch=grassMetadata['patch_rast'],
                                       mask=grassMetadata['basin_rast'])
+(stdoutStr, stderrStr) = p.communicate() 
+result = p.returncode
 if result != 0:
-    sys.exit("lairead failed, returning %s" % (result,))
+    sys.stdout.write(stdoutStr)
+    sys.exit("\nlairead failed, returning %s" % (result,))
 
 ## 3. Write TEC file for redefining the initial flow table
 ##    Redefine on the second day of the simulation, write output
@@ -275,6 +271,11 @@ shutil.move(outputWorldPath, newWorldPath)
 if not os.path.exists(newWorldPath):
     sys.exit("Failed to copy redefined worldfile %s to %s" % (outputWorldPath, newWorldPath) )
 RHESSysMetadata.writeRHESSysEntry( context, 'worldfile', paths.relpath(newWorldPath) )
+
+# Copy world file header from init worldfile to final world file
+header = "%s.hdr" % (newWorldName,)
+headerPath = os.path.join(paths.RHESSYS_WORLD, header)
+shutil.copyfile(headerZeroPath, headerPath)
 
 sys.stdout.write('\n\nSuccessfully used lairead to initialize vegetation carbon stores.\n')
 

@@ -37,46 +37,42 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 import os, errno
 import re
 
+NUM_BASE_STATION_RE = re.compile('^(\d+)\s+num_base_stations$')
+BASE_STATION_RE = re.compile('^(\S+)\s+base_station_filename$')
+WORLD_RE = re.compile('^(\d+)\s+world_ID$')
+
 class WorldfileParseError(Exception):
     pass
 
-def getClimateBaseStationFilenames(worldfile, strict=True):
+def getClimateBaseStationFilenames(worldfileHeader, strict=True):
     """ Read climate base station paths from the header of a worldfile
         
-        @param worldfile String representing path of worldfile from which to 
-        read climate base stations
+        @param worldfileHeader String representing path of worldfile header 
+        from which to read climate base stations
         @param strict True if strict parsing should be used
         
         @return list representing climate base stations paths found in the 
         worldfile header
         
-        @raise IOError if unable to read worldfile
+        @raise IOError if unable to read worldfile header
         @raise WorldfileParseError if there appears to be an error in the
-        worldfile structure
+        worldfile header structure
     """
-    if not os.access(worldfile, os.R_OK):
-        raise IOError("Unable to read worldfile %s" % (worldfile,), errno.EACCES)
-    
-    numBaseStationsRe = re.compile('^(\d+)\s+num_base_stations$')
-    baseStationRe = re.compile('^(\S+)\s+base_station_filename$')
-    worldRe = re.compile('^(\d+)\s+world_ID$')
+    if not os.access(worldfileHeader, os.R_OK):
+        raise IOError("Unable to read worldfile %s" % (worldfileHeader,), errno.EACCES)
     
     numBaseStations = None
     baseStations = []
     
-    f = open(worldfile, 'r')
+    f = open(worldfileHeader, 'r')
     for line in f:
         line = line.strip()        
-        # Only read the header (i.e. up until 'n ... world_ID')
-        result = worldRe.match(line)
-        if result:
-            break
     
-        result = numBaseStationsRe.match(line)
+        result = NUM_BASE_STATION_RE.match(line)
         if result:
             numBaseStations = int(result.group(1))
             continue
-        result = baseStationRe.match(line)
+        result = BASE_STATION_RE.match(line)
         if result:
             baseStations.append( result.group(1) )
             continue
