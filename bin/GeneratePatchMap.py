@@ -86,6 +86,9 @@ parser.add_argument('-t', '--patchType', dest='patchType', required=True, choice
                     help='Type of patch to be generated: uniform grid or clumps based on elevation')
 parser.add_argument('-c', '--clumpMap', dest='clumpMap', required=False, default='elevation', choices=['elevation', 'wetness_index'],
                     help='Type of patch to be generated: uniform grid or clumps based on elevation')
+parser.add_argument('-z', '--forceZone', dest='forceZone', required=False, action='store_true',
+                    help='Use patch map as zone map even if zone map is already defined. ' +
+                    ' By default if a zone map is present, this script will not set the patch map as the zone map.')
 parser.add_argument('--overwrite', dest='overwrite', action='store_true', required=False,
                     help='Overwrite existing datasets in the GRASS mapset.  If not specified, program will halt if a dataset already exists.')
 args = parser.parse_args()
@@ -164,6 +167,9 @@ sys.stdout.write('done\n')
 
 # Write metadata    
 RHESSysMetadata.writeGRASSEntry(context, 'patch_rast', PATCH_RAST)
+if args.forceZone or not 'zone_rast' in grassMetadata:
+    # Only overwrite zone raster
+    RHESSysMetadata.writeGRASSEntry(context, 'zone_rast', PATCH_RAST)
 
 # Write processing history
 RHESSysMetadata.appendProcessingHistoryItem(context, cmdline)

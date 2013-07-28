@@ -253,7 +253,6 @@ if result != 0:
 
 RHESSysMetadata.writeGRASSEntry(context, 'subbasins_rast', 'subbasins')
 RHESSysMetadata.writeGRASSEntry(context, 'hillslope_rast', 'hillslopes')
-RHESSysMetadata.writeGRASSEntry(context, 'zone_rast', 'hillslopes')
 RHESSysMetadata.writeGRASSEntry(context, 'streams_rast', 'streams')
 RHESSysMetadata.writeRHESSysEntry(context, 'watershed_threshold', args.threshold)
 
