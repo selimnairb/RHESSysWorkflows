@@ -69,6 +69,10 @@ Pre conditions
    xmap_rast
    ymap_rast
    
+4. The following metadata entry(ies) will be used if present in the GRASS section of the metadata associated with the project directory:
+   isohyet_rast
+   basestation_rast
+   
 Post conditions
 ---------------
 1. Template will be created in the RHESSys folder of the project directory.
@@ -89,7 +93,11 @@ import importlib
 import string
 import re
 import argparse
+import textwrap
 
+from oset import oset
+
+from ecohydrolib.grasslib import *
 from ecohydrolib.spatialdata.utils import bboxFromString
 from ecohydrolib.spatialdata.utils import calculateBoundingBoxCenter
 
@@ -104,8 +112,8 @@ parser.add_argument('-i', '--configfile', dest='configfile', required=False,
                     help='The configuration file. Must define section "GRASS" and option "GISBASE"')
 parser.add_argument('-p', '--projectDir', dest='projectDir', required=True,
                     help='The directory to which metadata, intermediate, and final files should be saved')
-parser.add_argument('-c', '--climateStations', dest='climateStations', required=True, nargs='+',
-                     help='The climate station(s) to associate with the worldfile.  Must be one of the climate stations specified in the "climate_stations" key in the "rhessys" section of the metadata')
+parser.add_argument('-c', '--climateStation', dest='climateStation', required=False,
+                     help='The climate station to associate with the worldfile.  Must be one of the climate stations specified in the "climate_stations" key in the "rhessys" section of the metadata')
 parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
                     help='Print detailed information about what the program is doing')
 args = parser.parse_args()
@@ -128,6 +136,12 @@ if not 'patch_rast' in grassMetadata:
     sys.exit("Metadata in project directory %s does not contain a patch raster in a GRASS mapset" % (context.projectDir,))
 
 metadata = RHESSysMetadata.readRHESSysEntries(context)
+if not 'grass_dbase' in metadata:
+    sys.exit("Metadata in project directory %s does not contain a GRASS Dbase" % (context.projectDir,)) 
+if not 'grass_location' in metadata:
+    sys.exit("Metadata in project directory %s does not contain a GRASS location" % (context.projectDir,)) 
+if not 'grass_mapset' in metadata:
+    sys.exit("Metadata in project directory %s does not contain a GRASS mapset" % (context.projectDir,))
 if not 'stratum_defs' in metadata:
     sys.exit("Metadata in project directory %s does not contain stratum definitions" % (context.projectDir,)) 
 if not 'landuse_defs' in metadata:
@@ -145,9 +159,12 @@ if not 'paramdb_dir' in metadata:
 if not 'paramdb' in metadata:
     sys.exit("Metadata in project directory %s does not contain a ParamDB" % (context.projectDir,))
 
-if not args.climateStations <= metadata['climate_stations']:
-    sys.exit("Some of the chosen climate stations (%s) were not found in the climate station list in metadata (%s)" %
-             (str(args.climateStations), str(metadata['climate_stations']) ) )
+if not args.climateStation and not 'basestations_rast' in grassMetadata:
+    sys.exit("You must specify the climate station command line argument of generate a climate base station map")
+
+if args.climateStation and ( not args.climateStation <= metadata['climate_stations'] ):
+    sys.exit("The chosen climate station '%s' was not found in the climate station list in metadata (%s)" %
+             (str(args.climateStation), str(metadata['climate_stations']) ) )
 
 rhessysDir = metadata['rhessys_dir']
 paths = RHESSysPaths(args.projectDir, rhessysDir)
@@ -160,6 +177,12 @@ sys.path.append( os.path.join(context.projectDir, metadata['paramdb_dir']) )
 params = importlib.import_module('rhessys.params')
 paramConst = importlib.import_module('rhessys.constants')
 paramDB = params.paramDB(filename=paramDbPath)
+
+# Set up GRASS environment
+modulePath = context.config.get('GRASS', 'MODULE_PATH')
+grassDbase = os.path.join(context.projectDir, metadata['grass_dbase'])
+grassConfig = GRASSConfig(context, grassDbase, metadata['grass_location'], metadata['grass_mapset'])
+grassLib = GRASSLib(grassConfig=grassConfig)
 
 bbox = bboxFromString(studyArea['bbox_wgs84'])
 (longitude, latitude) = calculateBoundingBoxCenter(bbox)
@@ -241,33 +264,58 @@ for key in defFiles.keys():
         if args.verbose:
             print("%s: %s" % (defStrKey, defStr) )
         subs[defStrKey] = defStr
-        
-# Second, a climate stations and raster layers to substitution dictionary
-# A. Climate stations
-numClimateStations = len(args.climateStations)
-if args.verbose:
-    print("%s: %d" % ('num_climate_stations', numClimateStations) )
-subs['num_climate_stations'] = str(numClimateStations)
-subs['zone_num_base_stations'] = str(numClimateStations)
 
-# The first climate stations
-climParamFilename = "%s.base" % (args.climateStations[0],)
-climateStationsStr = os.path.join(paths._CLIM, climParamFilename)
-climParams = readParameterFile(os.path.join(paths.RHESSYS_CLIM, climParamFilename))
-climateStationIDStr = "base_station_ID\tdvalue %s" % (climParams['base_station_id'], )
-# The rest of the climate stations
-for clim in args.climateStations[1:]:
-    climParamFilename = "%s.base" % (clim,)
-    climateStationsStr += os.linesep + os.path.join(paths._CLIM, climParamFilename)
-    climParams = readParameterFile(os.path.join(paths.RHESSYS_CLIM, climParamFilename))
-    climateStationIDStr += "%sbase_station_ID\tdvalue %s" % (os.linesep, climParams['base_station_id'], )
-climateStationsKey = 'climate_stations'
-if args.verbose:
-    print("%s: %s" % (climateStationsKey, climateStationsStr) )
-subs[climateStationsKey] = climateStationsStr
-if args.verbose:
-    print("%s: %s" % ('zone_base_station_ids', climateStationIDStr) )
-subs['zone_base_station_ids'] = climateStationIDStr
+# Second, climate stations
+if args.climateStation:
+    # Use the base station specified on command line
+    if args.verbose:
+        print("Using single climate station: %s" % (args.climateStation,) )
+    climParamFilename = "%s.base" % (args.climateStation,)
+    baseFile = os.path.join(paths._CLIM, climParamFilename)
+    subs['climate_stations'] = baseFile
+    subs['num_climate_stations'] = 1
+
+    climParams = readParameterFile( os.path.join(paths.RHESSYS_CLIM, climParamFilename) )
+    climateStationIDStr = "base_station_ID\tdvalue %s" % (climParams['base_station_id'],)
+    subs['zone_base_station_ids'] = climateStationIDStr
+    subs['zone_num_base_stations'] = 1
+else:
+    # Use base station raster map
+    if args.verbose:
+        print("Reading climate stations from raster: %s" % (grassMetadata['basestations_rast'],) )
+    # Get list of base station IDs from raster
+    rasterIds = oset()
+    pipe = grassLib.script.pipe_command('r.stats', flags='licn', input=grassMetadata['basestations_rast'])
+    for line in pipe.stdout:
+        values = line.strip().split()
+        if values[1] != 'NULL':
+            rasterIds.add( int(values[0]) )
+    # Get base station IDs from base station files
+    baseIds = oset()
+    baseFiles = {}
+    for station in metadata['climate_stations'].split(','):
+        climParamFilename = "%s.base" % (station,)
+        baseFile = os.path.join( paths._CLIM, climParamFilename )
+        climParams = readParameterFile( os.path.join(paths.RHESSYS_CLIM, climParamFilename) )
+        id = int(climParams['base_station_id'])
+        baseIds.add(id)
+        baseFiles[id] = baseFile
+    
+    includedBaseIds = rasterIds & baseIds
+    
+    if len(includedBaseIds) == 0:
+        sys.exit( textwrap.fill( "Some climate base station raster values do not have corresponding base station files. Raster values: %s, base station IDs: %s" % \
+                                 (str(rasterIds), str(baseIds) ) ) )
+    
+    climateStationsStr = baseFiles[includedBaseIds[0]]
+    for id in includedBaseIds[1:]:
+        climateStationsStr += os.linesep + baseFiles[id]
+    subs['climate_stations'] = climateStationsStr
+    subs['num_climate_stations'] = len(includedBaseIds)
+    
+    climateStationIDStr = "base_station_ID\tmode %s" % (grassMetadata['basestations_rast'],)
+    subs['zone_base_station_ids'] = climateStationIDStr
+    subs['zone_num_base_stations'] = 1
 
 # B. Everything else
 subs['world_rast'] = grassMetadata['basin_rast']
@@ -278,7 +326,10 @@ subs['hillslope_rast'] = grassMetadata['hillslope_rast']
 subs['zone_rast'] = grassMetadata['zone_rast']
 subs['slope_rast'] = grassMetadata['slope_rast']
 subs['aspect_rast'] = grassMetadata['aspect_rast']
-subs['isohyet_rast'] = grassMetadata['zero_rast']
+if 'isohyet_rast' in grassMetadata:
+    subs['isohyet_rast'] = grassMetadata['isohyet_rast']
+else:
+    subs['isohyet_rast'] = grassMetadata['zero_rast']
 subs['east_horizon_rast'] = grassMetadata['east_horizon_rast']
 subs['west_horizon_rast'] = grassMetadata['west_horizon_rast']
 subs['patch_rast'] = grassMetadata['patch_rast']

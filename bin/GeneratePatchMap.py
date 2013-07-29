@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """@package GeneratePatchMap
 
-@brief Generate patch maps or in GRASS location associated with the project directory.
+@brief Generate patch map in the GRASS location associated with the project directory.
 
 This software is provided free of charge under the New BSD License. Please see
 the following license information:
