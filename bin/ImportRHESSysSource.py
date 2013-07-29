@@ -107,9 +107,9 @@ parser.add_argument('-s', '--sourceDir', dest='sourceDir', required=False,
                     help='The directory from which RHESys source should be copied. NOTE: will delete any sources already in the project directory')
 group = parser.add_mutually_exclusive_group()
 group.add_argument('-t', '--tag', dest='tag', required=False,
-                    help='Use source code from the specified tagged version of RHESSys; applies only when code is cloned from Git directory (i.e. -s not specified)')
+                    help='Use source code from the specified tagged version of RHESSys; applies only when code is cloned from Git repository (i.e. -s not specified)')
 group.add_argument('-b', '--branch', dest='branch', required=False,
-                    help='Use source code from the specified branch of the RHESSys source; applies only when code is cloned from Git directory (i.e. -s not specified)')
+                    help='Use source code from the specified branch of the RHESSys source; applies only when code is cloned from Git repository (i.e. -s not specified)')
 parser.add_argument('--overwrite', dest='overwrite', action='store_true', required=False,
                     help='Overwrite existing source code in the project directory; If specified, will delete existing code before importing new code.  If not specified, new code will be added to existing code.')
 args = parser.parse_args()
