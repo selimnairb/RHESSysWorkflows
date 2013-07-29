@@ -92,10 +92,10 @@ from rhessysworkflows.rhessys import RHESSysPaths
 PARAM_DB_REPO_URL = 'https://github.com/RHESSys/ParamDB.git'
 paramDBDir = 'ParamDB'
 paramDBName = 'params.sqlite'
+TEMPLATE_PATH = os.path.join('templates', 'template.template')
+ALLOMETRIC_PATH = os.path.join('allometry', 'allometric.txt')
 
 RHESSYS_REPO_URL = 'https://github.com/RHESSys/RHESSys.git'
-TEMPLATE_PATH = os.path.join('util', 'templates', 'template.template')
-ALLOMETRIC_PATH = os.path.join('util', 'templates', 'allometric.txt')
 
 # Handle command line options
 parser = argparse.ArgumentParser(description='Import RHESSys source code into project directory')
@@ -190,8 +190,23 @@ for entry in contents:
 if not found:
     sys.exit("Unable to find parameter database %s in %s" % (paramDBName, paramDBPath) )
 paramDB = os.path.join(paramDBPath, paramDBName)
+
+# Make sure there is a template in the imported source
+templatePath = os.path.join(paramDBPath, TEMPLATE_PATH)
+#print(templatePath)
+if not os.path.exists(templatePath):
+    sys.exit("Template template not found in ParamDB git clone")
+
+# Make sure there is an allometric.txt in the imported source
+allometricPath = os.path.join(paramDBPath, ALLOMETRIC_PATH)
+#print(allometricPath)
+if not os.path.exists(allometricPath):
+    sys.exit("Allometric table not found in ParamDB git clone")
+
 RHESSysMetadata.writeRHESSysEntry(context, 'paramdb_dir', paths.relpath(paramDBPath) )
 RHESSysMetadata.writeRHESSysEntry(context, 'paramdb', paths.relpath(paramDB) )
+RHESSysMetadata.writeRHESSysEntry(context, 'template_template', paths.relpath(templatePath) )
+RHESSysMetadata.writeRHESSysEntry(context, 'allometric_table', paths.relpath(allometricPath) )
 
 ## 2. Import code from local disk, or from GitHub            
 if args.sourceDir:
@@ -303,18 +318,6 @@ else:
             RHESSysMetadata.writeRHESSysEntry(context, 'rhessys_sha', sha)
         except IndexError:
             pass
-                
-# Make sure there is a template in the imported source
-templatePath = os.path.join(paths.RHESSYS_SRC, TEMPLATE_PATH)
-print(templatePath)
-if not os.path.exists(templatePath):
-    sys.exit("Template template not found in source imported to %s" % (paths.RHESSYS_SRC,) )
-
-# Make sure there is an allometric.txt in the imported source
-allometricPath = os.path.join(paths.RHESSYS_SRC, ALLOMETRIC_PATH)
-print(allometricPath)
-if not os.path.exists(allometricPath):
-    sys.exit("Allometric table not found in source imported to %s" % (paths.RHESSYS_SRC,) )
             
 ## 3. Compile code
 # Set GISBASE (needed to compile g2w, cf, lairead)
@@ -411,15 +414,8 @@ os.chmod(rhessysDest, permissions)
 # Write metadata
 RHESSysMetadata.writeRHESSysEntry(context, 'rhessys_bin', paths.relpath(rhessysDest) )
 
-# Copy allometric table
-allometricName = os.path.basename(ALLOMETRIC_PATH)
-allometricDest = os.path.join(paths.RHESSYS_TEMPLATES, allometricName)
-shutil.copyfile(allometricPath, allometricDest)
-
 # Write metadata
 RHESSysMetadata.writeRHESSysEntry(context, 'exec_dir', paths.relpath(paths.RHESSYS_BIN) )
-RHESSysMetadata.writeRHESSysEntry(context, 'template_template', paths.relpath(templatePath) )
-RHESSysMetadata.writeRHESSysEntry(context, 'allometric_table', paths.relpath(allometricDest) )
 
 sys.stdout.write('\n\nFinished importing RHESSys source\n')
 
