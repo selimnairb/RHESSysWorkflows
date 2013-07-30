@@ -3,6 +3,8 @@
 
 @brief Generate patch map in the GRASS location associated with the project directory.
 
+@note Will set the zone map to be the patch map if no zone map exists
+
 This software is provided free of charge under the New BSD License. Please see
 the following license information:
 

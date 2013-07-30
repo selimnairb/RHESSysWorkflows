@@ -56,9 +56,9 @@ This work was supported by the following NSF grants
 
 Introduction
 ------------
-RHESSysWorkflows provides a series of Python scripts for performing
+RHESSysWorkflows provides a series of Python tools for performing
 [RHESSys](http://fiesta.bren.ucsb.edu/~rhessys/) data preparation
-workflows.  These scripts build on the workflow system defined by
+workflows.  These tools build on the workflow system defined by
 [EcohydroLib](https://github.com/selimnairb/EcohydroLib).
 
 
@@ -218,76 +218,45 @@ This may take a while as several of the modules rely on non-Python code that has
 > they install GDAL Python modules in addition to GDAL itself
 > (e.g. via a companion package, or by 'sudo pip install GDAL').
 
-### Install local data
-RHESSysWorkflows allows you to use local copies of the National
-Hydrography Dataset Plus (NHD Plus) to locate USGS streamflow gages,
-and the National Landcover Dataset (NLCD 2006). NHDPlus is a large
-dataset and there is currently no way to query the data via web
-services.  If you want to use NHDPlus in your workflows, you will have
-to download a local copy. 
+### Upgrading to a new version of RHESSysWorkflows
+To upgrade to a newer version of RHESSysWorkflows, enter the following into the Terminal:
 
-While NLCD data can be queried via web services provided by the
-Distributed Active Archive Center for Biogeochemical Dynamics at ORNL,
-you may wish to use NLCD data accessible locally on your computer
-(e.g. if you will be querying data for large spatial extents, or have
-limited network bandwidth).
-
-Both NHDPlus and NLCD data are large, however the installation is a
-one-time process, and once you have the data,
-EcohydroLib/RHESSysWorkflows makes it very easy to use them.
- 
-#### Setup NLCD2006 data [optional]
-If you want to use NLCD2006 land cover data, do the following:
-- Download NLCD2006 data [here](https://docs.google.com/file/d/0B7aK-9pTSLS-MHRrRTVVRV9zdVk/edit?usp=sharing)
-
-    It is important that you download this version of the dataset, and
-    not the official data from http://www.mrlc.gov/nlcd06_data.php.
-    The offical data are packaged using a version of PkZip that is not
-    compatible with OS X's GUI or commandline unzip utilities.
-
-- Copy NLCD2006 archive to the parent folder where you would like to store it
-
-    For example, under OS X, create a folder called 'data' in your
-    home directory
-
-- Unpack NLCD2006 data (this will take a while...time for a coffee break):
+    sudo pip install rhessysworkflows --upgrade
     
-    + OS X 10.6: From the command line:
+If pip does not install the version you expect, it may be necessary
+to first remove RHESSysWorkflows and Ecohydrolib before installing the 
+new version:
+
+    sudo pip uninstall rhessysworkflows
+    sudo pip uninstall ecohydrolib
+
+The install as above:
+
+    sudo pip install rhessysworkflows
+
+### A note on version numbers   
+Each project can only be used with compatible versions of RHESSysWorkflows/Ecohydrolib.
+Compatible versions are those that write the same version number to the metadata
+store for a given project.  This compatibility check is necessary to ensure both
+scientific reproducibility and to make sure your workflows do not become corrupted
+by incompatible versions.  We strive to maintain compatibility between releases of
+RHESSysWorkflows/Ecohydrolib, however sometimes enabling new workflow scenarios
+requires incompatible changes.  The release notes for each release will note when
+a new version breaks backward compatibility.  The good news is that you can have multiple
+copies of RHESSysWorkflows/Ecohydrolib installed on your computer at the same time.
+To do so, you must do the following:
+
+1. Install virtualenv (https://pypi.python.org/pypi/virtualenv)
+2. Create a new virtual environment for each version of RHESSysWorkflows you would
+like to run
+3. Activate a virtual environment you would like to install a specific version
+of RHESSysWorkflows into
+4. Install RHESSysWorkflows in the virtual environment, for example to install version 1.0: 
+
+    pip install rhessysworkflows==1.0
     
-      tar xvjf nlcd2006_landcover_4-20-11_se5.tar.bz2
-        
-    + OS X 10.7/10.8: double-click on the archive in Finder
-
-#### Setup pre-packaged NHDPlusV2 data [optional]
-If you want to determine your study area based on an NHD catchment
-drained by a USGS streamflow gage, you will need a local copy of the
-NHDPlusV2 data.  You can obtain these data by downloading all or a
-subset of the NHDPlusV2 data and building the database as described in
-the [EcohydroLib documentation](https://github.com/selimnairb/EcohydroLib).
-Alternatively, you can download a pre-built copy of the NHDPlusV2
-database needed by RHESSysWorkflows
-[here](https://docs.google.com/file/d/0B7aK-9pTSLS-dGVzWGRCd1NwNzQ/edit?usp=sharing).
-To download and unpack the pre-built data, do the following:
-
-- Download pre-packaged NHDPlusV2 database [here](https://docs.google.com/file/d/0B7aK-9pTSLS-dGVzWGRCd1NwNzQ/edit?usp=sharing)
-
-    Note, the compressed data are nearly 7 GB, nearly 11 GB
-    uncompressed, the download may take a while
-
-- Copy the pre-packaged NHDPlusV2 database archive to the parent
-  folder where you would like to store it
-    
-    For example, under OS X, create a folder called 'data' in your
-    home directory
-
-- Unpack NHDPlusV2 database archive (this will take a while...have a
-    cup of tea) 
-
-    + OS X 10.6: From the command line:
-    
-        tar xvjf NHDPlusV2.tar.bz2
-        
-    + OS X 10.7/10.8: double-click on the archive in Finder
+Not that you do not need to use 'sudo' when running in a virtual environment as the
+files are installed in a directory owned by your user account.
 
 ### Setup EcohydroLib and RHESSysWorkflows configuration file
 - Choose the appropriate prototype configuration file:
@@ -297,14 +266,6 @@ To download and unpack the pre-built data, do the following:
     + [OS X 10.7/10.8](https://raw.github.com/selimnairb/RHESSysWorkflows/master/docs/config/ecohydro-OSX.cfg)
 
 - Save into a file named '.ecohydro.cfg' stored in your home directory
-
-- Modify the example configuration to point to your NHDPlusV2 and
-  NLCD2006 local data [if you are using these data]:
-
-    If you are using OS X, and if you placed the data in a directory
-    called 'data' in your home directory, the only changes you need to
-    make is to substitute '<myusername>' with your user name.  To find
-    out your OS X user name, use the *whoami* command in Terminal
     
 - Set ECOHYDROLIB_CFG environment variable so that RHESSysWorkflows
   can find your configuration file
@@ -328,8 +289,8 @@ To download and unpack the pre-built data, do the following:
 
 Using RHESSysWorkflows - Introduction
 -------------------------------------
-All EcohydroLib and RHESSysWorkflows scripts are executed from the
-command line.  Each script stores the data and metadata associated
+All EcohydroLib and RHESSysWorkflows tools are executed from the
+command line.  Each tool stores the data and metadata associated
 with a single workflow in a directory, called a *project directory*.
 Metadata are stored in a file in the project directory called
 *metadata.txt*.  There can only be one metadata.txt in a project
@@ -338,22 +299,22 @@ directory.
 
 In addition to automatically recording provenance information for data
 and the processing steps of a workflow, the metadata store allows for
-loose coupling between the scripts that are used to carry out a
-particular workflow. By design, each workflow script performs roughly
+loose coupling between the tools that are used to carry out a
+particular workflow. By design, each workflow tool performs roughly
 one discrete function.  This allows for flexible workflows. Each
-workflow script writes a series of entries to the metadata to reflect
-the work done by the script.  Most workflow scripts require certain
+workflow tool writes a series of entries to the metadata to reflect
+the work done by the tool.  Most workflow tools require certain
 entries to be present in the metadata store to perform the work they
 will do.  For example, before DEM data for the study are can be
 downloaded from DEMExplorer, the bounding box for the study area must
-be known. The script that queries DEMExplorer need not know how the
+be known. The tool that queries DEMExplorer need not know how the
 bounding box was generated, it only cares that the bounding box is
 present in the metadata store.  Lastly, the metadata store helps users
 to orchestrate workflows by requiring that only new information
 required at each step be entered to run a particular command, other
 information required can be queried from the metadata.
 
-Each workflow script will print usage information when run on its own
+Each workflow tool will print usage information when run on its own
 for example running:
 
     GetNHDStreamflowGageIdentifiersAndLocation.py 
@@ -366,8 +327,8 @@ Will yield:
 
 This indicates that the -p (a.k.a. --projectDir) argument is required;
 that is, you must specify the project directory associated with
-workflow for which you are running the script.  For many
-EcohydroLib/RHESSyWorkflows scripts, this is the only required command
+workflow for which you are running the tool.  For many
+EcohydroLib/RHESSyWorkflows tools, this is the only required command
 line parameter.  
 
 It's good practice when running a command to first execute the command
@@ -377,7 +338,7 @@ the command with the -h (a.k.a. --help) argument, for example:
 
     GetNHDStreamflowGageIdentifiersAndLocation.py -h
  
-Note that while this particular script, and RHESSysWorkflows scripts
+Note that while this particular tool, and RHESSysWorkflows tools
 in general, have long names, they are long to be descriptive so as to
 be easier to use.  To avoid having to type these long names out, you
 are encouraged to make use of *tab* completion in Terminal.  To use
@@ -393,15 +354,15 @@ command name.
 Using RHESSysWorkflows - Typical workflows
 ------------------------------------------
 A typical workflow will consist of running data
-processing/registration scripts from EcohydroLib.  Once the required
+processing/registration tools from EcohydroLib.  Once the required
 datasets are in place (e.g. DEM, soils, landcover, etc.)
-RHESSysWorkflows scripts can be run to create the world file and flow
+RHESSysWorkflows tools can be run to create the world file and flow
 table associated with a RHESSys model.
 
 In the following sections two example workflows are described: (1)
 using data from national spatial data infrastructure (USGS, NHD, NLCD,
-SSURGO, SRTM); and (2) using custom local data.  These combination of
-scripts executed in these workflows represent two of the many unique
+SSURGO, SRTM); and (2) using custom local data.  The combinations of
+tools executed in these workflows represent two of the many unique
 workflows possible.
 
 ### National spatial data workflow
@@ -416,12 +377,12 @@ directory anywhere on your computer where you have write access
 First, choose the USGS streamflow gage, identified by the USGS site
 number, you wish to build a RHESSys model for.  Note that while you
 can select gages that drain large basins, if you are planning to use
-SSRUGO soils data acquired using the RHESSysWorkflows script
-GetSSURGOFeaturesForBoundingbox.py the study area must be less than
+SSRUGO soils data acquired using the RHESSysWorkflows tool
+GetSSURGOFeaturesForBoundingbox the study area must be less than
 10,000 sq. km.
 
 To locate the USGS gage of interest on the NHD flow line network run
-the following script:
+the following tool:
 
     GetNHDStreamflowGageIdentifiersAndLocation.py -p standard -g 01589312
 
@@ -429,7 +390,10 @@ This will create the metadata store for your project in a file named
 metadata.txt in the project directory 'standard'.  The metadata store
 will be populated with the gage ID (the site number you specified on
 the command line), and the NHD reachcode and reach measure associated
-with this gage.
+with this gage.  By default, RHESSysWorkflows will use a web service
+to perform this query.  (If you are using a local copy of the NHDPlusV2 
+data add the *-s local* command line argument to the above command; 
+Most users should ignore this.)
 
 #### Extract NHD catchments that drain through the streamflow gage
 
@@ -441,9 +405,13 @@ then beused extract spatial data for your study area from datasets
 stored locally as well as those available via web services interfaces.
 
 To extract a shapefile of the NHD catchments that drain through your
-streamflow gage, run the following script:
+streamflow gage, run the following tool:
 
     GetCatchmentShapefileForNHDStreamflowGage.py -p standard
+
+(If you are using a local copy of the NHDPlusV2 data add the *-s local* 
+command line argument to the above command; Most users should ignore 
+this.) 
 
 You should now see the study area shapefile in your project directory.
 You can visualize the study area, along with the streamflow gage, in
@@ -456,7 +424,7 @@ watershed.  We will delineate your watershed using GRASS GIS.
 Now that RHESSysWorkflows has a GIS representation of your study area,
 it can determine the extent or bounding box (also sometimes called the
 'minimum bounding rectangle') of the study area.  Do so by running the
-following script:
+following tool:
 
     GetBoundingboxFromStudyareaShapefile.py -p standard
 
@@ -484,7 +452,7 @@ as follows:
 
     GetDEMExplorerDEMForBoundingbox.py -p standard
 
-By default, this script will download an extract for your study area
+By default, this tool will download an extract for your study area
 from the SRTM 30-meter (27.58-meter actual) USA DEM.  The DEM will be
 stored in a UTM project (WGS84 datum) with the appropriate UTM zone
 chosen for you.  You can override both the DEM coverage type and
@@ -499,7 +467,7 @@ options, issue the help command line argument as follows:
 
 Note that EcohydroLib/RHESSysWorkflows uses the DEM resolution,
 extent, and sptial reference the reference for all other rasters
-imported into or generated by subsequent workflow scripts.
+imported into or generated by subsequent workflow tools.
 
 Lastly, you are not required to use a DEM from DEM Explorer.  See the
 *Custom local data workflow* example below for more information.
@@ -515,20 +483,12 @@ data:
 
     GetNLCDForDEMExtent.py -p standard
 
-This command will extract a tile matching the extent, resolution, and
-spatial reference of your DEM and store the tile in your project
-directory.  If you wish to give your NLCD tile a particular name, use
-the *outfile* command line option.
-
-To download an NLCD tile matching the extent, resolution, and spatial
-reference of your DEM and store the tile in your project directory run
-GetNLCDForDEMExtent as follows:
-
-    GetNLCDForDEMExtent.py -p standard -s wcs
-
-This indicates that the source for the data should be the WCS (Web
-Coverage Service) hosted at ORNL (the default source is local, and so
-did not need to be specified in the previous example).
+This command will download an NLCD tile matching the extent, resolution, 
+and spatial reference of your DEM and store the tile in your project 
+directory. (If you wish to give your NLCD tile a particular name, use
+the *outfile* command line option.  (If you are using a local copy of 
+the NLCD 2006 data add the *-s local* command line argument to the above 
+command; Most users should ignore this.) 
 
 #### Download soils data from SSURGO
 
@@ -541,10 +501,10 @@ this database format and the soil survey data exposed through the
 SSRUGO database please see the [SSURGO
 metadata](http://soildatamart.nrcs.usda.gov/SSURGOMetadata.aspx).
 
-EcohydroLib provides two scripts that make it easy to generate soil
+EcohydroLib provides two tools that make it easy to generate soil
 hydraulic properties commonly needed for ecohydrology modeling (namely
 the numeric properties Ksat, porosity, percent sand, percent silt, and
-percent clay).  The first script downloads spatial mapunit features
+percent clay).  The first tool downloads spatial mapunit features
 for your study area as well as tabular soil hydraulic property data.
 These spatial and tabular data are joined, and written to your project
 directory as an ESRI Shapefile.  For more information on what
@@ -585,8 +545,8 @@ your project directory to open, the *soil_features* attribute of the
 > EcohydroLib/RHESSysWorkflow command you've run in this workflow,
 > including all of the command line parameters.
 
-EcohydroLib provides a second script for detailing with SSURGO soils
-data.  This script allows you to create raster maps of SSURGO mapunit
+EcohydroLib provides a second tool for detailing with SSURGO soils
+data.  This tool allows you to create raster maps of SSURGO mapunit
 polygons using the following numeric soil properties as raster values:
 Ksat, porosity, percent clay, percent silt, and percent sand).  Use
 the following command to generate all of these rasters in your project
@@ -640,7 +600,7 @@ Note the *-b* (a.k.a. *--publisher*) argument given to the above
 command.  When specified, this optional parameter will be stored in
 the provenance matadata store entry of the raster.
 
-RegisterRaster is a generic EcohydroLib script that knows how to
+RegisterRaster is a generic EcohydroLib tool that knows how to
 import several types of raster into your workflow; the *-t lai*
 argument indicates that we are importing an LAI raster (see the
 *Custom local data workflow* for to learn how to import other raster
@@ -702,8 +662,8 @@ needed by RHESSys.  RHESSysWorkflows is only compatible with the
 pre-release version of RHESSys 5.16 and later versions of the code.
 At present, and for first-time users, the most reliable way to import
 ParamDB and RHESSys source code into your project is to download the
-code from GitHub using the ImportRHESSysSource script.  However, this
-script is also capable of importing RHESSys source code stored on your
+code from GitHub using the ImportRHESSysSource tool.  However, this
+tool is also capable of importing RHESSys source code stored on your
 computer.  This alows you to import the code from a previous
 RHESSysWorkflows project; ParamDB is always downloaded from GitHub,
 even when RHESSys source code is imported from a local source.
@@ -711,12 +671,12 @@ even when RHESSys source code is imported from a local source.
 To download ParamDB and the RHESSys source code and store them in your
 project directory issue the following command:
 
-    ImportRHESSysSource.py -p standard -b develop
+    ImportRHESSysSource.py -p standard
 
-The *-b* options specifies the Git branch of RHESSys to use, in this
-case the *develop* branch.  By default, ImportRHESSysSource will use
-the *master* branch, which will be the appropriate branch to use once
-RHESSys 5.16 is officially released (ca. August 2013).
+If you want to checkout an alternate branch, use the *-b* option to 
+specify the Git branch of RHESSys to use (e.g. 'develop'). By default, 
+ImportRHESSysSource will use the *master* branch, which is the appropriate 
+branch to use with RHESSys 5.18.
 	
 Once ImportRHESSysSource finishes importing RHESSys source code into
 the project directory, it will compile all the tools necessary to
@@ -739,7 +699,7 @@ work files and flow tables.  This means that the modeler is
 responsible for building the climate data necessary for building
 RHESSys world files and performing model runs.  
 
-RHESSysWorkflows provides the ImportClimateData script to import
+RHESSysWorkflows provides the ImportClimateData tool to import
 RHESSys climate data into your project.  To run this example workflow,
 download example climate data
 [here](https://docs.google.com/file/d/0B7aK-9pTSLS-Q1NQbUJzVXZKeUE/edit?usp=sharing).
@@ -756,6 +716,52 @@ For your own climate data to work with ImportClimateData the data must
 be stored in their own directory, with each base station having file
 name that ends in *.base*.  See the help for ImportClimateData for
 more information.
+
+#### Create climate stations map
+
+If your study watershed has multiple climate stations that you would
+like to use, you must use a climate stations map to associate each
+zone in your world file with a particular climate station.  RHESSysWorkflows
+provides the GenerateBaseStationMap tool to create a raster map
+of your climate stations using Thiessen polygons derived from climate
+station points, these points must be specified in a text file in a format
+supported by GRASS's 
+[v.in.acsii](http://grass.osgeo.org/grass64/manuals/v.in.ascii.html) tool. 
+For this tutorial, we'll use a dummy point to associated with the *bwi* 
+climate station imported above.  You can download this point
+[here](https://docs.google.com/file/d/0B7aK-9pTSLS-cmVWdmNxNThRc1U/edit?usp=sharing).
+Once downloaded, unzip the file to reveal the text file containing the point,
+which should look like this:
+
+    1|349093.638022|4350309.809951|bwi
+
+In a real-world case, there would be additional lines in this file,
+one for each climate station.  The first column is the base station ID
+and must match the base_station_ID field of the ${STATION}.base file
+associated with each climate station.  
+
+> When we create the world file template later on in this tutorial,
+> the tool that we use to do so, GenerateWorldTemplate, will make sure
+> that there is a climate base station file for each unique raster value
+> in your base station map; the world file template will not be generated
+> if this is not the case.
+
+The second and third columns represent the X and Y coordinates (or easting 
+and northing) of the point feature we will use to represent the location 
+of the climate station. The final column is the name of the climate station 
+and should match ${STATION} in ${STATION}.base (i.e. if your base station 
+file name is 'bwi.base', the final field should be 'bwi').
+
+Now we're ready to use GenerateBaseStationMap to: import the climate station
+points; make Thiessen polygons based on the points, and rasterize the polygons:
+
+    GenerateBaseStationMap.py -p standard -b /path/to/dummy_stations1.txt
+
+> The GRASS tool 
+> [v.voronoi](http://grass.osgeo.org/grass64/manuals/v.voronoi.html)
+> is used to generate the Thiessen polygons.  Note that some versions of
+> this tool can fail if you have only two points.  Hopefully this will be
+> fixed when GRASS 6.4.3 is released later in 2013.
 
 #### Delineate watershed and generate derived data products
 
@@ -802,12 +808,12 @@ code](https://github.com/selimnairb/RHESSysWorkflows/blob/master/bin/DelineateWa
 
 #### Generating a patch map
 
-RHESSysWorkflows provides GeneratePatchMap, an automated script for
+RHESSysWorkflows provides GeneratePatchMap, an automated tool for
 creating gridded and clumped patch maps.  Gridded patch maps consist
 of a regular grid of the same resolution and extent as the DEM;
 clumped maps can be created using elevation or topographic wetness
 index rasters.  Modelers can also use custom patch maps registered via
-EcohydroLib's RegisterRaster script and imported into GRASS using
+EcohydroLib's RegisterRaster tool and imported into GRASS using
 ImportRasterMapIntoGRASS (see below for a general description of this
 command).
 
@@ -826,9 +832,16 @@ To create an elevation clumped patch map:
 Clumped patch maps are generated by calling GRASS's r.clump command
 with the appropriate source raster as import.
 
+> By default GeneratePatchMap will set the zone map to be that of the
+> patch map, but only if a custom zone map has not been registered
+> with the workflow (e.g. via a combination of RegisterRaster and
+> ImportRasterMapIntoGRASS; see custom data tutorial below).  If you
+> wish to overwrite your custom zone map with the patch map, use the 
+> *--forceZone* option to GeneratePatchMap.
+
 #### Generating soil texture map
 
-Since we used EcohydroLib's SSURGO scripts to generate percent sand
+Since we used EcohydroLib's SSURGO tools to generate percent sand
 and percent clay raster maps for our watershed, we can use the GRASS
 addon r.soils.texture to generate USDA soil texture classes, for which
 RHESSys's ParamDB contains parameters.  It is also possible to use
@@ -837,7 +850,7 @@ workflow* section below.
 
 To generate our soil texture map in GRASS, as well as the
 corresponding RHESSys soil definition files, use the
-GenerateSoilTextureMap script as follows:
+GenerateSoilTextureMap tool as follows:
 
     GenerateSoilTextureMap.py -p standard
 
@@ -885,7 +898,7 @@ custom landcover maps regsitered via RegisterRaster.  In either case,
 we need to provide raster reclassification rules so that
 RHESSysWorkflows will know how to generate vegetation, land use,
 roads, and impervious surface maps from the landcover map.  To do
-this, we use the RegisterLandcoverReclassRules script:
+this, we use the RegisterLandcoverReclassRules tool:
 
     RegisterLandcoverReclassRules.py -p standard -k
 
@@ -933,21 +946,37 @@ data.
 
 #### Creating the worldfile for a watershed
 
-We are finally ready to create the worldfile for our watershed.  Note
-that we haven't discussed creating or editing a worldfile template.
-In general it should not be necessary for you to edit a template when
-using RHESSysWorkflows.  The reason is, at this point in the workflow,
-the metadata store contains nearly all the information necessary to
-create the worldfile and the template.  The CreateWorldfile script
-will generate the template for your, and then call the grass2world
-RHESSys program to generate the worldfile.  All you need do is specify
-which of the climate base stations you previously imported you with to
-associate with the worldfile:
+Now we are almost ready to create the worldfile for our watershed. 
+First we must create the template from which the world file will be
+created. To do this, we'll use the GenerateWorldTemplate tool. 
+Fortunately this is very easy because the metadata store contains 
+nearly all the information needed to create the template.  If you are 
+using multiple climate stations, and therefore have a base station
+map that you created using GenerateBaseStationMap, all you need do
+is:
 
-    CreateWorldfile.py -p standard -c bwi -v
+    GenerateWorldTemplate.py -p standard
+      
+If you are using a single climate station and did not create a climate
+station map, you must specify the climate station as follows:
 
-Here we're using the climate station named *bwi*.  Note also that
-we've specified the the *-v* (a.k.a. *--verbose*) command line option.
+    GenerateWorldTemplate.py -p standard -c bwi
+
+Here we're using the climate station named *bwi*.
+
+In either case, if your workflow is missing any information necessary
+for making the world template, GenerateWorldTemplate will exit with
+a corresponding error.
+
+> If you want to see the template file generate, as well as other
+> information, use the *-v* (a.k.a. *--verbose*) option
+
+Now use the CreateWorldfile tool to create a world file using this 
+template:
+
+    CreateWorldfile.py -p standard -v
+
+We've specified the the *-v* (a.k.a. *--verbose*) command line option.
 This will print details about what CreateWorldfile, and the programs
 it runs on your behalf, is doing.  This is recommended as these
 programs can fail in complex ways that CreateWorldfile may not be able
@@ -1013,13 +1042,14 @@ tested, so we advise you to keep a close watch on what it is doing.
 LAIread relies on allometric relationships to initialize vegetation
 carbon stores.  These allometric parameters have not yet been added to
 RHESSys ParamDB.  A default version of the parameters for RHESSys base
-vegetation classes is stored in the RHESSys source code
-[repository](https://github.com/RHESSys/RHESSys/blob/develop/util/templates/allometric.txt).
+vegetation classes is stored in the RHESSys ParamDB source code
+[repository](https://github.com/RHESSys/ParamDB/blob/develop/allometry/allometric.txt).
 RHESSysWorkflows stores this file under the name *allometric.txt* in
-the *templates* folder of your *rhessys* folder.  You can edit this
-file to suit your needs before running RunLAIRead.  Consult the
-[RHESSys wiki](http://wiki.icess.ucsb.edu/rhessys/index.php/Main_Page) for more information on allometric relationships used
-by LAIread.
+the *allometry* folder of the *ParamDB* of your *rhessys/db* folder.  
+You can edit this file to suit your needs before running RunLAIRead.  
+Consult the
+[RHESSys wiki](http://wiki.icess.ucsb.edu/rhessys/index.php/Main_Page) 
+for more information on allometric relationships used by LAIread.
 
 When finished, a final worldfile named *world* will be created in the
 *worldfiles* directory of your *rhessys* directory.  With this
@@ -1037,7 +1067,7 @@ The following sections outline how one might use RHESSysWorkflows to
 build RHESSys input files using custom data already available on your
 computer.  Unlike the above standard spatial data tutorial, we won't
 provide data for the workflow steps below.  Instead, we'll describe
-how your data should be formatted to work with each workflow script.
+how your data should be formatted to work with each workflow tool.
 To avoid duplication, only those concepts specific to using local data
 in RHESSysWorkflows will be discussed.  You are encouraged to read the
 standard spatial data tutorial above as well.  The workflow sequence
@@ -1049,7 +1079,7 @@ steps from the standard spatial data tutorial.
 
 When working in watersheds outside the coverage of the NHD (such as
 when working outside of the U.S.) the first workflow step is to import
-a digital elevation model data using the RegisterDEM script.  The DEM
+a digital elevation model data using the RegisterDEM tool.  The DEM
 to be imported must be in a format readable by
 [GDAL](http://www.gdal.org/formats_list.html).  
 
@@ -1072,8 +1102,8 @@ and saved as a shapefile in your project directory.
 #### Import streamflow gage coordinates 
 
 The coordinates of the streamflow gage associated with your watershed
-are registered with the workflow using the RegisterGage script.  The
-script takes as input a point shapefile containing one or more points;
+are registered with the workflow using the RegisterGage tool.  The
+tool takes as input a point shapefile containing one or more points;
 the WGS84 lat-lon coordinates for the desired gage will be extracted
 from the shapefile.  These coordinates will be written to the metadata
 store, and a new point shapefile containing a point only for the
@@ -1105,11 +1135,10 @@ spatial data or custom local data and will not be covered here:
 See the above standard spatial data tutorial for detailed information
 on these steps.
 
-
 #### Importing other raster layers
 
 For a list of all of the current raster map types supported by
-EcohydroLib, run the RegisterRaster script as follows:
+EcohydroLib, run the RegisterRaster tool as follows:
 
     RegisterRaster.py -h
 
@@ -1215,16 +1244,30 @@ GRASS:
 
 ##### Climate station zone map
 
-The DelineateWatershed script will use the hillslope map as the zone
+The GeneratePatchMap tool will use the patch map as the zone
 map.  If you wish to use another map for the zone map, do the
 following after running DelineateWatershed:
 
-    RegisterRaster.py -p PROJECT_DIR -t zone -r /path/to/my/zone_map.tif -b "Brian Miles <brian_miles@unc.edu>, climate station zones based on isohyet"
+    RegisterRaster.py -p PROJECT_DIR -t zone -r /path/to/my/zone_map.tif -b "Brian Miles <brian_miles@unc.edu>, climate station zones based on lapse rate"
 
 Then make your zone raster available for RHESSys by importing it into
 GRASS:
 
     ImportRasterMapIntoGRASS.py -p PROJECT_DIR -t zone -m none
+
+##### Isohyet map
+
+By default no isohyet map will be used when creating the world file for
+a watershed.  If you wish to use an isohyet map, do the following before
+running GenerateWorldTemplate:
+
+    RegisterRaster.py -p PROJECT_DIR -t isohyet -r /path/to/my/isohyet_map.tif -b "Brian Miles <brian_miles@unc.edu>, isohyet map"
+
+Then make your isohyet raster available for RHESSys by importing it into
+GRASS:
+
+    ImportRasterMapIntoGRASS.py -p PROJECT_DIR -t isohyet -m none
+
 
 #### Generating RHESSys definitions for custom soil data
 
@@ -1264,7 +1307,7 @@ the following command:
 
     GenerateCustomSoilDefinitions.py -p PROJECT_DIR 
 
-This script will print information to the screen about each soil type
+This tool will print information to the screen about each soil type
 encountered and the RHESSys ParamDB soil parameter classes they map
 to.  If you see no such print out, check your soil reclass rule file
 to make sure it is correct.  The resulting soil definition files will
@@ -1300,3 +1343,112 @@ spatial data or custom local data and will not be covered here:
 See the above standard spatial data tutorial for detailed information
 on these steps.
 
+
+Appendix
+--------
+
+### Install local data
+
+RHESSysWorkflows allows you to use local copies of the National
+Hydrography Dataset Plus (NHD Plus) to locate USGS streamflow gages,
+and the National Landcover Dataset (NLCD 2006). If you will be building
+many models across the U.S. or are running RHESSysWorkflows in a 
+server environment and would like to minimize calls to external web
+services, you may wish to install these datasets locally to improve
+performance.  *This is entirely optional.  Most users can ignore this
+as querying webservices for these data is preferable to downloading
+and installing these relatively large datasets.*
+ 
+#### Setup NLCD2006 data
+
+To setup a local copy of NLCD2006 land cover data, do the following:
+- Download NLCD2006 data [here](https://docs.google.com/file/d/0B7aK-9pTSLS-MHRrRTVVRV9zdVk/edit?usp=sharing)
+
+    It is important that you download this version of the dataset, and
+    not the official data from http://www.mrlc.gov/nlcd06_data.php.
+    The offical data are packaged using a version of PkZip that is not
+    compatible with OS X's GUI or commandline unzip utilities.
+
+- Copy NLCD2006 archive to the parent folder where you would like to store it
+
+    For example, under OS X, create a folder called 'data' in your
+    home directory
+
+- Unpack NLCD2006 data (this will take a while...time for a coffee break):
+    
+    + OS X 10.6: From the command line:
+    
+      tar xvjf nlcd2006_landcover_4-20-11_se5.tar.bz2
+        
+    + OS X 10.7/10.8: double-click on the archive in Finder
+
+#### Setup pre-packaged NHDPlusV2 data
+
+If you want to setup a local copy of NHDPlusV2 data you can obtain these data 
+by downloading all or a subset of the NHDPlusV2 data and building the database 
+as described in the 
+[EcohydroLib documentation](https://github.com/selimnairb/EcohydroLib).
+Alternatively, you can download a pre-built copy of the NHDPlusV2
+database needed by RHESSysWorkflows
+[here](https://docs.google.com/file/d/0B7aK-9pTSLS-dGVzWGRCd1NwNzQ/edit?usp=sharing).
+To download and unpack the pre-built data, do the following:
+
+- Download pre-packaged NHDPlusV2 database [here](https://docs.google.com/file/d/0B7aK-9pTSLS-dGVzWGRCd1NwNzQ/edit?usp=sharing)
+
+    Note, the compressed data are nearly 7 GB, nearly 11 GB
+    uncompressed, the download may take a while
+
+- Copy the pre-packaged NHDPlusV2 database archive to the parent
+  folder where you would like to store it
+    
+    For example, under OS X, create a folder called 'data' in your
+    home directory
+
+- Unpack NHDPlusV2 database archive (this will take a while...have a
+    cup of tea) 
+
+    + OS X 10.6: From the command line:
+    
+        tar xvjf NHDPlusV2.tar.bz2
+        
+    + OS X 10.7/10.8: double-click on the archive in Finder
+    
+ ### Setup EcohydroLib and RHESSysWorkflows configuration file for local data
+ 
+- Choose the appropriate prototype configuration file:
+
+    + [OS X 10.6](https://raw.github.com/selimnairb/RHESSysWorkflows/master/docs/config/ecohydro-OSX_10.6-local.cfg)
+
+    + [OS X 10.7/10.8](https://raw.github.com/selimnairb/RHESSysWorkflows/master/docs/config/ecohydro-OSX-local.cfg)
+
+- Save into a file named '.ecohydro.cfg' stored in your home directory
+
+- Modify the example configuration to point to your NHDPlusV2 and
+  NLCD2006 local data [if you are using these data]:
+
+    If you are using OS X, and if you placed the data in a directory
+    called 'data' in your home directory, the only changes you need to
+    make is to substitute '<myusername>' with your user name.  (To find
+    out your OS X user name, use the *whoami* command in Terminal). 
+    
+    If you chose to store local NLCD or NHDPlusV2 somewhere else, simply
+    use the absolute path of each file. 
+    
+- Set ECOHYDROLIB_CFG environment variable so that RHESSysWorkflows
+  can find your configuration file
+
+    For example, under OS X, from Terminal, do the following:
+
+	+ Open your bash profile in an editor:
+
+		nano ~/.bash_profile
+
+	+ Add the following at the end of the file:
+
+		export ECOHYDROLIB_CFG=${HOME}/.ecohydro.cfg
+
+	+ Save the file
+
+	+ Re-load bash profile (or close and open a new Terminal window):
+
+		source ~/.bash_profile
