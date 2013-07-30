@@ -42,8 +42,8 @@ Pre conditions
    'GRASS', 'GISBASE'
 
 2. The following metadata entry(ies) must be present in the manifest section of the metadata associated with the project directory:
-   soil_raster_avgsand
-   soil_raster_avgclay
+   soil_raster_pctsand
+   soil_raster_pctclay
 
 3. The following metadata entry(ies) must be present in the RHESSys section of the metadata associated with the project directory:
    paramdb
@@ -104,10 +104,10 @@ context = Context(args.projectDir, configFile)
 
 # Check for necessary information in metadata
 manifest = RHESSysMetadata.readManifestEntries(context)
-if not 'soil_raster_avgsand' in manifest:
-    sys.exit("Metadata in project directory %s does not contain a soil_raster_avgsand raster" % (context.projectDir,))
-if not 'soil_raster_avgclay' in manifest:
-    sys.exit("Metadata in project directory %s does not contain a soil_raster_avgclay raster" % (context.projectDir,))
+if not 'soil_raster_pctsand' in manifest:
+    sys.exit("Metadata in project directory %s does not contain a soil_raster_pctsand raster" % (context.projectDir,))
+if not 'soil_raster_pctclay' in manifest:
+    sys.exit("Metadata in project directory %s does not contain a soil_raster_pctclay raster" % (context.projectDir,))
 
 metadata = RHESSysMetadata.readRHESSysEntries(context)
 if not 'grass_dbase' in metadata:
@@ -156,26 +156,26 @@ sys.stdout.write('Generating soil texture map from percent sand and clay maps...
 sys.stdout.flush()
 
 # Import percent sand and percent clay raster maps into GRASS
-percentSandRasterPath = os.path.join(context.projectDir, manifest['soil_raster_avgsand'])
-result = grassLib.script.run_command('r.in.gdal', input=percentSandRasterPath, output='soil_avgsand', overwrite=args.overwrite)
+percentSandRasterPath = os.path.join(context.projectDir, manifest['soil_raster_pctsand'])
+result = grassLib.script.run_command('r.in.gdal', input=percentSandRasterPath, output='soil_pctsand', overwrite=args.overwrite)
 if result != 0:
-    sys.exit("Failed to import soil_raster_avgsand into GRASS dataset %s/%s, results:\n%s" % \
+    sys.exit("Failed to import soil_raster_pctsand into GRASS dataset %s/%s, results:\n%s" % \
              (grassDbase, metadata['grass_location'], result) )
-RHESSysMetadata.writeGRASSEntry(context, 'soil_avgsand_rast', 'soil_avgsand')
+RHESSysMetadata.writeGRASSEntry(context, 'soil_pctsand_rast', 'soil_pctsand')
     
-percentClayRasterPath = os.path.join(context.projectDir, manifest['soil_raster_avgclay'])
-result = grassLib.script.run_command('r.in.gdal', input=percentClayRasterPath, output='soil_avgclay', overwrite=args.overwrite)
+percentClayRasterPath = os.path.join(context.projectDir, manifest['soil_raster_pctclay'])
+result = grassLib.script.run_command('r.in.gdal', input=percentClayRasterPath, output='soil_pctclay', overwrite=args.overwrite)
 if result != 0:
-    sys.exit("Failed to import soil_raster_avgclay into GRASS dataset %s/%s, results:\n%s" % \
+    sys.exit("Failed to import soil_raster_pctclay into GRASS dataset %s/%s, results:\n%s" % \
              (grassDbase, metadata['grass_location'], result) )
-RHESSysMetadata.writeGRASSEntry(context, 'soil_avgclay_rast', 'soil_avgclay')
+RHESSysMetadata.writeGRASSEntry(context, 'soil_pctclay_rast', 'soil_pctclay')
 
 # Generate soil texture map
 schemePath = os.path.join(moduleEtc, 'USDA.dat')
 if not os.access(schemePath, os.R_OK):
     raise IOError(errno.EACCES, "Not allowed to read r.soils.texture scheme %s" % (schemePath,) )
 soilTexture = os.path.join(modulePath, 'r.soils.texture')
-result = grassLib.script.read_command(soilTexture, sand='soil_avgsand', clay='soil_avgclay',
+result = grassLib.script.read_command(soilTexture, sand='soil_pctsand', clay='soil_pctclay',
                                       scheme=schemePath, output='soil_texture', overwrite=args.overwrite)
 if None == result:
     sys.exit("r.soils.texture failed, returning %s" % (result,))
