@@ -5,7 +5,7 @@ def readme():
         return f.read()
 
 setup(name='rhessysworkflows',
-      version='1.02',
+      version='1.1',
       description='Libraries and command-line scripts for performing RHESSys data preparation workflows.',
       long_description=readme(),
       classifiers=[
@@ -25,7 +25,7 @@ setup(name='rhessysworkflows',
                 'rhessysworkflows.tests'
                 ],
       install_requires=[
-        'ecohydrolib==1.02'
+        'ecohydrolib==1.1'
       ],
       scripts=['bin/CreateFlowtable.py',
                'bin/CreateGRASSLocationFromDEM.py',
@@ -38,8 +38,8 @@ setup(name='rhessysworkflows',
                'bin/GenerateSoilTextureMap.py',
                'bin/GenerateWorldTemplate.py',
                'bin/ImportClimateData.py',
-               'bin/ImportRHESSysSource.py',
                'bin/ImportRasterMapIntoGRASS.py',
+               'bin/ImportRHESSysSource.py',
                'bin/RegisterCustomSoilReclassRules.py',
                'bin/RegisterLandcoverReclassRules.py',
                'bin/RunLAIRead.py'
