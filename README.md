@@ -71,17 +71,11 @@ Documentation can be found at: http://pythonhosted.org/rhessysworkflows
 
 Installation instructions
 -------------------------
-These instructions are tailored to OS X users, however installation
-under Linux is also possible.  Linux instructions will be provided in
-the future.  In the mean time, Linux users should be able to follow
-along to install the necessary dependencies and Python modules to use
-RHESSysWorkflows; this is relatively easy to do via your distributions
-package manager.  Note that if you are installing dependencies such as
-GDAL under Linux, you will also need to install the 'devel' version of
-these packages so that the header files necessary for compiling
-against the libraries are available.  RHESSysWorkflows may in theory
+These instructions are tailored to OS X and Linux users (specifically 
+Ubuntu 13.04 a.k.a. Raring Ringtail), however installation
+under Linux is also possible. RHESSysWorkflows may in theory
 work under Windows, but this has never been tested.  Windows users are
-encouraged to run a Linux distribution under a virtual machine.
+encouraged to run a Ubuntu under a virtual machine.
 
 RHESSysWorkflows is compatible with OS X 10.6, 10.7, and 10.8.  To
 find out what version of OS X you are currently running, click on the
@@ -169,6 +163,21 @@ In addition to GRASS and components installed above, install:
 
 QGIS is useful for visualizing output for earlier workflow steps that precede the importing data into GRASS. 
 
+#### Installing dependencies under Ubuntu Linux
+First install aptitude:
+
+    apt-get install aptitude
+    
+The install RHESSysWorkflows/EcohydroLib dependencies using aptitude:
+
+    aptitude install build-essential git subversion p7zip-full \
+    aptitude install python python-dev python-pip \
+    libxml2-dev libxslt-dev \
+    gdal gdal-bin python-gdal \
+    grass grass-dev \
+    libbsd-dev
+
+
 #### Install GRASS Addons for RHESSysWorkflows
 Download and install GRASS addons from: http://ecohydrology.web.unc.edu/files/2013/07/GRASSAddons-RHESSysworkflows.dmg_.zip
 
@@ -179,7 +188,23 @@ via g.extension.  You can download r.findtheriver
 and r.soils.texture
 [here](http://grasswiki.osgeo.org/wiki/AddOns/GRASS_6#r.soils.texture).
 
+Follow these steps to install the GRASS addons under Linux:
+
+1. First start GRASS by typing *grass64* from the command line
+2. Create a new location (it doesn't matter where, we'll only use it to run
+the g.extension command to install the extensions)
+3. Install r.soils.texture
+
+    g.extension extension=r.soils.texture
+
+4. Install r.findtheriver
+
+    g.extension extension=r.findtheriver
+
 ### Install Python modules
+The steps in this section is the same for OS X and Linux (except where
+noted for OS X 10.6).
+
 #### Install PIP, a tool for installing Python modules
 Pip is the recommended way to install Python modules (i.e. rather than
 using easy_install). For example, Pip allows you to easily uninstall
@@ -264,8 +289,12 @@ files are installed in a directory owned by your user account.
     + [OS X 10.6](https://raw.github.com/selimnairb/RHESSysWorkflows/master/docs/config/ecohydro-OSX_10.6.cfg)
 
     + [OS X 10.7/10.8](https://raw.github.com/selimnairb/RHESSysWorkflows/master/docs/config/ecohydro-OSX.cfg)
+    
+    + [Linux](https://raw.github.com/selimnairb/RHESSysWorkflows/master/docs/config/ecohydro-Linux.cfg)
 
 - Save into a file named '.ecohydro.cfg' stored in your home directory
+	Replace all occurances of '<myusername>' with your user name (To find
+	out your OS X or Linux user name, use the *whoami* command in Terminal).
     
 - Set ECOHYDROLIB_CFG environment variable so that RHESSysWorkflows
   can find your configuration file
@@ -279,6 +308,10 @@ files are installed in a directory owned by your user account.
 	+ Add the following at the end of the file:
 
 		export ECOHYDROLIB_CFG=${HOME}/.ecohydro.cfg
+		
+	+ If you're running Linux also add the following to your bash profile:
+	
+	    export LD_LIBRARY_PATH=/usr/lib/grass64/lib:${LD_LIBRARY_PATH}
 
 	+ Save the file
 
@@ -1420,16 +1453,19 @@ To download and unpack the pre-built data, do the following:
     + [OS X 10.6](https://raw.github.com/selimnairb/RHESSysWorkflows/master/docs/config/ecohydro-OSX_10.6-local.cfg)
 
     + [OS X 10.7/10.8](https://raw.github.com/selimnairb/RHESSysWorkflows/master/docs/config/ecohydro-OSX-local.cfg)
+    
+    + [Linux](https://raw.github.com/selimnairb/RHESSysWorkflows/master/docs/config/ecohydro-Linux-local.cfg)
 
 - Save into a file named '.ecohydro.cfg' stored in your home directory
+	Replace all occurances of '<myusername>' with your user name (To find
+    out your OS X or Linux user name, use the *whoami* command in Terminal).
 
 - Modify the example configuration to point to your NHDPlusV2 and
   NLCD2006 local data [if you are using these data]:
 
     If you are using OS X, and if you placed the data in a directory
     called 'data' in your home directory, the only changes you need to
-    make is to substitute '<myusername>' with your user name.  (To find
-    out your OS X user name, use the *whoami* command in Terminal). 
+    make is to substitute '<myusername>' with your user name.   
     
     If you chose to store local NLCD or NHDPlusV2 somewhere else, simply
     use the absolute path of each file. 
