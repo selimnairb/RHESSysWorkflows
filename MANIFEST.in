@@ -3,3 +3,6 @@ include etc/NLCD2006/impervious.rule
 include etc/NLCD2006/landuse.rule
 include etc/NLCD2006/road.rule
 include etc/NLCD2006/stratum.rule
+include etc/r.soils.texture/FAO.dat
+include etc/r.soils.texture/isss.dat
+include etc/r.soils.texture/USDA.dat
