@@ -47,7 +47,10 @@ setup(name='rhessysworkflows',
       data_files=[('rhessysworkflows/etc/NLCD2006', ['etc/NLCD2006/impervious.rule',
                            'etc/NLCD2006/landuse.rule',
                            'etc/NLCD2006/road.rule',
-                           'etc/NLCD2006/stratum.rule'] )
+                           'etc/NLCD2006/stratum.rule'] ),
+                  ('rhessysworkflows/etc/r.soils.texture', ['etc/r.soils.texture/FAO.dat',
+                                                           'etc/r.soils.texture/isss.dat',
+                                                           'etc/r.soils.texture/USDA.dat'] )
                   ],
                  
       zip_safe=False)
