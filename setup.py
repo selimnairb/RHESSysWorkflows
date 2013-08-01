@@ -25,7 +25,7 @@ setup(name='rhessysworkflows',
                 'rhessysworkflows.tests'
                 ],
       install_requires=[
-        'ecohydrolib==1.1'
+        'ecohydrolib>=1.1'
       ],
       scripts=['bin/CreateFlowtable.py',
                'bin/CreateGRASSLocationFromDEM.py',

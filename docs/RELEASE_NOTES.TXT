@@ -1,0 +1,11 @@
+# 1.1 - 7/30/2013
+  - Compatible with recently released RHESSys 5.18
+  - Adds workflow for creating climate base station maps 
+  - Makes patch the default zone map (instead of hillslope)
+  - Separates template generation from worldfile creation
+  - Note: Version number is 1.1 indicating that metadata from this version is not compatible
+    with previous versions
+
+# 1.0 - 7/12/2013
+  - Initial release
+  
