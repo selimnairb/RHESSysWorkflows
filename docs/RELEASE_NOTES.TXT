@@ -1,10 +1,17 @@
+# 1.11 - 8/26/2013
+  - Fixed bug where default isohyet map was based on zero map instead
+    of a map with values of onehundred.  When the zero map was used,
+    there would be no precipitation in a model, instead, by default
+    when isohyet map is specified, precipitation should be scaled by
+    1.0 (i.e. no scaling)
+
 # 1.1 - 7/30/2013
   - Compatible with recently released RHESSys 5.18
   - Adds workflow for creating climate base station maps 
   - Makes patch the default zone map (instead of hillslope)
   - Separates template generation from worldfile creation
-  - Note: Version number is 1.1 indicating that metadata from this version is not compatible
-    with previous versions
+  - Note: Version number is 1.1 indicating that metadata from this
+    version is not compatible with previous versions
 
 # 1.0 - 7/12/2013
   - Initial release
