@@ -184,6 +184,17 @@ grassDbase = os.path.join(context.projectDir, metadata['grass_dbase'])
 grassConfig = GRASSConfig(context, grassDbase, metadata['grass_location'], metadata['grass_mapset'])
 grassLib = GRASSLib(grassConfig=grassConfig)
 
+# Make sure mask and region are properly set
+demRast = grassMetadata['dem_rast']
+result = grassLib.script.run_command('g.region', rast=demRast)
+if result != 0:
+    sys.exit("g.region failed to set region to DEM, returning %s" % (result,))
+
+basinRast = grassMetadata['basin_rast']
+result = grassLib.script.run_command('r.mask', flags='o', input=basinRast, maskcats='1')
+if result != 0:
+    sys.exit("r.mask failed to set mask to basin, returning %s" % (result,))
+
 bbox = bboxFromString(studyArea['bbox_wgs84'])
 (longitude, latitude) = calculateBoundingBoxCenter(bbox)
 
@@ -329,7 +340,10 @@ subs['aspect_rast'] = grassMetadata['aspect_rast']
 if 'isohyet_rast' in grassMetadata:
     subs['isohyet_rast'] = grassMetadata['isohyet_rast']
 else:
-    subs['isohyet_rast'] = grassMetadata['zero_rast']
+    result = grassLib.script.write_command('r.mapcalc', stdin='onehundred=100')
+    if result != 0:
+        sys.exit("r.mapcalc failed to create onehundred map, returning %s" % (result,))
+    subs['isohyet_rast'] = 'onehundred'
 subs['east_horizon_rast'] = grassMetadata['east_horizon_rast']
 subs['west_horizon_rast'] = grassMetadata['west_horizon_rast']
 subs['patch_rast'] = grassMetadata['patch_rast']
