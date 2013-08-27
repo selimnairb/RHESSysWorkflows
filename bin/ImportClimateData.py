@@ -114,7 +114,7 @@ sys.stdout.write(textwrap.fill("Importing climate data from %s...\n" % (args.sou
 sys.stdout.flush()
 for station in stations:
     # Copy station file
-    sys.stdout.write("\tStation '%s'\n" % (station,) )
+    sys.stdout.write("\n\tStation '%s'\n" % (station,) )
     sys.stdout.flush()
     stationFileName = "%s%s%s" % (station, os.extsep, STATION_FILE_EXTENSION)
     stationFilePath = os.path.join(args.sourceDir, stationFileName)
