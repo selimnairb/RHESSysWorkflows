@@ -54,6 +54,7 @@ Post conditions
    grass_location
    grass_mapset
    rhessys_dir
+   model_description
 
 2. GRASS location and mapset will be created in grass_dbase
 
@@ -156,6 +157,7 @@ RHESSysMetadata.writeRHESSysEntry(context, 'grass_dbase', dbase)
 RHESSysMetadata.writeRHESSysEntry(context, 'grass_location', grassConfig.location)
 RHESSysMetadata.writeRHESSysEntry(context, 'grass_mapset', grassConfig.mapset)
 RHESSysMetadata.writeRHESSysEntry(context, 'rhessys_dir', paths.rhessysDir)
+RHESSysMetadata.writeRHESSysEntry(context, 'model_description', args.description)
 
 # Write processing history
 RHESSysMetadata.appendProcessingHistoryItem(context, cmdline)
