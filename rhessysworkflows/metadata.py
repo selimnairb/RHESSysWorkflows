@@ -38,6 +38,7 @@ import errno
 import ConfigParser
 
 from ecohydrolib.metadata import GenericMetadata
+import ecohydrolib.metadata as metadata
 from ecohydrolib.metadata import MetadataVersionError
 
 import rhessysworkflows
@@ -49,6 +50,7 @@ class WorkflowVersionError(MetadataVersionError):
     def __str__(self):
         return repr("Version %s of RHESSysWorkflows was used to write the metadata, but you are running version %s." %\
                     (self.workflowVersion, self._workflowVersion) )
+
 
 class RHESSysMetadata(GenericMetadata):
     """ Handles metadata persistance for RHESSys workflows.  Extends ecohydrolib.GenericMetadata class.
@@ -62,7 +64,8 @@ class RHESSysMetadata(GenericMetadata):
     
     VERSION_KEY = 'rhessysworkflows_version'
     
-    RHESSYS_SECTION = 'rhessys'
+    MODEL_NAME = 'rhessys'
+    RHESSYS_SECTION = MODEL_NAME
     # Patch list of valid sections
     GenericMetadata.SECTIONS.append(RHESSYS_SECTION)
    
@@ -166,3 +169,10 @@ class RHESSysMetadata(GenericMetadata):
         """
         return GenericMetadata._readEntriesForSection(context.projectDir, RHESSysMetadata.RHESSYS_SECTION)
     
+
+class ModelRun(metadata.ModelRun):
+    # Register model name with EcohydroLib metadata
+    GenericMetadata.MODEL_TYPES.append(RHESSysMetadata.MODEL_NAME)
+    
+    def __init__(self):
+        super(ModelRun, self).__init__(RHESSysMetadata.MODEL_NAME)
