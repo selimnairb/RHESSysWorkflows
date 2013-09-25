@@ -101,6 +101,10 @@ RHESSysWorkflows.  If you were thinking of upgrading from OS X 10.6 to
 > [article](http://support.apple.com/kb/HT4103?viewlocale=en_US&locale=en_US)
 > for more information.
 
+If you encounter problems during installation, please check the 
+[installation notes](https://github.com/selimnairb/RHESSysWorkflows/wiki/Installation-Notes)
+before contacting the developers for support.
+
 ### OS X 10.6 only: Install Python 2.7
 
 #### Download and install Python 2.7 (for Mac OS 10.6 and later) from: http://www.python.org/download/

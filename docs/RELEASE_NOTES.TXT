@@ -1,3 +1,7 @@
+# 1.12 - 9/25/2013
+  - Added RunModel.py to allow capture of RHESSys model runs in the 
+    metadata for a project
+
 # 1.11 - 8/26/2013
   - Fixed bug where default isohyet map was based on zero map instead
     of a map with values of onehundred.  When the zero map was used,
