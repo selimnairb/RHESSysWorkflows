@@ -1098,6 +1098,26 @@ This concludes this tutorial using RHESSysWorkflows to create a
 RHESSys world file and flow table using standard spatial data
 infrastructure.
 
+#### Running RHESSys models
+Once you build a RHESSys model using RHESSysWorkflows, you can run
+your model manually.  However this will not capture information about
+model runs in your project metadata.  If you would like to record your
+runs in your project metadata, use the RunModel command:
+
+    RunModel.py -v -p standard -d "Test model run" --basin -pre test -st 2008 1 1 1 -ed 2010 10 1 1 -w world -t tec_daily.txt -r world.flow -- -s 0.07041256017 133.552915269 1.81282283058 -sv 4.12459677088 78.3440566535 -gw 0.00736592779294 0.340346799457
+    
+Notice the '--' in the command line.  All of the command line options before
+the '--' are options required by RunModel.py; some of these are also common
+RHESSys options.  All of the options after the '--' will be passed to 
+RHESSys.  Because the project metadata knows where RHESSys is installed in your
+project directory, you don't have to specify the full path of any of the RHESSys input
+files (e.g. world files, flow tables, tec files, etc), just specify the filenames.
+RunModel will echo RHESSys console outlet to the screen (if the *-v* or verbose
+option is specified as above), and will always save the same output into
+a file named 'rhessys.out' stored in the output folder for each model run.  The output
+folder will be named based on the value you provide for the '-pre' or output prefix
+option. 
+
 ### Custom local data workflow
 
 The following sections outline how one might use RHESSysWorkflows to
@@ -1379,6 +1399,31 @@ spatial data or custom local data and will not be covered here:
 
 See the above standard spatial data tutorial for detailed information
 on these steps.
+
+#### Running custom commands
+
+RHESSysWorkflows provides many tools for preparing RHESSys models, 
+however there are many possible other tools and workflow steps
+that can be used to build a model.  To allow arbitrary commands
+to be carried out on data stored in a project directory, 
+RHESSysWorkflows provides the RunCmd command, for example you
+may which to edit your worldfile template and then re-run *grass2world*
+by hand:
+
+    RunCmd.py -p PROJECT_DIR cp PROJECT_DIR/rhessys/templates/template PROJECT_DIR/rhessys/templates/template.orig
+    RunCmd.py -p PROJECT_DIR emacs PROJECT_DIR/rhessys/templates/template
+    export PATH=PROJECT_DIR/rhessys/bin:${PATH}
+    RunCmd.py -p PROJECT_DIR PROJECT_DIR/rhessys/bin/g2w ...
+    
+(it is necessary to manually add your project directory's copy of the
+RHESSys binaries to your path because grass2world runs a helper program
+called *rat* that must be in your path)
+    
+Although RHESSysWorkflows will not be able to capture full metadata
+about the input and output files used and produced by commands run
+through RunCmd, it will write an entry to the processing history
+of your project metadata.  This way, you at least have a record of the
+custom workflow steps you applied to the data in your project directory.
 
 
 Appendix
