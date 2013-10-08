@@ -67,7 +67,9 @@ Post conditions
 ---------------
 1. Flowtable will be created in the RHESSys folder of the project directory.
 
-2. Will write the following entry(ies) to the RHESSys section of metadata associated with the project directory:
+2. File named "cf.out" will be created in the flowtable folder of the RHESSys folder.
+
+3. Will write the following entry(ies) to the RHESSys section of metadata associated with the project directory:
    surface_flowtable
    subsurface_flowtable
    flowtable_cmd
@@ -190,6 +192,7 @@ if args.verbose:
 # We don't want the '_init' in the flow table name
 flowTableNameBase = os.path.basename(metadata['worldfile_zero']).split('_')[0]
 flowOutpath = os.path.join(paths.RHESSYS_FLOW, flowTableNameBase)
+cfOutpath = os.path.join(paths.RHESSYS_FLOW, 'cf.out')
 if args.verbose:
     print(flowOutpath)
 
@@ -220,6 +223,16 @@ result = grassLib.script.read_command(cfPath, out=flowOutpath, template=template
                                       cellsize=demResX)
 if None == result:
     sys.exit("createflowpaths failed, returning %s" % (result,))
+    
+if args.verbose:
+    print("CF output:")
+    print(result)
+
+# Write cf output to project directory
+cfOut = open(cfOutpath, 'w')
+cfOut.write(result)
+cfOut.close()
+
 cfCmd = "%s out=%s template=%s dem=%s slope=%s stream=%s road=%s roof=%s impervious=%s cellsize=%s" % \
     (cfPath, flowOutpath, templatePath, grassMetadata['dem_rast'], grassMetadata['slope_rast'],
      grassMetadata['streams_rast'], roads, roofs, impervious, demResX)
