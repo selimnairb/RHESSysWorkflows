@@ -307,7 +307,7 @@ files are installed in a directory owned by your user account.
 
 	+ Open your bash profile in an editor:
 
-		nano ~/.bash_profile
+		nano ~/.bash_profile (~/.profile under Linux)
 
 	+ Add the following at the end of the file:
 
@@ -321,7 +321,7 @@ files are installed in a directory owned by your user account.
 
 	+ Re-load bash profile (or close and open a new Terminal window):
 
-		source ~/.bash_profile
+		source ~/.bash_profile (~/.profile under Linux)
 
 
 Using RHESSysWorkflows - Introduction
