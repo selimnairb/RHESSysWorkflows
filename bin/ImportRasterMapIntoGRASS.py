@@ -49,6 +49,9 @@ Pre conditions
    lai
    patch
    zone
+   isohyet
+   leafc
+   rootdepth
    
 3. The following metadata entry(ies) must be present in the RHESSys section of the metadata associated with the project directory:
    grass_dbase
