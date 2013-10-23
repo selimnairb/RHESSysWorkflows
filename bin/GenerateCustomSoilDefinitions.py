@@ -167,9 +167,9 @@ print("Writing soil definition files to %s" % (paths.RHESSYS_DEF) )
 for key in rasterVals.keys():
     print("soil '%s' has dn %d" % (key, rasterVals[key]) )
     paramsFound = paramDB.search(paramConst.SEARCH_TYPE_CONSTRAINED, None, key, None, None, None, None, None, None, None, None,
-                                 limitToBaseClasses=False, defaultIdOverride=rasterVals[key])
+                                 limitToBaseClasses=True, defaultIdOverride=rasterVals[key])
     assert(paramsFound)
-    paramDB.writeParamFiles(paths.RHESSYS_DEF)
+    paramDB.writeParamFileForClass(paths.RHESSYS_DEF)
 
 # Write metadata
 RHESSysMetadata.writeRHESSysEntry(context, 'soil_defs', True)

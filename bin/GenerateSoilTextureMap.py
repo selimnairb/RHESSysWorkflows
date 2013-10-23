@@ -197,7 +197,7 @@ for key in textures.keys():
     paramsFound = paramDB.search(paramConst.SEARCH_TYPE_CONSTRAINED, None, key, None, None, None, None, None, None, None, None,
                                  limitToBaseClasses=True, defaultIdOverride=textures[key])
     assert(paramsFound)
-    paramDB.writeParamFiles(paths.RHESSYS_DEF)
+    paramDB.writeParamFileForClass(paths.RHESSYS_DEF)
 
 # Write metadata
 RHESSysMetadata.writeRHESSysEntry(context, 'soil_defs', True)

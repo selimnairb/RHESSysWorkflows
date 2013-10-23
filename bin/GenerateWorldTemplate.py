@@ -202,17 +202,17 @@ bbox = bboxFromString(studyArea['bbox_wgs84'])
 sys.stdout.write('Getting parameter definition files for basin, hillslope, and zone...')
 sys.stdout.flush()
 paramsFound = paramDB.search(paramConst.SEARCH_TYPE_CONSTRAINED, None, 'basin', None, None, None, None, None, None, None, None,
-                             limitToBaseClasses=True, defaultIdOverride=str(1))
+                             limitToBaseClasses=False, defaultIdOverride=str(1))
 assert(paramsFound)
-paramDB.writeParamFiles(paths.RHESSYS_DEF)
+paramDB.writeParamFileForClass(paths.RHESSYS_DEF)
 paramsFound = paramDB.search(paramConst.SEARCH_TYPE_CONSTRAINED, None, 'hillslope', None, None, None, None, None, None, None, None,
-                             limitToBaseClasses=True, defaultIdOverride=str(1))
+                             limitToBaseClasses=False, defaultIdOverride=str(1))
 assert(paramsFound)
-paramDB.writeParamFiles(paths.RHESSYS_DEF)
+paramDB.writeParamFileForClass(paths.RHESSYS_DEF)
 paramsFound = paramDB.search(paramConst.SEARCH_TYPE_CONSTRAINED, None, 'zone', None, None, None, None, None, None, None, None,
-                             limitToBaseClasses=True, defaultIdOverride=str(1))
+                             limitToBaseClasses=False, defaultIdOverride=str(1))
 assert(paramsFound)
-paramDB.writeParamFiles(paths.RHESSYS_DEF)
+paramDB.writeParamFileForClass(paths.RHESSYS_DEF)
 sys.stdout.write('done\n')
 
 ## 2. Determine the number of definition files of each type and save their names for inclusion in the world file
