@@ -56,7 +56,7 @@ Pre conditions
    landcover_impervious_rule
    landcover_stratum_rule
    landcover_landuse_rule
-   landcover_lai_rule
+   landcover_lai_rule [if LAI flag is specified]
    
 Post conditions
 ---------------
@@ -69,6 +69,7 @@ Post conditions
    impervious_rast
    landuse_rast
    stratum_rast
+   lai_rast [if LAI flag is specified]
  
 Usage:
 @code
@@ -94,6 +95,8 @@ parser.add_argument('-i', '--configfile', dest='configfile', required=False,
                     help='The configuration file. Must define section "GRASS" and option "GISBASE"')
 parser.add_argument('-p', '--projectDir', dest='projectDir', required=True,
                     help='The directory to which metadata, intermediate, and final files should be saved')
+parser.add_argument('-l', '--makeLaiMap', dest='makeLaiMap', required=False, action='store_true',
+                    help='Make LAI map')
 parser.add_argument('--overwrite', dest='overwrite', action='store_true', required=False,
                     help='Overwrite existing datasets in the GRASS mapset.  If not specified, program will halt if a dataset already exists.')
 args = parser.parse_args()
@@ -145,6 +148,11 @@ if not os.access(landuseRulePath, os.R_OK):
 stratumRulePath = os.path.join(context.projectDir, metadata['landcover_stratum_rule'])
 if not os.access(stratumRulePath, os.R_OK):
     sys.exit("Unable to read rule %s" % (stratumRulePath,) )
+laiRulePath = None
+if args.makeLaiMap:
+    laiRulePath = os.path.join(context.projectDir, metadata['landcover_lai_rule'])
+    if not os.access(laiRulePath, os.R_OK):
+        sys.exit("Unable to read rule %s" % (laiRulePath,) )
 
 paths = RHESSysPaths(args.projectDir, metadata['rhessys_dir'])
 
@@ -230,6 +238,14 @@ result = grassLib.script.read_command('r.reclass', input=landcoverRast, output='
 if None == result:
     sys.exit("r.reclass failed to create impervious map, returning %s" % (result,))
 RHESSysMetadata.writeGRASSEntry(context, 'impervious_rast', 'impervious')    
+
+# Reclassify landcover into LAI map
+if args.makeLaiMap:
+    result = grassLib.script.read_command('r.reclass', input=landcoverRast, output='lai', 
+                           rules=laiRulePath, overwrite=args.overwrite)
+    if None == result:
+        sys.exit("r.reclass failed to create LAI map, returning %s" % (result,))
+    RHESSysMetadata.writeGRASSEntry(context, 'lai_rast', 'lai') 
 
 # Write metadata
 RHESSysMetadata.writeRHESSysEntry(context, 'stratum_defs', True)

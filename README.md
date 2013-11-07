@@ -902,7 +902,8 @@ stored in your project directory.
 
 We'll use the general command ImportRasterMapIntoGRASS to import our
 LAI map from the project directory into GRASS, where RHESSys will be
-able to make use of it:
+able to make use of it (you can also derive an LAI map from your landcover
+map; see below):
 
     ImportRasterMapIntoGRASS.py -p standard -t lai -m nearest
 
@@ -922,6 +923,7 @@ used by RHESSys:
 - Land use
 - Roads
 - Impervious surfaces
+- Leaf area index (LAI; optional)
 
 The first step in generating these maps is to import the landcover
 raster from your project directory into GRASS using
@@ -934,8 +936,8 @@ local copy of NLCD2006.  However, RHESSysWorkflows supports the use of
 custom landcover maps regsitered via RegisterRaster.  In either case,
 we need to provide raster reclassification rules so that
 RHESSysWorkflows will know how to generate vegetation, land use,
-roads, and impervious surface maps from the landcover map.  To do
-this, we use the RegisterLandcoverReclassRules tool:
+roads, impervious, and optionally surface maps from the landcover map.  
+To do this, we use the RegisterLandcoverReclassRules tool:
 
     RegisterLandcoverReclassRules.py -p standard -k
 
@@ -945,7 +947,15 @@ option.  For a custom landcover map, we could instead use the *-b*
 (a.k.a. *--buildPrototypeRules*) option to generate prototype rules
 that we can edit as needed.  It is also possible to specify that
 existing reclass rules should be imported from another directory on
-your computer using the *-r* (a.k.a. *--ruleDir*) parameter.
+your computer using the *-r* (a.k.a. *--ruleDir*) parameter.  To 
+include LAI reclass rules when registering prototype or existing 
+rules, you must use the *-l* (a.k.a. *--includeLaiRules*) parameter
+
+> The known rules for NLCD2006 that ship with RHESSysWorkflows include
+> an LAI reclass rules file with values for grassland, and evergreen
+> needle leaf and deciduous broadleaf forests (both temperate) drawn 
+> from the International Satellite Land Surface Climatology Project II
+> (ISLSCP II) project.  These data can be downloaded [here](http://daac.ornl.gov/cgi-bin/dsviewer.pl?ds_id=971).
 
 Whether using known rules, building prototype rules, or importing
 existing rules, RegisterLandcoverReclassRules will result in the
@@ -956,16 +966,23 @@ your project directory:
 - landuse.rule
 - impervious.rule
 - road.rule
+- lai.rule (if the *--includeLaiRules* option was selected)
 
 There is no need to edit these rules for this NLCD2006 example, but
 you should take a moment to look at how these rules work.
 RHESSysWorkflows uses GRASS's
 [r.reclass](http://grass.osgeo.org/grass64/manuals/r.reclass.html)
 command, and so the rules files follow this format.  It's important to
-note that your landcover reclass rules must result in raster maps
-whose values labels match class names present in the RHESSys ParamDB
-database.  Thus, be very carful in editing the righthand side of the
-expressions in your reclass rules.
+note that the landcover reclass rules for strarum and landuse must 
+result in raster maps whose values labels match class names present 
+in the RHESSys ParamDB database.  Thus, be very carful in editing 
+the righthand side of the expressions in your stratum and landuse
+reclass rules.
+
+Note that to keep track of edits you make to your project's reclass
+rules in your project metadata, you should use the RunCmd workflow
+command (see the section on custom workflows to learn how to use this
+tool). 
 
 > You can find information on NLCD2006 classes [here](http://www.mrlc.gov/nlcd06_leg.php)
 
@@ -975,6 +992,12 @@ the vegetation and land use definition files needed by RHESSys; this
 is done using the following command:
 
     GenerateLandcoverMaps.py -p standard
+
+> If you would like an LAI map to be generate, you must use the *-l*
+> (a.k.a. *--makeLaiMap*) parameter on the above command line. This
+> will only work if you are using known landcover reclass rules, or
+> if you requested that RegisterLandcoverReclassRules include LAI 
+> reclass rules when creating prototype rules or using existing rules. 
 
 Like with the soil texture map and definition generation step,
 GenerateLandcoverMaps will provide descriptive output of the
