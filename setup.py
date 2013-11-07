@@ -25,7 +25,7 @@ setup(name='rhessysworkflows',
                 'rhessysworkflows.tests'
                 ],
       install_requires=[
-        'ecohydrolib>=1.14'
+        'ecohydrolib>=1.15'
       ],
       scripts=['bin/CreateFlowtable.py',
                'bin/CreateGRASSLocationFromDEM.py',
@@ -46,6 +46,7 @@ setup(name='rhessysworkflows',
                'bin/RunModel.py'
       ],
       data_files=[('rhessysworkflows/etc/NLCD2006', ['etc/NLCD2006/impervious.rule',
+                           'etc/NLCD2006/lai.rule',
                            'etc/NLCD2006/landuse.rule',
                            'etc/NLCD2006/road.rule',
                            'etc/NLCD2006/stratum.rule'] ),

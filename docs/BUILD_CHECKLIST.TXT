@@ -3,6 +3,7 @@
 	- Make sure packages list is up to date
 	- Make sure install_requires is up to date
 	- Make sure scripts is up to date
+	- Make sure data files is up to date
 	
 2. Change version number in rhessysworkflows/__init__.py to match setup.py if changes will break
    compatibility to previous versions' metadata
