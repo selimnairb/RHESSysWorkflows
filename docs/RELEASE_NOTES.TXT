@@ -1,3 +1,6 @@
+# 1.15 - 11/12/2013
+  - Allow models to be run in both routing and TOPMODEL mode
+
 # 1.14 - 11/6/2013
   - Added ability to generate LAI map from landcover map
 
