@@ -88,7 +88,7 @@ parser.add_argument('-w', dest='worldfile', required=True,
                     help='Filename of the worldfile to use for the model run, specified relative to the worldfiles directory in the RHESSys directory of the project')
 parser.add_argument('-t', dest='tecfile', required=True,
                     help='Filename of the tecfile to use for the model run, specified relative to the tec directory in the RHESSys directory of the project')
-parser.add_argument('-r', dest='flowtables', required=True, nargs='*',
+parser.add_argument('-r', dest='flowtables', required=False, nargs='*',
                     help='Filename(s) of the flow table(s) to use for the model run, specified relative to the flowtable directory in the RHESSys directory of the project. ' +
                          'If one flow table is supplied, it will be used for subsurface and surface routing.  ' +
                          'If two flow tables are supplied the first will be use for subsurface routing, the second for surface.')
@@ -157,34 +157,41 @@ if not os.path.isfile(tecfile) or not os.access(tecfile, os.R_OK):
     sys.exit("TEC file '%s' is not a readable file" % (tecfile,) )
 tecfileRel = paths.relpath(tecfile)
 
-surfaceFlow = None
-subsurfaceFlow = args.flowtables[0]
-if subsurfaceFlow.count(os.sep) > 1:
-    sys.exit("Flowtable cannot contain a path separator ('%s')" % (subsurfaceFlow,) )
-subsurfaceFlow = os.path.join(paths.RHESSYS_FLOW, subsurfaceFlow)
-if not os.path.isfile(subsurfaceFlow) or not os.access(subsurfaceFlow, os.R_OK):
-    sys.exit("Flowtable '%s' is not a readable file" % (subsurfaceFlow,) )
-subsurfaceFlowRel = paths.relpath(subsurfaceFlow)
-flowtables = subsurfaceFlow
-flowtablesRel = subsurfaceFlowRel
-    
-if len(args.flowtables) == 2:
-    surfaceFlow = args.flowtables[1]
-    if surfaceFlow.count(os.sep) > 1:
-        sys.exit("Surface flowtable cannot contain a path separator ('%s')" % (surfaceFlow,) )
-    surfaceFlow = os.path.join(paths.RHESSYS_FLOW, surfaceFlow)
-    if not os.path.isfile(surfaceFlow) or not os.access(surfaceFlow, os.R_OK):
-        sys.exit("Surface flowtable '%s' is not a readable file" % (surfaceFlow,) )
-    surfaceFlowRel = paths.relpath(surfaceFlow)
-    flowtables += ' ' + surfaceFlow
-    flowtablesRel += ' ' + surfaceFlowRel
+if args.flowtables:
+    # We are running in routing mode
+    cmd_proto = "{bin} -st {startDate} -ed {endDate} {outputType} -pre {outputPrefix} -t {tecfile} -w {worldfile} -r {flowtables} {remainders}"
+
+    surfaceFlow = None
+    subsurfaceFlow = args.flowtables[0]
+    if subsurfaceFlow.count(os.sep) > 1:
+        sys.exit("Flowtable cannot contain a path separator ('%s')" % (subsurfaceFlow,) )
+    subsurfaceFlow = os.path.join(paths.RHESSYS_FLOW, subsurfaceFlow)
+    if not os.path.isfile(subsurfaceFlow) or not os.access(subsurfaceFlow, os.R_OK):
+        sys.exit("Flowtable '%s' is not a readable file" % (subsurfaceFlow,) )
+    subsurfaceFlowRel = paths.relpath(subsurfaceFlow)
+    flowtables = subsurfaceFlow
+    flowtablesRel = subsurfaceFlowRel
+        
+    if len(args.flowtables) == 2:
+        surfaceFlow = args.flowtables[1]
+        if surfaceFlow.count(os.sep) > 1:
+            sys.exit("Surface flowtable cannot contain a path separator ('%s')" % (surfaceFlow,) )
+        surfaceFlow = os.path.join(paths.RHESSYS_FLOW, surfaceFlow)
+        if not os.path.isfile(surfaceFlow) or not os.access(surfaceFlow, os.R_OK):
+            sys.exit("Surface flowtable '%s' is not a readable file" % (surfaceFlow,) )
+        surfaceFlowRel = paths.relpath(surfaceFlow)
+        flowtables += ' ' + surfaceFlow
+        flowtablesRel += ' ' + surfaceFlowRel
+else:
+    # We are running in topmodel mode
+    cmd_proto = "{bin} -st {startDate} -ed {endDate} {outputType} -pre {outputPrefix} -t {tecfile} -w {worldfile} {remainders}"
+    flowtables = flowtablesRel = None
 
 remainders = ' '.join(args.args[1:])
 startDate = ' '.join([str(d) for d in args.startDate])
 endDate = ' '.join([str(d) for d in args.endDate])
 
 # Build command string for running (i.e. with absolute paths)
-cmd_proto = "{bin} -st {startDate} -ed {endDate} {outputType} -pre {outputPrefix} -t {tecfile} -w {worldfile} -r {flowtables} {remainders}"
 cmd = cmd_proto.format(bin=rhessysBinPath, startDate=startDate, endDate=endDate,
                        outputType=args.outputType, outputPrefix=outputPrefix,
                        tecfile=tecfile, worldfile=worldfile, flowtables=flowtables, remainders=remainders)
