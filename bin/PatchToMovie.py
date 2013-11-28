@@ -48,6 +48,10 @@ parser.add_argument('-t' ,'--mapTitle', required=False,
                     help='Text to use for title.  If not supplied, variable name will be used')
 parser.add_argument('-u', '--variableUnit', required=False, default='m',
                     help='Units of variable, which will be displayed in paranthesis next to the variable name on the map')
+parser.add_argument('--fps', required=False, type=int, default=15,
+                    help='Frames per second of output video')
+praser.add_argument('--rescale', required=False, type=int,
+                    help='Rescale raster values of 0 to args.resample to 0 to 255 in output images.')
 args = parser.parse_args()
 
 if not os.path.isfile(args.rhessysOutFile) or not os.access(args.rhessysOutFile, os.R_OK):
@@ -115,6 +119,8 @@ if args.mask:
 # Set environment variables for GRASS PNG output driver
 os.environ['GRASS_RENDER_IMMEDIATE'] = 'FALSE'
 os.environ['GRASS_TRUECOLOR'] = 'TRUE'
+os.environ['GRASS_WIDTH'] = '960'
+os.environ['GRASS_HEIGHT'] = '720'
 
 # 3. Open file ending in "patch.daily" in rhessys output dir
 print("Reading RHESSys output data (this may take a while)...")
@@ -154,6 +160,19 @@ for (i, key) in enumerate(data):
                                          overwrite=True)
     if result != 0:
         sys.exit("Failed to create reclass map for date %s" % (str(date),) )
+        
+    tmpMap = RECLASS_MAP_TMP
+    if args.rescale:
+        tmpMap = "%s_rescale" % (RECLASS_MAP_TMP,)
+        fromScale = "0,%d" % (args.rescale,)
+        result = grassLib.script.run_command('r.rescale', 
+                                             input=RECLASS_MAP_TMP, 
+                                             output=tmpMap,
+                                             from=fromScale,
+                                             to='0,255',
+                                             overwrite=True)
+        if result != 0:
+            sys.exit("Failed to rescale map when rendering image %s" % (imageFilename,) )
     # c. Render map with annotations to PNG image
 
     # Start a new PNG driver
@@ -166,10 +185,10 @@ for (i, key) in enumerate(data):
     # Render image
 #     print("\nDrawing map\n")
     result = grassLib.script.run_command('d.rast',
-                                         map=RECLASS_MAP_TMP)
+                                         map=tmpMap)
     if result != 0:
         sys.exit("Failed to render map %s while rendering image %s" % \
-                 (RECLASS_MAP_TMP, imageFilename) )
+                 (tmpMap, imageFilename) )
         
     if args.overlay:
         result = grassLib.script.run_command('d.rast',
@@ -198,7 +217,7 @@ for (i, key) in enumerate(data):
             
     # Add annotations
     result = grassLib.script.run_command('d.legend',
-                                         map=RECLASS_MAP_TMP,
+                                         map=tmpMap,
                                          at='15,90,82,87')
     if result != 0:
         sys.exit("Failed to add legend to map while rendering image %s" % \
@@ -236,7 +255,7 @@ for (i, key) in enumerate(data):
 # 5. Combine images to ffmpeg movie of specified name in specified location  
 # Documentation: https://trac.ffmpeg.org/wiki/Create%20a%20video%20slideshow%20from%20images
 # e.g. ffmpeg -r 1/5 -i img%03d.png -c:v libx264 -r 30 -pix_fmt yuv420p out.mp4
-cmd = "%s -y -r 1/2 -i %s%%04d.png -c:v libx264 -vf fps=30 -pix_fmt yuv420p %s" % (FFMPEG_PATH, RECLASS_MAP_TMP, outputFilePath)
+cmd = "%s -y -r %d -i %s%%04d.png -c:v libx264 -pix_fmt yuv420p %s" % (FFMPEG_PATH, args.fps, RECLASS_MAP_TMP, outputFilePath)
 # print(cmd)
 cmdArray = shlex.split(cmd)
 p = subprocess.Popen(cmdArray, cwd=tmpDir)
