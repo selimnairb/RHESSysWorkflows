@@ -50,7 +50,7 @@ parser.add_argument('-u', '--variableUnit', required=False, default='m',
                     help='Units of variable, which will be displayed in paranthesis next to the variable name on the map')
 parser.add_argument('--fps', required=False, type=int, default=15,
                     help='Frames per second of output video')
-praser.add_argument('--rescale', required=False, type=int,
+parser.add_argument('--rescale', required=False, type=int,
                     help='Rescale raster values of 0 to args.resample to 0 to 255 in output images.')
 args = parser.parse_args()
 
@@ -80,7 +80,9 @@ outputDir = os.path.abspath(args.outputDir)
 outputFile = "%s.mp4" % (args.outputFile)
 outputFilePath = os.path.join(outputDir, outputFile)
 
-title = args.outputVariable + ' (' + args.variableUnit + ')'
+title = args.outputVariable
+if not args.rescale:
+    title += ' (' + args.variableUnit + ')'
 if args.mapTitle:
     title = args.mapTitle    
 
@@ -165,12 +167,13 @@ for (i, key) in enumerate(data):
     if args.rescale:
         tmpMap = "%s_rescale" % (RECLASS_MAP_TMP,)
         fromScale = "0,%d" % (args.rescale,)
+        rRescaleOptions = {'input': RECLASS_MAP_TMP,
+                           'output': tmpMap,
+                           'from': fromScale,
+                           'to': '0,255',
+                           'overwrite': True}
         result = grassLib.script.run_command('r.rescale', 
-                                             input=RECLASS_MAP_TMP, 
-                                             output=tmpMap,
-                                             from=fromScale,
-                                             to='0,255',
-                                             overwrite=True)
+                                             **rRescaleOptions)
         if result != 0:
             sys.exit("Failed to rescale map when rendering image %s" % (imageFilename,) )
     # c. Render map with annotations to PNG image
@@ -221,6 +224,28 @@ for (i, key) in enumerate(data):
                                          at='15,90,82,87')
     if result != 0:
         sys.exit("Failed to add legend to map while rendering image %s" % \
+                 (imageFilename,) )
+    
+    # Set high
+    result = grassLib.script.run_command('d.text',
+                                         text='High',
+                                         size=5,
+                                         color='black',
+                                         at='90,20',
+                                         align='cc')
+    if result != 0:
+        sys.exit("Failed to high scale legend to map while rendering image %s" % \
+                 (imageFilename,) )
+        
+    # Set low
+    result = grassLib.script.run_command('d.text',
+                                         text='Low',
+                                         size=5,
+                                         color='black',
+                                         at='89,88',
+                                         align='cc')
+    if result != 0:
+        sys.exit("Failed to add low scale legend to map while rendering image %s" % \
                  (imageFilename,) )
     
     # Set title
