@@ -12,6 +12,9 @@ import os, sys, shutil, tempfile, re
 import subprocess, shlex
 import time, random
 import argparse
+import operator
+
+import numpy as np
 
 from ecohydrolib.context import Context
 from ecohydrolib.grasslib import *
@@ -20,7 +23,13 @@ from rhessyscalibrator.postprocess import RHESSysCalibratorPostprocess
 
 FFMPEG_PATH = '/usr/local/bin/ffmpeg'
 PATCH_DAILY_RE = re.compile('^(.+_patch.daily)$')
+VARIABLE_EXPR_RE = re.compile('^(\S+)\s*([-|+|*|/])\s*(\S+)\s*$')
 RECLASS_MAP_TMP = "patchtomovietmp_%d" % (random.randint(100000, 999999),)
+
+OPS = { '+': operator.add,
+        '-': operator.sub,
+        '*': operator.mul,
+        '/': operator.div }
 
 # Handle command line options
 parser = argparse.ArgumentParser(description='Generate movie from patch level daily RHESSys output')
@@ -43,14 +52,14 @@ parser.add_argument('-f', '--outputFile', required=True,
 parser.add_argument('-p', '--patchMap', required=False, default='patch',
                     help='Name of patch map')
 parser.add_argument('-v', '--outputVariable', required=True,
-                    help='Name of RHESSys variable to be mapped')
+                    help='Name of RHESSys variable to be mapped.  Can be an expression such as "trans_sat + trans_unsat"')
 parser.add_argument('-t' ,'--mapTitle', required=False,
                     help='Text to use for title.  If not supplied, variable name will be used')
 parser.add_argument('-u', '--variableUnit', required=False, default='m',
                     help='Units of variable, which will be displayed in paranthesis next to the variable name on the map')
 parser.add_argument('--fps', required=False, type=int, default=15,
                     help='Frames per second of output video')
-parser.add_argument('--rescale', required=False, type=int,
+parser.add_argument('--rescale', required=False, type=float,
                     help='Rescale raster values of 0 to args.resample to 0 to 255 in output images.')
 args = parser.parse_args()
 
@@ -80,11 +89,40 @@ outputDir = os.path.abspath(args.outputDir)
 outputFile = "%s.mp4" % (args.outputFile)
 outputFilePath = os.path.join(outputDir, outputFile)
 
+# Determine output variables
+variables = ['patchID']
+varLeft = varRight = None
+constantLeft = constantRight = None
+op = None
+m = VARIABLE_EXPR_RE.match(args.outputVariable)
+if m:
+    try:
+        constantLeft = float(m.group(1))
+    except ValueError:
+        varLeft = m.group(1)
+        variables.append(varLeft)
+    try:
+        constantRight = float(m.group(3))
+    except ValueError:
+        varRight = m.group(3)
+        variables.append(varRight)
+    
+    if constantLeft and constantRight:
+        sys.exit("At least one argument must be a variable")
+    if m.group(2) not in ['+', '-', '*', '/']:
+        sys.exit("Variable expression %s not supported" % (m.group(2),) )
+    if m.group(2) == '/' and constantRight == 0.0:
+        sys.exit("Unable to divide by zero")
+    op = OPS[m.group(2)]
+else:
+    variables.append(args.outputVariable)
+
 title = args.outputVariable
+if args.mapTitle:
+    title = args.mapTitle  
 if not args.rescale:
     title += ' (' + args.variableUnit + ')'
-if args.mapTitle:
-    title = args.mapTitle    
+  
 
 if not os.path.isfile(patchDailyFilepath) or not os.access(patchDailyFilepath, os.R_OK):
     sys.exit("Unable to read RHESSys patch daily output file %s" % (patchDailyFilepath,))
@@ -127,7 +165,7 @@ os.environ['GRASS_HEIGHT'] = '720'
 # 3. Open file ending in "patch.daily" in rhessys output dir
 print("Reading RHESSys output data (this may take a while)...")
 f = open(patchDailyFilepath)
-data = RHESSysCalibratorPostprocess.readColumnsFromPatchDailyFile(f, ['patchID', args.outputVariable])
+data = RHESSysCalibratorPostprocess.readColumnsFromPatchDailyFile(f, variables)
 f.close()
 if len(data) < 1:
     sys.exit("No data found for variable in RHESSys output file '%s'" % \
@@ -148,14 +186,24 @@ for (i, key) in enumerate(data):
     reclass = open(reclassRule, 'w')
     
     patchIDs = [ int(f) for f in dataForDate['patchID'] ]
-    variable = dataForDate[args.outputVariable]
+    if op:
+        if constantLeft:
+            variable = op( constantLeft, np.array(dataForDate[varRight]) )
+        elif constantRight:
+            variable = op( np.array(dataForDate[varLeft]), constantRight )
+        else:
+            variable = op( np.array(dataForDate[varLeft]), np.array(dataForDate[varRight]) )
+    else:
+        variable = np.array(dataForDate[args.outputVariable])
     for (j, var) in enumerate(variable):
-        reclass.write("%d = %f\n" % (patchIDs[j], var) )
+        #reclass.write("%d = %f\n" % (patchIDs[j], var) )
+        reclass.write("%d:%d:%f:%f\n" % (patchIDs[j], patchIDs[j], var, var) )
     reclass.close()
     
     # b. Generate temporary map for variable
 #     print("\nRunning r.reclass...\n")
-    result = grassLib.script.run_command('r.reclass', 
+    #result = grassLib.script.run_command('r.reclass', 
+    result = grassLib.script.run_command('r.recode', 
                                          input=args.patchMap, 
                                          output=RECLASS_MAP_TMP,
                                          rules=reclassRule,
@@ -227,33 +275,35 @@ for (i, key) in enumerate(data):
                  (imageFilename,) )
     
     # Set high
-    result = grassLib.script.run_command('d.text',
-                                         text='High',
-                                         size=5,
-                                         color='black',
-                                         at='90,20',
-                                         align='cc')
-    if result != 0:
-        sys.exit("Failed to high scale legend to map while rendering image %s" % \
-                 (imageFilename,) )
+    if args.rescale:
+        result = grassLib.script.run_command('d.text',
+                                             text='High',
+                                             size=5,
+                                             color='black',
+                                             at='90,20',
+                                             align='cc')
+        if result != 0:
+            sys.exit("Failed to high scale legend to map while rendering image %s" % \
+                     (imageFilename,) )
         
     # Set low
-    result = grassLib.script.run_command('d.text',
-                                         text='Low',
-                                         size=5,
-                                         color='black',
-                                         at='89,88',
-                                         align='cc')
-    if result != 0:
-        sys.exit("Failed to add low scale legend to map while rendering image %s" % \
-                 (imageFilename,) )
+    if args.rescale:
+        result = grassLib.script.run_command('d.text',
+                                             text='Low',
+                                             size=5,
+                                             color='black',
+                                             at='89,88',
+                                             align='cc')
+        if result != 0:
+            sys.exit("Failed to add low scale legend to map while rendering image %s" % \
+                     (imageFilename,) )
     
     # Set title
     result = grassLib.script.run_command('d.text',
                                          text=title,
                                          size=5,
                                          color='black',
-                                         at='82,98',
+                                         at='75,98',
                                          align='cc')
     if result != 0:
         sys.exit("Failed to add title to map while rendering image %s" % \
@@ -291,6 +341,10 @@ if result != 0:
 
 # Cleanup
 shutil.rmtree(tmpDir)
+if args.rescale:
+    result = grassLib.script.run_command('g.remove', rast=tmpMap)
+    if result != 0:
+        sys.exit("Failed to remove temporary map %s" % (tmpMap,) )
 result = grassLib.script.run_command('g.remove', rast=RECLASS_MAP_TMP)
 if result != 0:
     sys.exit("Failed to remove temporary map %s" % (RECLASS_MAP_TMP,) )
