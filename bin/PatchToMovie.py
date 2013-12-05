@@ -45,6 +45,8 @@ parser.add_argument('--mask', required=False, default=None,
                     help='Name of raster to use as a mask')
 parser.add_argument('--overlay', required=False, default=None,
                     help='Name of raster map to use as overlay')
+parser.add_argument('--overlayLegend', required=False, default=False,
+                    help='Display legend for overlay layer')
 parser.add_argument('-o', '--outputDir', required=True,
                     help='Directory to which movie should be output')
 parser.add_argument('-f', '--outputFile', required=True,
@@ -248,23 +250,24 @@ for (i, key) in enumerate(data):
         if result != 0:
             sys.exit("Failed to draw overlay map %s while rendering image %s" % \
                      (args.overlay, imageFilename) )
-        # Add legend for overlay
-        result = grassLib.script.run_command('d.legend',
-                                         map=args.overlay,
-                                         at='15,50,3,7')
-        if result != 0:
-            sys.exit("Failed to add legend for overlay map %s while rendering image %s" % \
-                     (args.overlay, imageFilename) )
-        # Write name of overlay layer
-        result = grassLib.script.run_command('d.text',
-                                         text=args.overlay,
-                                         size=2.5,
-                                         color='black',
-                                         at='12, 12',
-                                         align='cc')
-        if result != 0:
-            sys.exit("Failed to add overlay annotation to map while rendering image %s" % \
-                     (imageFilename,) )
+        if args.overlayLegend:
+            # Add legend for overlay
+            result = grassLib.script.run_command('d.legend',
+                                             map=args.overlay,
+                                             at='15,50,3,7')
+            if result != 0:
+                sys.exit("Failed to add legend for overlay map %s while rendering image %s" % \
+                         (args.overlay, imageFilename) )
+            # Write name of overlay layer
+            result = grassLib.script.run_command('d.text',
+                                             text=args.overlay,
+                                             size=2.5,
+                                             color='black',
+                                             at='12, 12',
+                                             align='cc')
+            if result != 0:
+                sys.exit("Failed to add overlay annotation to map while rendering image %s" % \
+                         (imageFilename,) )
             
     # Add annotations
     result = grassLib.script.run_command('d.legend',
