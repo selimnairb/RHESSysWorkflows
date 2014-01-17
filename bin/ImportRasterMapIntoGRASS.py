@@ -108,6 +108,10 @@ parser.add_argument('-t', '--type', dest='types', required=True, nargs='+', choi
 parser.add_argument('-m', '--method', dest='method', required=True, 
                     nargs='+', choices=RESAMPLE_METHODS,
                     help='The method to use to resample each raster.')
+parser.add_argument('--integer', dest='integer', required=False, action='store_true',
+                    help='Transform raster to integer on import. Can only be used when importing a single raster type.')
+parser.add_argument('--multiplier', dest='multiplier', required=False, type=int, default=1000,
+                    help='Multiplier to use when tranforming raster values to integer')                    
 parser.add_argument('--overwrite', dest='overwrite', action='store_true', required=False,
                     help='Overwrite existing datasets in the GRASS mapset.  If not specified, program will halt if a dataset already exists.')
 args = parser.parse_args()
@@ -125,10 +129,14 @@ if len(args.types) != len(args.method):
 
 if 'all' in args.types:
     typeList = RHESSysMetadata.RASTER_TYPES
-    methodList = [args.method[0] for type in typeList]
+    methodList = [args.method[0] for t in typeList]
 else:
     typeList = args.types
     methodList = args.method
+
+if args.integer:
+    if len(typeList) > 1:
+        sys.exit(textwrap.fill("Integer transformation can only be applied when importing a single raster type"))
 
 ## Check for necessary information in metadata
 manifest = RHESSysMetadata.readManifestEntries(context)
@@ -160,32 +168,51 @@ if result != 0:
     sys.exit("g.region failed to set region to DEM, returning %s" % (result,))
 
 # Import raster maps into GRASS
-for index, type in enumerate(typeList):
-    if type in manifest:
+for index, t in enumerate(typeList):
+    if t in manifest:
         method = methodList[index]
-        sys.stdout.write("Importing %s raster..." % (type,) )
+        sys.stdout.write("Importing %s raster..." % (t,) )
         sys.stdout.flush()
-        rasterPath = os.path.join(context.projectDir, manifest[type])
-        result = grassLib.script.run_command('r.in.gdal', input=rasterPath, output=type, overwrite=args.overwrite)
+        rasterPath = os.path.join(context.projectDir, manifest[t])
+        if args.integer:
+            importName = "%s_tmp" % (t,)
+        else:
+            importName = t 
+        result = grassLib.script.run_command('r.in.gdal', input=rasterPath, output=importName, overwrite=args.overwrite)
         if result != 0:
             sys.exit("Failed to import raster %s into GRASS dataset %s/%s, result:\n%s" % \
-                     (type, grassDbase, metadata['grass_location'], result) )
+                     (importName, grassDbase, metadata['grass_location'], result) )
         if method != 'none':
             # Resample the raster to ensure it is the same resolution as the geographic region defined by the DEM
-            sys.stdout.write("Resampling %s raster using method %s...\n" % (type, method) )
+            sys.stdout.write("Resampling %s raster using method %s...\n" % (t, method) )
             sys.stdout.flush()
-            result = grassLib.script.run_command('r.resamp.interp', input=type, output=type, method=method, overwrite=True)
+            result = grassLib.script.run_command('r.resamp.interp', input=importName, output=importName, method=method, overwrite=True)
             if result != 0:
                 sys.exit("Failed to resample imported raster %s of GRASS dataset %s/%s, result:\n%s" % \
-                         (type, grassDbase, metadata['grass_location'], result) )
-        grassEntryKey = "%s_rast" % (type,)
-        RHESSysMetadata.writeGRASSEntry(context, grassEntryKey, type)
+                         (t, grassDbase, metadata['grass_location'], result) )
+        if args.integer:
+            # Convert raster to integer
+            sys.stdout.write("Converting %s raster to integer using multiplier %s...\n" % (t, str(args.multiplier)) )
+            sys.stdout.flush()
+            mapcalcCmd = "%s=int(%s * %s)" % (t, importName, str(args.multiplier) )
+            print(mapcalcCmd)
+            result = grassLib.script.write_command('r.mapcalc', stdin=mapcalcCmd)
+            if result != 0:
+                sys.exit("Integer conversion failed for raster %s of GRASS dataset %s/%s, result:\n%s" % \
+                         (t, grassDbase, metadata['grass_location'], result) )
+            result = grassLib.script.run_command('g.remove', rast=importName)
+            if result != 0:
+                sys.exit("Failed to delete temporary raster %s of GRASS dataset %s/%s, result:\n%s" % \
+                         (importName, grassDbase, metadata['grass_location'], result) )
+        
+        grassEntryKey = "%s_rast" % (t,)
+        RHESSysMetadata.writeGRASSEntry(context, grassEntryKey, t)
         sys.stdout.write('done\n')
         # Invalidate metadata as necessary
-        if type == RHESSysMetadata.RASTER_TYPE_LC:
+        if t == RHESSysMetadata.RASTER_TYPE_LC:
             RHESSysMetadata.deleteRHESSysEntry(context, 'stratum_defs')
             RHESSysMetadata.deleteRHESSysEntry(context, 'landuse_defs')
-        elif type == RHESSysMetadata.RASTER_TYPE_SOIL:
+        elif t == RHESSysMetadata.RASTER_TYPE_SOIL:
             RHESSysMetadata.deleteRHESSysEntry(context, 'soil_defs')
 
 # Write processing history
