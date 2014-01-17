@@ -97,6 +97,8 @@ parser.add_argument('-p', '--projectDir', dest='projectDir', required=True,
                     help='The directory to which metadata, intermediate, and final files should be saved')
 parser.add_argument('-l', '--makeLaiMap', dest='makeLaiMap', required=False, action='store_true',
                     help='Make LAI map')
+parser.add_argument('--skipRoads', dest='skipRoads', required=False, action='store_true', default=False,
+                    help='Do not make roads map')
 parser.add_argument('--overwrite', dest='overwrite', action='store_true', required=False,
                     help='Overwrite existing datasets in the GRASS mapset.  If not specified, program will halt if a dataset already exists.')
 args = parser.parse_args()
@@ -226,11 +228,12 @@ for key in rasterVals.keys():
     paramDB.writeParamFileForClass(paths.RHESSYS_DEF)
 
 # Reclassify landcover into road map
-result = grassLib.script.read_command('r.reclass', input=landcoverRast, output='roads', 
-                           rules=roadRulePath, overwrite=args.overwrite)
-if None == result:
-    sys.exit("r.reclass failed to create roads map, returning %s" % (result,))
-RHESSysMetadata.writeGRASSEntry(context, 'roads_rast', 'roads')    
+if not args.skipRoads:
+    result = grassLib.script.read_command('r.reclass', input=landcoverRast, output='roads', 
+                               rules=roadRulePath, overwrite=args.overwrite)
+    if None == result:
+        sys.exit("r.reclass failed to create roads map, returning %s" % (result,))
+    RHESSysMetadata.writeGRASSEntry(context, 'roads_rast', 'roads')    
 
 # Reclassify landcover into impervious map
 result = grassLib.script.read_command('r.reclass', input=landcoverRast, output='impervious', 
