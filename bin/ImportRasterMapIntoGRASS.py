@@ -176,9 +176,11 @@ for index, t in enumerate(typeList):
         rasterPath = os.path.join(context.projectDir, manifest[t])
         if args.integer:
             importName = "%s_tmp" % (t,)
+            overwrite = True
         else:
             importName = t 
-        result = grassLib.script.run_command('r.in.gdal', input=rasterPath, output=importName, overwrite=args.overwrite)
+            overwrite = args.overwrite
+        result = grassLib.script.run_command('r.in.gdal', input=rasterPath, output=importName, overwrite=overwrite)
         if result != 0:
             sys.exit("Failed to import raster %s into GRASS dataset %s/%s, result:\n%s" % \
                      (importName, grassDbase, metadata['grass_location'], result) )
