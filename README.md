@@ -1346,8 +1346,14 @@ running GenerateWorldTemplate:
 Then make your isohyet raster available for RHESSys by importing it into
 GRASS:
 
-    ImportRasterMapIntoGRASS.py -p PROJECT_DIR -t isohyet -m none
+    ImportRasterMapIntoGRASS.py -p PROJECT_DIR -t isohyet -m none --integer
 
+> Note that we tell ImportRasterMapIntoGRASS to transform the isohyet
+> raster values to integers on import.  This is necessary due to limitations
+> in the current version of the RHESSys tool grass2world.  When doing the,
+> integer conversion, ImportRasterMapIntoGRASS wil multiply the raster
+> values by 1000, giving three significant digits.  To use another value,
+> specify the *--multiplier* option.
 
 #### Generating RHESSys definitions for custom soil data
 
