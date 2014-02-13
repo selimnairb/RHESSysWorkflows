@@ -141,7 +141,7 @@ RHESSysWorkflows uses Git to download RHESSys source code so you don't have to.
 #### OS X 10.7, 10.8, and 10.9: Install Xcode (OS X developer tools):
 1. Install Xcode via the App Store
 2. Launch Xcode
-3. Install 'Command Line Tools' from menu Xcode > Preferences... > Downloads
+3. Install 'Command Line Tools' from menu Xcode > Preferences... > Downloads (not required under Xcode 5.0)
 
 #### Install GIS tools: GRASS QGIS
 Note, GRASS version 6.4.2 is required for RHESSysWorkflows.  GRASS is
@@ -149,21 +149,29 @@ used internally to carry out workflow steps (leading to the creation
 of RHESSys world files and flow tables).  You will also find it useful
 to use GRASS to visualize the results from some workflow steps.
 
+> Before installing GRASS, etc. under OS X 10.8 or 10.9, you will need to
+> enable applications from any source to be installed.  To do so open
+> *System Preferences > Security & Privacy > General* and choose
+> "Allow apps downloaded from: Andywhere". Doing so exposes your computer
+> to more security risks from downloaded software. We recommend that you
+> revert this setting once you are finished with installation.
+
 To install GRASS on OS X, visit http://www.kyngchaos.com/software/grass
 
 Here you will need to download and install the following:
 
-1. GDAL Complete 1.9 framework
+1. GDAL Complete framework
 2. FreeType framework
 3. cairo framework
 4. GRASS.app
 
-While you are there, I recommend you also install QGIS (Quantum GIS) from http://www.kyngchaos.com/software/qgis
+While you are there, we recommend you also install QGIS (Quantum GIS) from http://www.kyngchaos.com/software/qgis
 
 In addition to GRASS and components installed above, install:
 
-1. GSL framework
-2. QGIS
+1. NumPy from http://www.kyngchaos.com/software/grass
+2. Matplotlib Python module from http://www.kyngchaos.com/software/grass
+3. QGIS
 
 QGIS is useful for visualizing output for earlier workflow steps that precede the importing data into GRASS. 
 
@@ -183,14 +191,7 @@ The install RHESSysWorkflows/EcohydroLib dependencies using aptitude:
 
 
 #### Install GRASS Addons for RHESSysWorkflows
-Download and install GRASS addons from: http://ecohydrology.web.unc.edu/files/2013/07/GRASSAddons-RHESSysworkflows.dmg_.zip
-
-For non-OS X users, these addons (r.soils.texture and r.findtheriver)
-are also available for installation from the GRASS addons repository
-via g.extension.  You can download r.findtheriver
-[here](http://grasswiki.osgeo.org/wiki/AddOns/GRASS_6#r.findtheriver)
-and r.soils.texture
-[here](http://grasswiki.osgeo.org/wiki/AddOns/GRASS_6#r.soils.texture).
+For OS X users, download and install GRASS addons from: http://ecohydrology.web.unc.edu/files/2013/07/GRASSAddons-RHESSysworkflows.dmg_.zip
 
 Follow these steps to install the GRASS addons under Linux:
 
@@ -204,6 +205,11 @@ the g.extension command to install the extensions)
 4. Install r.findtheriver
 
     g.extension extension=r.findtheriver
+
+For more information on these addons (r.soils.texture and r.findtheriver), see:
+- [r.findtheriver](http://grasswiki.osgeo.org/wiki/AddOns/GRASS_6#r.findtheriver)
+and r.soils.texture
+- [r.soils.texture](http://grasswiki.osgeo.org/wiki/AddOns/GRASS_6#r.soils.texture).
 
 ### Install Python modules
 The steps in this section is the same for OS X and Linux (except where
@@ -1122,7 +1128,19 @@ RHESSys world file and flow table using standard spatial data
 infrastructure.
 
 #### Running RHESSys models
-Once you build a RHESSys model using RHESSysWorkflows, you can run
+We need one more thing before we can run our model, a *tec file*.
+TEC stands for "temporal event controller".  We use a *tec file*
+to do things on at certain times during a simulation.  For example,
+to redefine the worldfile to simulate timber harvest or forest fire.
+We also use tec files to tell RHESSys what model outputs should be
+produced when.  To create a tecfile that tells RHESSys to print daily
+model outputs starting on 10/1/2008, do the following:
+
+    RunCmd.py -p standard echo "2008 10 1 1 print_daily_on" > standard/rhessys/tecfiles/tec_daily.txt
+
+For more information on tec file format, see the [RHESSys wiki](http://wiki.icess.ucsb.edu/rhessys/Generating_RHESSys_input_files#Tecfiles). 
+
+Once you have built a RHESSys model using RHESSysWorkflows, you can run
 your model manually.  However this will not capture information about
 model runs in your project metadata.  If you would like to record your
 runs in your project metadata, use the RunModel command:
@@ -1178,6 +1196,30 @@ RegisterDEM will result in the DEM being copied to your project
 directory, also the DEM extent will be used to determine the bounding
 box for the study area; a polygon of the DEM extent will be generated
 and saved as a shapefile in your project directory.
+
+#### Use a DEM with streams and storm drains burned into it
+
+If you are working with an urbanized catchment, it is often necessary
+to "burn" streams or storm drains into your DEM so that you can properly
+delineate the "sewershed."  RHESSysWorkflows allows you do use both a
+"stream burned" and a standard "non-burned" DEM in the same workflow.  
+The burned DEM will only be used for operations that require it (e.g.
+watershed delineation, flow table creations); the standard DEM will be 
+used for determining elevation, slope, aspect, etc.  To use a stream
+burned DEM, do the following:
+
+    RegisterRaster.py -p PROJECT_DIR -t stream_burned_dem -b -r /path/to/my/burnedDEM.tif "City of Springfield, Custom LIDAR, storm drain burned with Whitebox GAT 3.1.2"
+
+Once the stream burned raster has been registered with the workflow the
+*DelineateWatershed* and *CreateFlowtable* tools will know to use this raster
+instead of the standard DEM; all other tools that use the DEM will continue
+to use the standard DEM.  If you want to override this behavior (e.g. to
+test the effect that the burned DEM has on watershed delineation), you can
+pass the *--ignoreBurnedDEM* option to *DelineateWatershed* or *CreateFlowtable*, 
+which will cause them to use the standard DEM instead.
+
+> We recommend the excellent open-source [Whitebox GAT](http://www.uoguelph.ca/~hydrogeo/Whitebox/)
+> for burning streams into DEM datasets.
 
 #### Import streamflow gage coordinates 
 

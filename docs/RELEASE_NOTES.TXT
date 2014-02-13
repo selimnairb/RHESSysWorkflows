@@ -1,3 +1,6 @@
+# 1.17 - 2/13/2014
+  - Added ability to build RHESSys model using DEM with streams burned in
+
 # 1.16 - 1/18/2014
   - Added ability to transform a raster map to integer format on import
   - Added ability to skip creating road map to GenerateLandcoverMaps
