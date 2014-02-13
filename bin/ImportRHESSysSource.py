@@ -230,16 +230,6 @@ if args.sourceDir:
     if not os.path.exists(modelSrc) or not os.path.isdir(modelSrc):
         sys.exit("The specified path of the RHESSys source directory, %s, does not seem to contain RHESSys model source code in a directory called 'rhessys'" %
                  (args.sourceDir,) )
-        
-    template = os.path.join(args.sourceDir, TEMPLATE_PATH)
-    if not os.path.exists(template) or not os.access(template, os.R_OK):
-        sys.exit("The specified path of the RHESSys source directory, %s, does not seem to contain a RHESSys template in the subpath %s" %
-                 (args.sourceDir, TEMPLATE_PATH) )
-        
-    allometric = os.path.join(args.sourceDir, ALLOMETRIC_PATH)
-    if not os.path.exists(allometric) or not os.access(allometric, os.R_OK):
-        sys.exit("The specified path of the RHESSys source directory, %s, does not seem to contain an allometric table in the subpath %s" %
-                 (args.sourceDir, ALLOMETRIC_PATH) )
     
     # Delete paths.RHESSYS_SRC so that we can use shutil.copytree (which will recreate paths.RHESSYS_SRC)
     sys.stdout.write("Copying RHESSys source from %s..." % (args.sourceDir,) )
