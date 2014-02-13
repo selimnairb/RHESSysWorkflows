@@ -63,6 +63,9 @@ Pre conditions
    roof_connectivity_rast [optional]
    impervious_rast [optional]
    
+4. The following metadata entry(ies) will be used if present in the GRASS section of the metadata associated with the project directory:
+   stream_burned_dem_rast
+   
 Post conditions
 ---------------
 1. Flowtable will be created in the RHESSys folder of the project directory.
@@ -102,6 +105,8 @@ parser.add_argument('--routeRoofs', dest='routeRoofs', required=False, action='s
                     help='Tell createflowpaths to route flow from roof tops based on roof top connectivity to nearest impervious surface (requires roof_connectivity_rast and impervious_rast to be defined in metadata)')
 parser.add_argument('-f', '--force', dest='force', action='store_true',
                     help='Run createflowpaths even if DEM x resolution does not match y resolution')
+parser.add_argument('--ignoreBurnedDEM', dest='ignoreBurnedDEM', action='store_true', required=False,
+                    help='Ignore stream burned DEM, if present. Default DEM raster will be used for all operations. If not specified and if stream burned raster is present, stream burned DEM will be used for generating the flow table.')
 parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
                     help='Print detailed information about what the program is doing')
 args = parser.parse_args()
@@ -165,6 +170,12 @@ if demResX != demResY:
                      (demResX, demResY) )
     if not args.force:
         sys.exit('Exiting.  Use --force option to override')
+
+# Determine DEM raster to use
+demRast = grassMetadata['dem_rast']
+if ('stream_burned_dem_rast' in grassMetadata) and (not args.ignoreBurnedDEM):
+    demRast = grassMetadata['stream_burned_dem_rast']
+sys.stdout.write("Using raster named '%s' to calculate flow direction map\n" % (demRast,) )
     
 rhessysDir = metadata['rhessys_dir']
 paths = RHESSysPaths(args.projectDir, rhessysDir)
@@ -175,7 +186,6 @@ grassConfig = GRASSConfig(context, grassDbase, metadata['grass_location'], metad
 grassLib = GRASSLib(grassConfig=grassConfig)
 
 # Make sure mask and region are properly set
-demRast = grassMetadata['dem_rast']
 result = grassLib.script.run_command('g.region', rast=demRast)
 if result != 0:
     sys.exit("g.region failed to set region to DEM, returning %s" % (result,))
@@ -215,22 +225,29 @@ else:
 # Run CF
 sys.stdout.write('Running createflowpaths (this may take a few minutes)...')
 sys.stdout.flush()
-result = grassLib.script.read_command(cfPath, out=flowOutpath, template=templatePath,
-                                      dem=grassMetadata['dem_rast'], 
-                                      slope=grassMetadata['slope_rast'],
-                                      stream=grassMetadata['streams_rast'],
-                                      road=roads, roof=roofs, impervious=impervious,
-                                      cellsize=demResX)
-if None == result:
-    sys.exit("createflowpaths failed, returning %s" % (result,))
-    
+p = grassLib.script.pipe_command(cfPath, out=flowOutpath, template=templatePath,
+                                 dem=demRast, 
+                                 slope=grassMetadata['slope_rast'],
+                                 stream=grassMetadata['streams_rast'],
+                                 road=roads, roof=roofs, impervious=impervious,
+                                 cellsize=demResX)
+(pStdout, pStderr) = p.communicate()
+
 if args.verbose:
     print("CF output:")
-    print(result)
+    print(pStdout)
+    if pStderr:
+        print(pStderr)
+
+if p.returncode != 0:
+    sys.exit("createflowpaths failed, returning %s" % ( str(p.returncode),))
 
 # Write cf output to project directory
 cfOut = open(cfOutpath, 'w')
-cfOut.write(result)
+cfOut.write(pStdout)
+if pStderr:
+    cfOut.write("\n\nStandard error output:\n\n")
+    cfOut.write(pStderr)
 cfOut.close()
 
 cfCmd = "%s out=%s template=%s dem=%s slope=%s stream=%s road=%s roof=%s impervious=%s cellsize=%s" % \

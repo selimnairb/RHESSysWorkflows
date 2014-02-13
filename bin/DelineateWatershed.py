@@ -53,6 +53,9 @@ Pre conditions
    
 4. The following metadata entry(ies) must be present in the GRASS section of the metadata associated with the project directory:
    dem_rast
+   
+5. The following metadata entry(ies) will be used if present in the GRASS section of the metadata associated with the project directory:
+   stream_burned_dem_rast
 
 Post conditions
 ---------------
@@ -125,6 +128,8 @@ parser.add_argument('-s', '--streamThreshold', dest='streamThreshold', required=
                     help='Threshold to pass to r.findtheriver for distinguishing stream from non-stream pixels')
 parser.add_argument('-a', '--areaEstimate', dest='areaEstimate', required=False, type=float,
                     help='Estimated area, in sq. km, of watershed to be delineated.  A warning message will be displayed if the delineated basin area is not close to estimated area.')
+parser.add_argument('--ignoreBurnedDEM', dest='ignoreBurnedDEM', action='store_true', required=False,
+                    help='Ignore stream burned DEM, if present. Default DEM raster will be used for all operations. If not specified and if stream burned raster is present, stream burned DEM will be used for calculating flow direction maps.')
 parser.add_argument('--overwrite', dest='overwrite', action='store_true', required=False,
                     help='Overwrite existing datasets in the GRASS mapset.  If not specified, program will halt if a dataset already exists.')
 args = parser.parse_args()
@@ -160,6 +165,12 @@ if not 'dem_rast' in grassMetadata:
 demRast = grassMetadata['dem_rast']
 demRows = int(studyArea['dem_rows'])
 
+# Determine raster to use for flow direction raster
+flowDirDem = demRast
+if ('stream_burned_dem_rast' in grassMetadata) and (not args.ignoreBurnedDEM):
+    flowDirDem = grassMetadata['stream_burned_dem_rast']
+sys.stdout.write("Using raster named '%s' to calculate flow direction map\n" % (flowDirDem,) )
+
 # Set up GRASS environment
 modulePath = context.config.get('GRASS', 'MODULE_PATH')
 grassDbase = os.path.join(context.projectDir, metadata['grass_dbase'])
@@ -176,7 +187,7 @@ if result != 0:
 
 # Generate drainage direction map
 result = grassLib.script.run_command('r.watershed', 
-                                     elevation=demRast, drainage='drain', accumulation='uaa',
+                                     elevation=flowDirDem, drainage='drain', accumulation='uaa',
                                      overwrite=args.overwrite)
 if result != 0:
     sys.exit("r.watershed failed creating drainage direction and uaa maps, returning %s" % (result,))
@@ -236,7 +247,7 @@ RHESSysMetadata.writeGRASSEntry(context, 'basin_rast', basinName)
 # Generate hillslopes
 #   We have to place these options in a dictionary because one of the options
 #   has a '.' in its name.
-rWatershedOptions = {'elevation': demRast, 
+rWatershedOptions = {'elevation': flowDirDem, 
                      'threshold': args.threshold,
                      'basin': 'subbasins',
                      'half.basin': 'hillslopes',
