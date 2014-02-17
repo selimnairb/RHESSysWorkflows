@@ -23,13 +23,15 @@ from rhessyscalibrator.postprocess import RHESSysCalibratorPostprocess
 
 FFMPEG_PATH = '/usr/local/bin/ffmpeg'
 PATCH_DAILY_RE = re.compile('^(.+_patch.daily)$')
-VARIABLE_EXPR_RE = re.compile('^(\S+)\s*([-|+|*|/])\s*(\S+)\s*$')
+VARIABLE_EXPR_RE = re.compile('^(\S+)\s*([-|+|*|/|>|<])\s*(\S+)\s*$')
 RECLASS_MAP_TMP = "patchtomovietmp_%d" % (random.randint(100000, 999999),)
 
 OPS = { '+': operator.add,
         '-': operator.sub,
         '*': operator.mul,
-        '/': operator.div }
+        '/': operator.div,
+        '>': operator.gt,
+        '<': operator.lt, }
 
 # Handle command line options
 parser = argparse.ArgumentParser(description='Generate movie from patch level daily RHESSys output')
@@ -57,12 +59,18 @@ parser.add_argument('-v', '--outputVariable', required=True,
                     help='Name of RHESSys variable to be mapped.  Can be an expression such as "trans_sat + trans_unsat"')
 parser.add_argument('-t' ,'--mapTitle', required=False,
                     help='Text to use for title.  If not supplied, variable name will be used')
-parser.add_argument('-u', '--variableUnit', required=False, default='m',
+parser.add_argument('-u', '--variableUnit', required=False, default='mm',
                     help='Units of variable, which will be displayed in paranthesis next to the variable name on the map')
 parser.add_argument('--fps', required=False, type=int, default=15,
                     help='Frames per second of output video')
 parser.add_argument('--rescale', required=False, type=float,
                     help='Rescale raster values of 0 to args.resample to 0 to 255 in output images.')
+group = parser.add_mutually_exclusive_group()
+# Hack to avoid the worked needed to put in a real recursive descent expression parser
+group.add_argument('--gtzero', action='store_true', 
+                   help='Transform output variable/expression to binary by testing if it is > 0')
+group.add_argument('--ltzero', action='store_true', 
+                   help='Transform output variable/expression to binary by testing if it is < 0')
 args = parser.parse_args()
 
 if not os.path.isfile(args.rhessysOutFile) or not os.access(args.rhessysOutFile, os.R_OK):
@@ -111,7 +119,7 @@ if m:
     
     if constantLeft and constantRight:
         sys.exit("At least one argument must be a variable")
-    if m.group(2) not in ['+', '-', '*', '/']:
+    if m.group(2) not in OPS.keys():
         sys.exit("Variable expression %s not supported" % (m.group(2),) )
     if m.group(2) == '/' and constantRight == 0.0:
         sys.exit("Unable to divide by zero")
@@ -189,14 +197,20 @@ for (i, key) in enumerate(data):
     
     patchIDs = [ int(f) for f in dataForDate['patchID'] ]
     if op:
-        if constantLeft:
+        if constantLeft is not None:
             variable = op( constantLeft, np.array(dataForDate[varRight]) )
-        elif constantRight:
+        elif constantRight is not None:
             variable = op( np.array(dataForDate[varLeft]), constantRight )
         else:
             variable = op( np.array(dataForDate[varLeft]), np.array(dataForDate[varRight]) )
     else:
         variable = np.array(dataForDate[args.outputVariable])
+      
+    if args.gtzero:
+        variable = variable > 0
+    elif args.ltzero:
+        variable = variable < 0
+        
     for (j, var) in enumerate(variable):
         #reclass.write("%d = %f\n" % (patchIDs[j], var) )
         reclass.write("%d:%d:%f:%f\n" % (patchIDs[j], patchIDs[j], var, var) )
@@ -254,7 +268,7 @@ for (i, key) in enumerate(data):
             # Add legend for overlay
             result = grassLib.script.run_command('d.legend',
                                              map=args.overlay,
-                                             at='15,50,3,7')
+                                             at='15,50,10,15')
             if result != 0:
                 sys.exit("Failed to add legend for overlay map %s while rendering image %s" % \
                          (args.overlay, imageFilename) )
