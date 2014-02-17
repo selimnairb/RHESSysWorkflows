@@ -1446,6 +1446,17 @@ project directory.
 > command line option for overwriting existing data stored in the
 > project directory or in GRASS.
 
+#### Creating a world file template in areas with low slope
+
+Due to limitations in the current version of RHESSys's *grass2world*
+tool, slope values less than 1.0 will be truncated to 0.0.  This causes
+values of NaN (i.e. not a number) to result for the spherical average 
+of aspect calculation.  To work around this, you can use the 
+*--aspectMinSlopeOne* command line option to instruct
+*GenerateWorldTemplate* to use a slope map whose minimum value is 1.0
+when calculating the spherical average of aspect:
+
+    GenerateWorldTemplate.py -p PROJECT_DIR --aspectMinSlopeOne -c MY_CLIMATE_STATION1[,MY_OPTIONAL_CLIMATE_STATION...]
 
 #### Creating a surface flow table using a roof connectivity map
 
