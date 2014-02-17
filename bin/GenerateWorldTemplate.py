@@ -114,6 +114,8 @@ parser.add_argument('-p', '--projectDir', dest='projectDir', required=True,
                     help='The directory to which metadata, intermediate, and final files should be saved')
 parser.add_argument('-c', '--climateStation', dest='climateStation', required=False,
                      help='The climate station to associate with the worldfile.  Must be one of the climate stations specified in the "climate_stations" key in the "rhessys" section of the metadata')
+parser.add_argument('--aspectMinSlopeOne', dest='aspectMinSlopeOne', action='store_true', required=False,
+                    help='Use slope map with a minimum value of 1.0 to be used for calculating spherical average aspect.  Needed for areas of low slope due to limitations of RHESSys grass2world, which truncates slopes <1 to 0.0, which causes spherical average of aspect to equal NaN.')
 parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
                     help='Print detailed information about what the program is doing')
 args = parser.parse_args()
@@ -337,6 +339,15 @@ subs['hillslope_rast'] = grassMetadata['hillslope_rast']
 subs['zone_rast'] = grassMetadata['zone_rast']
 subs['slope_rast'] = grassMetadata['slope_rast']
 subs['aspect_rast'] = grassMetadata['aspect_rast']
+if args.aspectMinSlopeOne:
+    # Use minimum slope of 1 for calculating spherical average of aspect
+    result = grassLib.script.write_command('r.mapcalc', stdin='slopegte1=if(slope<1,1,slope)')
+    if result != 0:
+        sys.exit("r.mapcalc failed to create slope >= 1 map, returning %s" % (result,))
+    subs['aspect_slope_rast'] = 'slopegte1'
+else:
+    subs['aspect_slope_rast'] = grassMetadata['slope_rast']
+
 if 'isohyet_rast' in grassMetadata:
     subs['isohyet_rast'] = grassMetadata['isohyet_rast']
 else:
