@@ -1,3 +1,7 @@
+# 1.19 - 2/24/2014
+  - GenerateWorldTemplate now transform DEM	to scaled integer to work 
+    around limitations in g2w.
+
 # 1.18 - 2/17/2014
   - Added ability to use slope map with minimum slope of 1.0 when 
     calculating spherical average of aspect
