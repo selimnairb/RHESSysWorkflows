@@ -192,6 +192,13 @@ result = grassLib.script.run_command('g.region', rast=demRast)
 if result != 0:
     sys.exit("g.region failed to set region to DEM, returning %s" % (result,))
 
+# Make integer representation of DEM
+dem1000Rast = "%s_1000" % (demRast,)
+result = grassLib.script.write_command('r.mapcalc',
+                                       stdin="%s=%s * 1000" % (dem1000Rast, demRast) )
+if result != 0:
+    sys.exit("r.mapcalc failed to integer DEM, returning %s" % (result,))
+
 basinRast = grassMetadata['basin_rast']
 result = grassLib.script.run_command('r.mask', flags='o', input=basinRast, maskcats='1')
 if result != 0:
@@ -333,7 +340,7 @@ else:
 # B. Everything else
 subs['world_rast'] = grassMetadata['basin_rast']
 subs['basin_rast'] = grassMetadata['basin_rast']
-subs['dem_rast'] = grassMetadata['dem_rast']
+subs['dem_rast'] = dem1000Rast
 subs['latitude_float'] = str(latitude)
 subs['hillslope_rast'] = grassMetadata['hillslope_rast']
 subs['zone_rast'] = grassMetadata['zone_rast']
