@@ -4,7 +4,7 @@ RHESSysWorkflows			{#index}
 This software is provided free of charge under the New BSD License. Please see
 the following license information:
 
-Copyright (c) 2013, University of North Carolina at Chapel Hill
+Copyright (c) 2013, 2014, University of North Carolina at Chapel Hill
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -144,7 +144,7 @@ RHESSysWorkflows uses Git to download RHESSys source code so you don't have to.
 3. Install 'Command Line Tools' from menu Xcode > Preferences... > Downloads (not required under Xcode 5.0)
 
 #### Install GIS tools: GRASS QGIS
-Note, GRASS version 6.4.2 is required for RHESSysWorkflows.  GRASS is
+Note, GRASS version 6.4 is required for RHESSysWorkflows.  GRASS is
 used internally to carry out workflow steps (leading to the creation
 of RHESSys world files and flow tables).  You will also find it useful
 to use GRASS to visualize the results from some workflow steps.
@@ -191,11 +191,11 @@ The install RHESSysWorkflows/EcohydroLib dependencies using aptitude:
 
 
 #### Install GRASS Addons for RHESSysWorkflows
-For OS X users, download and install GRASS addons from: http://ecohydrology.web.unc.edu/files/2013/07/GRASSAddons-RHESSysworkflows.dmg_.zip
+Follow these steps to install the GRASS addons under OS X and Linux:
 
-Follow these steps to install the GRASS addons under Linux:
-
-1. First start GRASS by typing *grass64* from the command line
+1. First start GRASS
+ - OS X: Double-click on the *GRASS-6.4* in your Applications folder
+ - Linux: type *grass64* on the command line
 2. Create a new location (it doesn't matter where, we'll only use it to run
 the g.extension command to install the extensions)
 3. Install r.soils.texture
