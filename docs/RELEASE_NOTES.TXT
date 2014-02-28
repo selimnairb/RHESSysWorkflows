@@ -1,3 +1,6 @@
+# 1.20 - 2/28/1024
+  - Fixed validation of multiple climate stations in GenerateWorldTemplate.
+
 # 1.19 - 2/24/2014
   - GenerateWorldTemplate now transform DEM	to scaled integer to work 
     around limitations in g2w.
