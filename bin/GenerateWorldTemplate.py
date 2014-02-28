@@ -164,7 +164,8 @@ if not 'paramdb' in metadata:
 if not args.climateStation and not 'basestations_rast' in grassMetadata:
     sys.exit("You must specify the climate station command line argument of generate a climate base station map")
 
-if args.climateStation and ( not args.climateStation <= metadata['climate_stations'] ):
+climateStations = metadata['climate_stations'].split(RHESSysMetadata.VALUE_DELIM)
+if args.climateStation and ( not args.climateStation in climateStations ):
     sys.exit("The chosen climate station '%s' was not found in the climate station list in metadata (%s)" %
              (str(args.climateStation), str(metadata['climate_stations']) ) )
 

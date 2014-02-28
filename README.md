@@ -1456,7 +1456,7 @@ of aspect calculation.  To work around this, you can use the
 *GenerateWorldTemplate* to use a slope map whose minimum value is 1.0
 when calculating the spherical average of aspect:
 
-    GenerateWorldTemplate.py -p PROJECT_DIR --aspectMinSlopeOne -c MY_CLIMATE_STATION1[,MY_OPTIONAL_CLIMATE_STATION...]
+    GenerateWorldTemplate.py -p PROJECT_DIR --aspectMinSlopeOne -c MY_CLIMATE_STATION1
 
 #### Creating a surface flow table using a roof connectivity map
 
