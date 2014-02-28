@@ -194,7 +194,7 @@ The install RHESSysWorkflows/EcohydroLib dependencies using aptitude:
 Follow these steps to install the GRASS addons under OS X and Linux:
 
 1. First start GRASS
- - OS X: Double-click on the *GRASS-6.4* in your Applications folder
+ - OS X: Double-click on the *GRASS-6.4* icon in your Applications folder
  - Linux: type *grass64* on the command line
 2. Create a new location (it doesn't matter where, we'll only use it to run
 the g.extension command to install the extensions)
