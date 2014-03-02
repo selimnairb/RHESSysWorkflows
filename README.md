@@ -303,7 +303,7 @@ files are installed in a directory owned by your user account.
     + [Linux](https://raw.github.com/selimnairb/RHESSysWorkflows/master/docs/config/ecohydro-Linux.cfg)
 
 - Save into a file named '.ecohydro.cfg' stored in your home directory
-	Replace all occurances of *%lt;myusername%gt;* with your user name (To find
+	Replace all occurances of *<myusername>* with your user name (To find
 	out your OS X or Linux user name, use the *whoami* command in Terminal).
     
 - Set ECOHYDROLIB_CFG environment variable so that RHESSysWorkflows
