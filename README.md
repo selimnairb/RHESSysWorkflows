@@ -256,7 +256,7 @@ This may take a while as several of the modules rely on non-Python code that has
 ### Upgrading to a new version of RHESSysWorkflows
 To upgrade to a newer version of RHESSysWorkflows, enter the following into the Terminal:
 
-    sudo pip install rhessysworkflows --upgrade
+    sudo pip install rhessysworkflows --upgrade --force-reinstall
     
 If pip does not install the version you expect, it may be necessary
 to first remove RHESSysWorkflows and Ecohydrolib before installing the 
@@ -303,7 +303,7 @@ files are installed in a directory owned by your user account.
     + [Linux](https://raw.github.com/selimnairb/RHESSysWorkflows/master/docs/config/ecohydro-Linux.cfg)
 
 - Save into a file named '.ecohydro.cfg' stored in your home directory
-	Replace all occurances of '<myusername>' with your user name (To find
+	Replace all occurances of *%lt;myusername%gt;* with your user name (To find
 	out your OS X or Linux user name, use the *whoami* command in Terminal).
     
 - Set ECOHYDROLIB_CFG environment variable so that RHESSysWorkflows
