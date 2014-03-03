@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # TODO: Add ability to plot all three plot types in one figure
+# TODO: Add table plot type that print summary statistics for column
 import sys
 import argparse
 import math
@@ -20,23 +21,33 @@ PLOT_DEFAULT = PLOT_TYPE_STD
 
 # Handle command line options
 parser = argparse.ArgumentParser(description='Plot CDF of N datasets vs. observed data')
-parser.add_argument('-t', '--plottype', required=False, 
+parser.add_argument('-p', '--plottype', required=False, 
                     default=PLOT_DEFAULT, choices=PLOT_TYPES,
                     help='Type of plot')
 parser.add_argument('-o', '--obs', required=True,
                     help='File containing observed data')
 parser.add_argument('-d', '--data', required=True, nargs='+',
-                    help='One or more datasets')
+                    help='One or more data files')
 parser.add_argument('-c', '--column', required=True,
-                    help='Name of column to use from data sets')
+                    help='Name of column to use from data files')
+parser.add_argument('-t', '--title', required=False,
+                    help='Title of figure')
 parser.add_argument('-l', '--legend', required=True, nargs='+',
                     help='Legend item labels')
 parser.add_argument('-x', '--xlabel', required=False,
                     help='X-axis label')
 parser.add_argument('-y', '--ylabel', required=False,
                     help='Y-axis label')
+parser.add_argument('--secondaryData', required=False,
+                    help='A data file containing the varaible to plot on a secondary Y-axis')
+parser.add_argument('--secondaryColumn', required=False,
+                    help='Name of column to use from secondary data file')
+parser.add_argument('--secondaryLabel', required=False,
+                    help='Label to use for seconary Y-axis')
 args = parser.parse_args()
 
+if args.secondaryData and not args.secondaryColumn:
+    sys.exit('A secondary data file was specified, but the secondary column to use was not')
 
 if len(args.data) != len(args.legend):
     sys.exit('Number of legend items must equal the number of data files')
@@ -77,7 +88,7 @@ if args.plottype == PLOT_TYPE_CDF:
     obs_y = obs_ecdf(x)
 (obs_plt,) = plt.plot(x, obs_y)
 ax = plt.gca()
-
+    
 # Plot modeled values
 data_plt = []
 for d in data:
@@ -129,11 +140,34 @@ elif args.plottype != PLOT_TYPE_CDF:
 data_plt.insert(0, obs_plt)
 legend_items = ['Observed'] + args.legend
 
+# Plot secondary data (if specified)
+if args.secondaryData and \
+   (args.plottype == PLOT_TYPE_STD or args.plottype == PLOT_TYPE_LOGY):
+    sec_file = open(args.secondaryData, 'r')
+    (sec_datetime, sec_data) = RHESSysCalibratorPostprocess.readColumnFromFile(sec_file,
+                                                                               args.secondaryColumn)
+    sec_file.close()
+    sec = pd.Series(sec_data, index=sec_datetime)
+    # Align timeseries
+    (sec_align, obs_align) = sec.align(obs, join='inner')
+    # Plot
+    ax2 = ax.twinx()
+    (sec_plot,) = ax2.plot(x, sec_align)
+    secondaryLabel = args.secondaryColumn.capitalize()
+    if args.secondaryLabel:
+        secondaryLabel = args.secondaryLabel
+    ax2.invert_yaxis()
+    ax2.set_ylabel(args.secondaryLabel)
+
+# Plot legend last
 if args.plottype == PLOT_TYPE_CDF:
     plt.legend( data_plt, legend_items, 'lower right', fontsize='x-small' )
+elif args.secondaryData:
+    plt.legend( data_plt, legend_items, 'center right', fontsize='x-small' )
 else:
     plt.legend( data_plt, legend_items, 'best', fontsize='x-small' )
 
+# Output plot
 plot_filename_png = "%s.png" % (args.plottype,)
 plot_filename_pdf = "%s.pdf" % (args.plottype,)
 plt.savefig(plot_filename_png)
