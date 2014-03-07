@@ -44,6 +44,8 @@ Pre conditions
 2. The following metadata entry(ies) must be present in the GRASS section of the metadata associated with the project directory:
    dem_rast
    landcover_rast
+   stratum_rast [if defonly==False]
+   landuse_rast [if defonly==False]
    
 3. The following metadata entry(ies) must be present in the RHESSys section of the metadata associated with the project directory:
    paramdb
@@ -65,11 +67,11 @@ Post conditions
    landuse_defs
    
 2. Will write the following entry(ies) to the GRASS section of metadata associated with the project directory:
-   roads_rast
-   impervious_rast
-   landuse_rast
-   stratum_rast
-   lai_rast [if LAI flag is specified]
+   roads_rast [if skiproads == False] [if defonly==True]
+   impervious_rast [if defonly==True]
+   landuse_rast [if defonly==True]
+   stratum_rast [if defonly==True]
+   lai_rast [if LAI flag is specified] [if defonly==True]
  
 Usage:
 @code
@@ -99,6 +101,8 @@ parser.add_argument('-l', '--makeLaiMap', dest='makeLaiMap', required=False, act
                     help='Make LAI map')
 parser.add_argument('--skipRoads', dest='skipRoads', required=False, action='store_true', default=False,
                     help='Do not make roads map')
+parser.add_argument('--defonly', dest='defonly', required=False, action='store_true',
+                    help='Only generate landuse and stratum definition files, do not try to create maps.  Maps must already exist.')
 parser.add_argument('--overwrite', dest='overwrite', action='store_true', required=False,
                     help='Overwrite existing datasets in the GRASS mapset.  If not specified, program will halt if a dataset already exists.')
 args = parser.parse_args()
@@ -182,14 +186,19 @@ if result != 0:
     sys.exit("g.region failed to set region to DEM, returning %s" % (result,))
 
 # Reclassify landcover into stratum map
-result = grassLib.script.read_command('r.reclass', input=landcoverRast, output='stratum', 
-                           rules=stratumRulePath, overwrite=args.overwrite)
-if None == result:
-    sys.exit("r.reclass failed to create stratum map, returning %s" % (result,))
-RHESSysMetadata.writeGRASSEntry(context, 'stratum_rast', 'stratum')
+stratumRast = 'stratum'
+if args.defonly:
+    stratumRast = grassMetadata['stratum_rast']
+else:
+    # Create stratum map
+    result = grassLib.script.read_command('r.reclass', input=landcoverRast, output=stratumRast, 
+                               rules=stratumRulePath, overwrite=args.overwrite)
+    if None == result:
+        sys.exit("r.reclass failed to create stratum map, returning %s" % (result,))
+    RHESSysMetadata.writeGRASSEntry(context, 'stratum_rast', stratumRast)
 
 # Fetch relevant stratum default files from param DB
-pipe = grassLib.script.pipe_command('r.stats', flags='licn', input='stratum')
+pipe = grassLib.script.pipe_command('r.stats', flags='licn', input=stratumRast)
 rasterVals = {}
 for line in pipe.stdout:
     (dn, cat, num) = line.strip().split()
@@ -205,14 +214,18 @@ for key in rasterVals.keys():
     paramDB.writeParamFileForClass(paths.RHESSYS_DEF)
 
 # Reclassify landcover into landuse map
-result = grassLib.script.read_command('r.reclass', input=landcoverRast, output='landuse', 
-                           rules=landuseRulePath, overwrite=args.overwrite)
-if None == result:
-    sys.exit("r.reclass failed to create stratum map, returning %s" % (result,))
-RHESSysMetadata.writeGRASSEntry(context, 'landuse_rast', 'landuse')
+landuseRast = 'landuse'
+if args.defonly:
+    landuseRast = grassMetadata['landuse_rast']
+else:
+    result = grassLib.script.read_command('r.reclass', input=landcoverRast, output=landuseRast, 
+                               rules=landuseRulePath, overwrite=args.overwrite)
+    if None == result:
+        sys.exit("r.reclass failed to create stratum map, returning %s" % (result,))
+    RHESSysMetadata.writeGRASSEntry(context, 'landuse_rast', landuseRast)
 
 # Fetch relevant landuse default files from param DB
-pipe = grassLib.script.pipe_command('r.stats', flags='licn', input='landuse')
+pipe = grassLib.script.pipe_command('r.stats', flags='licn', input=landuseRast)
 rasterVals = {}
 for line in pipe.stdout:
     (dn, cat, num) = line.strip().split()
@@ -228,7 +241,7 @@ for key in rasterVals.keys():
     paramDB.writeParamFileForClass(paths.RHESSYS_DEF)
 
 # Reclassify landcover into road map
-if not args.skipRoads:
+if not args.skipRoads and (not args.defonly):
     result = grassLib.script.read_command('r.reclass', input=landcoverRast, output='roads', 
                                rules=roadRulePath, overwrite=args.overwrite)
     if None == result:
@@ -236,14 +249,15 @@ if not args.skipRoads:
     RHESSysMetadata.writeGRASSEntry(context, 'roads_rast', 'roads')    
 
 # Reclassify landcover into impervious map
-result = grassLib.script.read_command('r.reclass', input=landcoverRast, output='impervious', 
-                           rules=imperviousRulePath, overwrite=args.overwrite)
-if None == result:
-    sys.exit("r.reclass failed to create impervious map, returning %s" % (result,))
-RHESSysMetadata.writeGRASSEntry(context, 'impervious_rast', 'impervious')    
+if not args.defonly:
+    result = grassLib.script.read_command('r.reclass', input=landcoverRast, output='impervious', 
+                               rules=imperviousRulePath, overwrite=args.overwrite)
+    if None == result:
+        sys.exit("r.reclass failed to create impervious map, returning %s" % (result,))
+    RHESSysMetadata.writeGRASSEntry(context, 'impervious_rast', 'impervious')    
 
 # Reclassify landcover into LAI map
-if args.makeLaiMap:
+if args.makeLaiMap and (not args.defonly):
     result = grassLib.script.read_command('r.reclass', input=landcoverRast, output='lai', 
                            rules=laiRulePath, overwrite=args.overwrite)
     if None == result:
