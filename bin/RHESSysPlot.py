@@ -38,6 +38,8 @@ parser.add_argument('-x', '--xlabel', required=False,
                     help='X-axis label')
 parser.add_argument('-y', '--ylabel', required=False,
                     help='Y-axis label')
+parser.add_argument('--supressObs', required=False, action='store_true',
+                    help='Do not plot observed data.  Observed data will still be used for aligning timeseries')
 parser.add_argument('--secondaryData', required=False,
                     help='A data file containing the varaible to plot on a secondary Y-axis')
 parser.add_argument('--secondaryColumn', required=False,
@@ -70,6 +72,7 @@ for d in args.data:
     tmp_max_x = max(mod_align.max(), obs_align.max())
     if tmp_max_x > max_x:
         max_x = tmp_max_x
+    min_x = max(min_x, mod_align.min())
 
     mod_file.close()
     data.append( mod_align )
@@ -78,7 +81,7 @@ if args.plottype == PLOT_TYPE_STD or \
    args.plottype == PLOT_TYPE_LOGY:
     x = obs_align.index
 elif args.plottype == PLOT_TYPE_CDF:
-    x = np.linspace(min_x, max_x)
+    x = np.linspace(min_x, max_x, num=1000 )
 
 # Plot observed values
 # Standard or log plot
@@ -86,7 +89,9 @@ obs_y = obs_align
 if args.plottype == PLOT_TYPE_CDF:
     obs_ecdf = sm.distributions.ECDF(obs_align)
     obs_y = obs_ecdf(x)
-(obs_plt,) = plt.plot(x, obs_y)
+obs_plt = None
+if not args.supressObs:
+    (obs_plt,) = plt.plot(x, obs_y)
 ax = plt.gca()
     
 # Plot modeled values
@@ -101,13 +106,16 @@ for d in data:
     data_plt.append(mod_plt)
 
 # Plot annotations
-columnName = args.column.capitalize()
-if args.plottype == PLOT_TYPE_STD:
-    title = columnName
-elif args.plottype == PLOT_TYPE_LOGY:
-    title = "log(%s)" % (columnName,)
-elif args.plottype == PLOT_TYPE_CDF:
-    title = "Cummulative distribution - %s" % (columnName,) 
+if args.title:
+    title = args.title
+else:
+    columnName = args.column.capitalize()
+    if args.plottype == PLOT_TYPE_STD:
+        title = columnName
+    elif args.plottype == PLOT_TYPE_LOGY:
+        title = "log(%s)" % (columnName,)
+    elif args.plottype == PLOT_TYPE_CDF:
+        title = "Cummulative distribution - %s" % (columnName,) 
 plt.title(title)
 
 # X-axis
@@ -119,15 +127,19 @@ if args.plottype == PLOT_TYPE_STD or \
     plt.setp( ax.xaxis.get_majorticklabels(), rotation=45 )
     plt.setp( ax.xaxis.get_majorticklabels(), fontsize='x-small' )
 
-if args.xlabel:
-    plt.xlabel(args.xlabel)
-else:
-    if args.plottype == PLOT_TYPE_CDF:
+if args.plottype == PLOT_TYPE_CDF:
+    ax.set_xlim(min_x, max_x)
+    plt.xscale('log')
+    if args.xlabel:
+        plt.xlabel(args.xlabel)
+    else:
         plt.xlabel( columnName )
+elif args.xlabel:
+    plt.xlabel(args.xlabel)
 
 # Y-axis
 if args.plottype == PLOT_TYPE_LOGY:
-        plt.yscale('log')
+    plt.yscale('log')
 
 if args.ylabel:
     plt.ylabel(args.ylabel)
@@ -137,8 +149,11 @@ elif args.plottype != PLOT_TYPE_CDF:
         y_label = "log( %s )" % (columnName,)
     plt.ylabel( y_label )
 
-data_plt.insert(0, obs_plt)
-legend_items = ['Observed'] + args.legend
+if args.supressObs:
+    legend_items = args.legend
+else:
+    data_plt.insert(0, obs_plt)
+    legend_items = ['Observed'] + args.legend
 
 # Plot secondary data (if specified)
 if args.secondaryData and \
