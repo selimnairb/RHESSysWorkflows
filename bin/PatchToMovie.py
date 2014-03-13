@@ -23,15 +23,8 @@ from rhessyscalibrator.postprocess import RHESSysCalibratorPostprocess
 
 FFMPEG_PATH = '/usr/local/bin/ffmpeg'
 PATCH_DAILY_RE = re.compile('^(.+_patch.daily)$')
-VARIABLE_EXPR_RE = re.compile('^(\S+)\s*([-|+|*|/|>|<])\s*(\S+)\s*$')
+VARIABLE_EXPR_RE = re.compile(r'\b(\w+)\b')
 RECLASS_MAP_TMP = "patchtomovietmp_%d" % (random.randint(100000, 999999),)
-
-OPS = { '+': operator.add,
-        '-': operator.sub,
-        '*': operator.mul,
-        '/': operator.div,
-        '>': operator.gt,
-        '<': operator.lt, }
 
 # Handle command line options
 parser = argparse.ArgumentParser(description='Generate movie from patch level daily RHESSys output')
@@ -66,32 +59,11 @@ parser.add_argument('--fps', required=False, type=int, default=15,
 parser.add_argument('--rescale', required=False, type=float,
                     help='Rescale raster values of 0 to args.resample to 0 to 255 in output images.')
 group = parser.add_mutually_exclusive_group()
-# Hack to avoid the worked needed to put in a real recursive descent expression parser
-group.add_argument('--gtzero', action='store_true', 
-                   help='Transform output variable/expression to binary by testing if it is > 0')
-group.add_argument('--ltzero', action='store_true', 
-                   help='Transform output variable/expression to binary by testing if it is < 0')
 args = parser.parse_args()
 
 if not os.path.isfile(args.rhessysOutFile) or not os.access(args.rhessysOutFile, os.R_OK):
     sys.exit("Unable to read RHESSys output file %s" % (args.rhessysOutFile,))
 patchDailyFilepath = os.path.abspath(args.rhessysOutFile) 
-
-# if not os.path.isdir(args.rhessysOutDir) or not os.access(args.rhessysOutDir, os.R_OK):
-#     sys.exit("Unable to read RHESSys output directory %s" % (args.rhessysOutDir,))
-# rhessysOutDir = os.path.abspath(args.rhessysOutDir) 
-
-# Look for file ending in "patch.daily"
-# patchDailyFilename = None
-# contents = os.listdir(rhessysOutDir)
-# for content in contents:
-#     m = PATCH_DAILY_RE.match(content)
-#     if m:
-#         patchDailyFilename = m.group(1)
-        
-# if not patchDailyFilename:
-#     sys.exit("No file ending in '_patch.daily' found in RHESSys output directory %s" % (rhessysOutDir,))
-# patchDailyFilepath = os.path.join(rhessysOutDir, patchDailyFilename)
 
 if not os.path.isdir(args.outputDir) or not os.access(args.outputDir, os.W_OK):
     sys.exit("Unable to write to output directory %s" % (args.outputDir,) )
@@ -101,31 +73,11 @@ outputFilePath = os.path.join(outputDir, outputFile)
 
 # Determine output variables
 variables = ['patchID']
-varLeft = varRight = None
-constantLeft = constantRight = None
-op = None
-m = VARIABLE_EXPR_RE.match(args.outputVariable)
+m = VARIABLE_EXPR_RE.findall(args.outputVariable)
 if m:
-    try:
-        constantLeft = float(m.group(1))
-    except ValueError:
-        varLeft = m.group(1)
-        variables.append(varLeft)
-    try:
-        constantRight = float(m.group(3))
-    except ValueError:
-        varRight = m.group(3)
-        variables.append(varRight)
-    
-    if constantLeft and constantRight:
-        sys.exit("At least one argument must be a variable")
-    if m.group(2) not in OPS.keys():
-        sys.exit("Variable expression %s not supported" % (m.group(2),) )
-    if m.group(2) == '/' and constantRight == 0.0:
-        sys.exit("Unable to divide by zero")
-    op = OPS[m.group(2)]
+    variables += m
 else:
-    variables.append(args.outputVariable)
+    sys.exit("No output variables specified")
 
 title = args.outputVariable
 if args.mapTitle:
@@ -133,7 +85,6 @@ if args.mapTitle:
 if not args.rescale:
     title += ' (' + args.variableUnit + ')'
   
-
 if not os.path.isfile(patchDailyFilepath) or not os.access(patchDailyFilepath, os.R_OK):
     sys.exit("Unable to read RHESSys patch daily output file %s" % (patchDailyFilepath,))
 
@@ -184,11 +135,9 @@ if len(data) < 1:
 # 4. For each day
 for (i, key) in enumerate(data):
     dateStr = "%d/%d/%d" % (key.month, key.day, key.year)
-#     print(dateStr)
     # Set filename env for PNG driver
     imageFilename = "%s%04d.png" % (RECLASS_MAP_TMP, i+1 )
     reclassImagePath = os.path.join(tmpDir, imageFilename)
-#     print("\n" + reclassImagePath + "\n")
     os.environ['GRASS_PNGFILE'] = reclassImagePath
     
     dataForDate = data[key]
@@ -196,29 +145,17 @@ for (i, key) in enumerate(data):
     reclass = open(reclassRule, 'w')
     
     patchIDs = [ int(f) for f in dataForDate['patchID'] ]
-    if op:
-        if constantLeft is not None:
-            variable = op( constantLeft, np.array(dataForDate[varRight]) )
-        elif constantRight is not None:
-            variable = op( np.array(dataForDate[varLeft]), constantRight )
-        else:
-            variable = op( np.array(dataForDate[varLeft]), np.array(dataForDate[varRight]) )
-    else:
-        variable = np.array(dataForDate[args.outputVariable])
+    # Could do this outside the loop, but want to make sure it's near declaration of 
+    # dataForDate
+    expr = VARIABLE_EXPR_RE.sub(r'np.array(dataForDate["\1"])', args.outputVariable)
+    variable = eval(expr)
       
-    if args.gtzero:
-        variable = variable > 0
-    elif args.ltzero:
-        variable = variable < 0
-        
     for (j, var) in enumerate(variable):
         #reclass.write("%d = %f\n" % (patchIDs[j], var) )
         reclass.write("%d:%d:%f:%f\n" % (patchIDs[j], patchIDs[j], var, var) )
     reclass.close()
     
     # b. Generate temporary map for variable
-#     print("\nRunning r.reclass...\n")
-    #result = grassLib.script.run_command('r.reclass', 
     result = grassLib.script.run_command('r.recode', 
                                          input=args.patchMap, 
                                          output=RECLASS_MAP_TMP,
@@ -243,14 +180,12 @@ for (i, key) in enumerate(data):
     # c. Render map with annotations to PNG image
 
     # Start a new PNG driver
-#     print("\nStarting monitor\n")
     result = grassLib.script.run_command('d.mon', start='PNG')
     if result != 0:
         sys.exit("Failed to start PNG driver while rendering image %s" % \
                  (imageFilename,) )
     
     # Render image
-#     print("\nDrawing map\n")
     result = grassLib.script.run_command('d.rast',
                                          map=tmpMap)
     if result != 0:
@@ -338,7 +273,6 @@ for (i, key) in enumerate(data):
                  (imageFilename,) )
         
     # Close the PNG driver, writing PNG image
-#     print("\nStopping monitor\n")
     result = grassLib.script.run_command('d.mon', stop='PNG')
     if result != 0:
         sys.exit("Error occured when closing PNG driver for image %s" % \
