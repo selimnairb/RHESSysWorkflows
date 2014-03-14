@@ -175,8 +175,7 @@ if __name__ == "__main__":
     max_x = min_x = 0
     for d in args.data:
         mod_file = open(d, 'r')
-        (tmp_datetime, tmp_data) = RHESSysCalibratorPostprocess.readColumnFromFile(mod_file,
-        args.column)
+        (tmp_datetime, tmp_data) = RHESSysCalibratorPostprocess.readColumnFromFile(mod_file, args.column)
         tmp_mod = pd.Series(tmp_data, index=tmp_datetime)
         # Align timeseries
         (mod_align, obs_align) = tmp_mod.align(obs, join='inner')
