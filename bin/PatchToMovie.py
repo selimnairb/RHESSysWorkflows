@@ -23,7 +23,7 @@ from rhessyscalibrator.postprocess import RHESSysCalibratorPostprocess
 
 FFMPEG_PATH = '/usr/local/bin/ffmpeg'
 PATCH_DAILY_RE = re.compile('^(.+_patch.daily)$')
-VARIABLE_EXPR_RE = re.compile(r'\b(\w+)\b')
+VARIABLE_EXPR_RE = re.compile(r'\b([a-zA-z]\w+)\b')
 RECLASS_MAP_TMP = "patchtomovietmp_%d" % (random.randint(100000, 999999),)
 
 # Handle command line options
