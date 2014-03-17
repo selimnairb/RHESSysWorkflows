@@ -51,7 +51,7 @@ def plotGraph(args, obs, data, sizeX=1, sizeY=1, dpi=80):
     if not args.supressObs:
         (obs_plt,) = ax.plot(x, obs_y, linewidth=2.0, color='black')
         
-    # Plot modeled values
+    # Plot modeled values 
     data_plt = []
     for (i, d) in enumerate(data):
         # Standard or log plot
@@ -75,7 +75,7 @@ def plotGraph(args, obs, data, sizeX=1, sizeY=1, dpi=80):
             
         if args.color:
             (mod_plt,) = ax.plot(x, mod_y, linewidth=linewidth, linestyle=linestyle,
-                                  color=args.color[i])
+                                 color=args.color[i])
         else:
             (mod_plt,) = ax.plot(x, mod_y, linewidth=linewidth, linestyle=linestyle)
         
@@ -149,11 +149,13 @@ def plotGraph(args, obs, data, sizeX=1, sizeY=1, dpi=80):
             secondaryLabel = args.secondaryLabel
         ax2.invert_yaxis()
         ax2.set_ylabel(args.secondaryLabel)
+    #ax.set_zorder(ax2.get_zorder()+1) # put ax in front of ax2
+    #ax.patch.set_visible(False) # hide the 'canvas' 
     
     # Plot legend last
     if args.plottype == PLOT_TYPE_CDF:
         fig.legend( data_plt, legend_items, 'lower center', fontsize='x-small', 
-                    bbox_to_anchor=(0.5, -0.015), ncol=2, frameon=False )
+                    bbox_to_anchor=(0.5, -0.015), ncol=len(data), frameon=False )
     else:
         fig.legend( data_plt, legend_items, 'lower center', fontsize='x-small', 
                     bbox_to_anchor=(0.5, -0.03), ncol=2, frameon=False )
