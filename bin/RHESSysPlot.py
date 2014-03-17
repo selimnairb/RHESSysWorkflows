@@ -19,14 +19,27 @@ PLOT_TYPE_CDF = 'cdf'
 PLOT_TYPES = [PLOT_TYPE_STD, PLOT_TYPE_LOGY, PLOT_TYPE_CDF]
 PLOT_DEFAULT = PLOT_TYPE_STD
 
+LINE_TYPE_LINE = 'line'
+LINE_TYPE_DASH = 'dash'
+LINE_TYPE_DASH_DOT = 'dashdot'
+LINE_TYPE_COLON = 'colon'
+LINE_TYPE_DICT = { LINE_TYPE_LINE: '-',
+                   LINE_TYPE_DASH: '--',
+                   LINE_TYPE_DASH_DOT: '-.',
+                   LINE_TYPE_COLON: ':'}
+LINE_TYPES = [LINE_TYPE_LINE, LINE_TYPE_DASH, LINE_TYPE_DASH_DOT, LINE_TYPE_COLON]
+NUM_LINE_TYPES = len(LINE_TYPES)
 
-def plotGraph(args, obs, data):
+def plotGraph(args, obs, data, sizeX=1, sizeY=1, dpi=80):
+    
+    fig = plt.figure(figsize=(sizeX, sizeY), dpi=dpi, tight_layout=True)
+    ax = fig.add_subplot(111)
     
     if args.plottype == PLOT_TYPE_STD or \
        args.plottype == PLOT_TYPE_LOGY:
         x = obs.index
     elif args.plottype == PLOT_TYPE_CDF:
-        x = np.linspace(min_x, max_x, num=1000 )
+        x = np.linspace(min_x, max_x, num=len(obs) )
     
     # Plot observed values
     # Standard or log plot
@@ -36,18 +49,36 @@ def plotGraph(args, obs, data):
         obs_y = obs_ecdf(x)
     obs_plt = None
     if not args.supressObs:
-        (obs_plt,) = plt.plot(x, obs_y)
-    ax = plt.gca()
+        (obs_plt,) = ax.plot(x, obs_y, linewidth=2.0, color='black')
         
     # Plot modeled values
     data_plt = []
-    for d in data:
+    for (i, d) in enumerate(data):
         # Standard or log plot
         mod_y = d
         if args.plottype == PLOT_TYPE_CDF:
             mod_ecdf = sm.distributions.ECDF(d)
             mod_y = mod_ecdf(x)
-        (mod_plt,) = plt.plot(x, mod_y)
+        
+        # Plot (we could move this outside of the for loop)
+        if args.linewidth:
+            linewidth = args.linewidth[i]
+        else:
+            linewidth = 1.0
+            
+        if args.linestyle:
+            linestyle = LINE_TYPE_DICT[ args.linestyle[i] ]
+        else:
+            # Rotate styles
+            styleIdx = ( (i + 1) % NUM_LINE_TYPES ) - 1
+            linestyle = LINE_TYPE_DICT[ LINE_TYPES[styleIdx] ]
+            
+        if args.color:
+            (mod_plt,) = ax.plot(x, mod_y, linewidth=linewidth, linestyle=linestyle,
+                                  color=args.color[i])
+        else:
+            (mod_plt,) = ax.plot(x, mod_y, linewidth=linewidth, linestyle=linestyle)
+        
         data_plt.append(mod_plt)
     
     # Plot annotations
@@ -61,8 +92,8 @@ def plotGraph(args, obs, data):
             title = "log(%s)" % (columnName,)
         elif args.plottype == PLOT_TYPE_CDF:
             title = "Cummulative distribution - %s" % (columnName,) 
-    plt.title(title)
-    
+    fig.suptitle(title, y=0.99)
+
     # X-axis
     if args.plottype == PLOT_TYPE_STD or \
        args.plottype == PLOT_TYPE_LOGY:
@@ -74,25 +105,25 @@ def plotGraph(args, obs, data):
     
     if args.plottype == PLOT_TYPE_CDF:
         ax.set_xlim(min_x, max_x)
-        plt.xscale('log')
+        ax.set_xscale('log')
         if args.xlabel:
-            plt.xlabel(args.xlabel)
+            ax.set_xlabel(args.xlabel)
         else:
-            plt.xlabel( columnName )
+            ax.set_xlabel( columnName )
     elif args.xlabel:
-        plt.xlabel(args.xlabel)
+        ax.set_xlabel(args.xlabel)
     
     # Y-axis
     if args.plottype == PLOT_TYPE_LOGY:
-        plt.yscale('log')
+        ax.set_yscale('log')
     
     if args.ylabel:
-        plt.ylabel(args.ylabel)
+        ax.set_ylabel(args.ylabel)
     elif args.plottype != PLOT_TYPE_CDF:
         y_label = columnName
         if args.plottype == PLOT_TYPE_LOGY:
             y_label = "log( %s )" % (columnName,)
-        plt.ylabel( y_label )
+        ax.set_ylabel( y_label )
     
     if args.supressObs:
         legend_items = args.legend
@@ -121,11 +152,11 @@ def plotGraph(args, obs, data):
     
     # Plot legend last
     if args.plottype == PLOT_TYPE_CDF:
-        plt.legend( data_plt, legend_items, 'lower right', fontsize='x-small' )
-    elif args.secondaryData:
-        plt.legend( data_plt, legend_items, 'center right', fontsize='x-small' )
+        fig.legend( data_plt, legend_items, 'lower center', fontsize='x-small', 
+                    bbox_to_anchor=(0.5, -0.015), ncol=2, frameon=False )
     else:
-        plt.legend( data_plt, legend_items, 'best', fontsize='x-small' )
+        fig.legend( data_plt, legend_items, 'lower center', fontsize='x-small', 
+                    bbox_to_anchor=(0.5, -0.03), ncol=2, frameon=False )
 
 if __name__ == "__main__":
     # Handle command line options
@@ -133,10 +164,18 @@ if __name__ == "__main__":
     parser.add_argument('-p', '--plottype', required=False, 
                         default=PLOT_DEFAULT, choices=PLOT_TYPES,
                         help='Type of plot')
+    parser.add_argument('-f', '--outfileSuffix', required=False,
+                        help='Suffix to append on to name part of file name (i.e. before extension)')
     parser.add_argument('-o', '--obs', required=True,
                         help='File containing observed data')
     parser.add_argument('-d', '--data', required=True, nargs='+',
                         help='One or more data files')
+    parser.add_argument('--color', required=False, nargs='+',
+                        help='Color of symbol to be applied to plots of data. Color must be expressed in form recognized by matplotlib.')
+    parser.add_argument('--linewidth', required=False, nargs='+', type=float,
+                        help='Width of lines to be applied to plots of data. Value must be float in units of points.')
+    parser.add_argument('--linestyle', required=False, nargs='+', choices=LINE_TYPES,
+                        help='Style of symbol to be applied to plots of data. Styles correspond to those of matplotlib.')
     parser.add_argument('-c', '--column', required=True,
                         help='Name of column to use from data files')
     parser.add_argument('-t', '--title', required=False,
@@ -147,6 +186,10 @@ if __name__ == "__main__":
                         help='X-axis label')
     parser.add_argument('-y', '--ylabel', required=False,
                         help='Y-axis label')
+    parser.add_argument('--figureX', required=False, type=int, default=4,
+                        help='The width of the plot, in inches')
+    parser.add_argument('--figureY', required=False, type=int, default=3,
+                        help='The height of the plot, in inches')
     parser.add_argument('--supressObs', required=False, action='store_true',
                         help='Do not plot observed data.  Observed data will still be used for aligning timeseries')
     parser.add_argument('--secondaryData', required=False,
@@ -156,6 +199,20 @@ if __name__ == "__main__":
     parser.add_argument('--secondaryLabel', required=False,
                         help='Label to use for seconary Y-axis')
     args = parser.parse_args()
+    
+    if args.color:
+        if len(args.color) != len(args.data):
+            sys.exit('Number of colors must match number of data files')
+    
+    if args.linewidth:
+        if min(args.linewidth) <= 0.0:
+            sys.exit('All line widths must be > 0.0')
+        if len(args.linewidth) != len(args.data):
+            sys.exit('Number of line widths must match number of data files')
+            
+    if args.linestyle:
+        if len(args.linestyle) != len(args.data):
+            sys.exit('Number of line styles must match number of data files')
     
     if args.secondaryData and not args.secondaryColumn:
         sys.exit('A secondary data file was specified, but the secondary column to use was not')
@@ -187,10 +244,14 @@ if __name__ == "__main__":
         mod_file.close()
         data.append( mod_align )
 
-    plotGraph(args, obs_align, data)
+    plotGraph(args, obs_align, data, 
+              sizeX=args.figureX, sizeY=args.figureY)
 
     # Output plot
-    plot_filename_png = "%s.png" % (args.plottype,)
-    plot_filename_pdf = "%s.pdf" % (args.plottype,)
+    filename = args.plottype
+    if args.outfileSuffix:
+        filename += '_' + args.outfileSuffix
+    plot_filename_png = "%s.png" % (filename,)
+    plot_filename_pdf = "%s.pdf" % (filename,)
     plt.savefig(plot_filename_png)
     plt.savefig(plot_filename_pdf)
