@@ -16,19 +16,56 @@ from rhessyscalibrator.postprocess import RHESSysCalibratorPostprocess
 PLOT_TYPE_STD = 'standard'
 PLOT_TYPE_LOGY = 'logy'
 PLOT_TYPE_CDF = 'cdf'
-PLOT_TYPES = [PLOT_TYPE_STD, PLOT_TYPE_LOGY, PLOT_TYPE_CDF]
+PLOT_TYPE_SCATTER = 'scatter'
+PLOT_TYPE_SCATTER_LOG = 'scatter-log'
+PLOT_TYPES = [PLOT_TYPE_STD, PLOT_TYPE_LOGY, PLOT_TYPE_CDF, PLOT_TYPE_SCATTER, PLOT_TYPE_SCATTER_LOG]
 PLOT_DEFAULT = PLOT_TYPE_STD
 
 LINE_TYPE_LINE = 'line'
 LINE_TYPE_DASH = 'dash'
 LINE_TYPE_DASH_DOT = 'dashdot'
 LINE_TYPE_COLON = 'colon'
+LINE_TYPE_DOT = 'dot'
 LINE_TYPE_DICT = { LINE_TYPE_LINE: '-',
                    LINE_TYPE_DASH: '--',
                    LINE_TYPE_DASH_DOT: '-.',
-                   LINE_TYPE_COLON: ':'}
-LINE_TYPES = [LINE_TYPE_LINE, LINE_TYPE_DASH, LINE_TYPE_DASH_DOT, LINE_TYPE_COLON]
+                   LINE_TYPE_COLON: ':',
+                   LINE_TYPE_DOT: '.' }
+LINE_TYPES = [LINE_TYPE_LINE, LINE_TYPE_DASH, LINE_TYPE_DASH_DOT, LINE_TYPE_COLON, LINE_TYPE_DOT]
 NUM_LINE_TYPES = len(LINE_TYPES)
+
+
+def plotGraphScatter(args, obs, data, log=False, sizeX=1, sizeY=1, dpi=80):
+    
+    assert( len(data) == len(args.legend) == 2 )
+    
+    fig = plt.figure(figsize=(sizeX, sizeY), dpi=dpi, tight_layout=True)
+    ax = fig.add_subplot(111)
+
+    x = data[0]
+    y = data[1]
+    one_to_one = np.linspace(math.floor(min(x)), math.ceil(max(x)), 1000)
+    
+    ax.plot(data[0], data[1], '.')
+    ax.plot(one_to_one, one_to_one, 'k-')
+    
+    if log:
+        ax.set_xscale('log')
+        ax.set_yscale('log')
+    
+    # Plot annotations
+    if args.title:
+        title = args.title
+    else:
+        title = "%s vs. %s" % (args.legend[0], args.legend[1])
+    fig.suptitle(title, y=0.99)
+    
+    # X-axis
+    ax.set_xlabel(args.legend[0])
+    
+    # Y-axis
+    ax.set_ylabel(args.legend[1])
+
 
 def plotGraph(args, obs, data, sizeX=1, sizeY=1, dpi=80):
     
@@ -246,8 +283,15 @@ if __name__ == "__main__":
         mod_file.close()
         data.append( mod_align )
 
-    plotGraph(args, obs_align, data, 
-              sizeX=args.figureX, sizeY=args.figureY)
+    if args.plottype == PLOT_TYPE_SCATTER:
+        plotGraphScatter(args, obs_align, data, log=False, 
+                         sizeX=args.figureX, sizeY=args.figureY)
+    elif args.plottype == PLOT_TYPE_SCATTER_LOG:
+        plotGraphScatter(args, obs_align, data, log=True, 
+                         sizeX=args.figureX, sizeY=args.figureY)
+    else:
+        plotGraph(args, obs_align, data, 
+                  sizeX=args.figureX, sizeY=args.figureY)
 
     # Output plot
     filename = args.plottype
