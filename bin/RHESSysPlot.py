@@ -173,7 +173,8 @@ def plotGraph(args, obs, data, sizeX=1, sizeY=1, dpi=80):
        (args.plottype == PLOT_TYPE_STD or args.plottype == PLOT_TYPE_LOGY):
         sec_file = open(args.secondaryData, 'r')
         (sec_datetime, sec_data) = RHESSysCalibratorPostprocess.readColumnFromFile(sec_file,
-                                                                                   args.secondaryColumn)
+                                                                                   args.secondaryColumn,
+                                                                                   startHour=0)
         sec_file.close()
         sec = pd.Series(sec_data, index=sec_datetime)
         # Align timeseries
@@ -190,12 +191,16 @@ def plotGraph(args, obs, data, sizeX=1, sizeY=1, dpi=80):
     #ax.patch.set_visible(False) # hide the 'canvas' 
     
     # Plot legend last
+    num_cols = len(data)
+    if not args.supressObs:
+        num_cols += 1
+    
     if args.plottype == PLOT_TYPE_CDF:
         fig.legend( data_plt, legend_items, 'lower center', fontsize='x-small', 
-                    bbox_to_anchor=(0.5, -0.015), ncol=len(data), frameon=False )
+                    bbox_to_anchor=(0.5, -0.015), ncol=num_cols, frameon=False )
     else:
         fig.legend( data_plt, legend_items, 'lower center', fontsize='x-small', 
-                    bbox_to_anchor=(0.5, -0.03), ncol=2, frameon=False )
+                    bbox_to_anchor=(0.5, -0.03), ncol=num_cols, frameon=False )
 
 if __name__ == "__main__":
     # Handle command line options
@@ -261,7 +266,8 @@ if __name__ == "__main__":
 
     # Open observed data
     obs_file = open(args.obs, 'r')
-    (obs_datetime, obs_data) = RHESSysCalibratorPostprocess.readObservedDataFromFile(obs_file)
+    (obs_datetime, obs_data) = RHESSysCalibratorPostprocess.readObservedDataFromFile(obs_file,
+                                                                                     readHour=False)
     obs_file.close()
     obs = pd.Series(obs_data, index=obs_datetime)
 
@@ -271,7 +277,7 @@ if __name__ == "__main__":
     max_x = min_x = 0
     for d in args.data:
         mod_file = open(d, 'r')
-        (tmp_datetime, tmp_data) = RHESSysCalibratorPostprocess.readColumnFromFile(mod_file, args.column)
+        (tmp_datetime, tmp_data) = RHESSysCalibratorPostprocess.readColumnFromFile(mod_file, args.column, startHour=0)
         tmp_mod = pd.Series(tmp_data, index=tmp_datetime)
         # Align timeseries
         (mod_align, obs_align) = tmp_mod.align(obs, join='inner')
