@@ -19,7 +19,7 @@ import numpy as np
 from ecohydrolib.context import Context
 from ecohydrolib.grasslib import *
 
-from rhessyscalibrator.postprocess import RHESSysCalibratorPostprocess
+from rhessysworkflows.rhessys import RHESSysOutput
 
 FFMPEG_PATH = '/usr/local/bin/ffmpeg'
 PATCH_DAILY_RE = re.compile('^(.+_patch.daily)$')
@@ -126,7 +126,7 @@ os.environ['GRASS_HEIGHT'] = '720'
 # 3. Open file ending in "patch.daily" in rhessys output dir
 print("Reading RHESSys output data (this may take a while)...")
 f = open(patchDailyFilepath)
-data = RHESSysCalibratorPostprocess.readColumnsFromPatchDailyFile(f, variables)
+data = RHESSysOutput.readColumnsFromPatchDailyFile(f, variables)
 f.close()
 if len(data) < 1:
     sys.exit("No data found for variable in RHESSys output file '%s'" % \

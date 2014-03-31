@@ -36,8 +36,303 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 @todo Add unit tests
 """
 import os, errno
+import string
+from datetime import datetime
+from datetime import timedelta
+from collections import OrderedDict
+
+import pandas as pd
 
 from rhessysworkflows.metadata import RHESSysMetadata
+
+
+class RHESSysOutput(object):
+    
+    TIME_STEP_HOURLY = 1
+    TIME_STEP_DAILY = 2
+    TIME_STEPS = [TIME_STEP_HOURLY, TIME_STEP_DAILY]
+    
+    HOUR_HEADER = 'hour'
+    DAY_HEADER = 'day'
+    MONTH_HEADER = 'month'
+    YEAR_HEADER = 'year'
+    
+    @classmethod
+    def readObservedDataFromFile(cls, f, header=True, timeStep=TIME_STEP_DAILY, logger=None,
+                                 readHour=True):
+        """ Reads the data from the observed data file.  Assumes that
+            there is one data point per line.  By default a daily timestep
+            is assumed, but hourly is also supported; time step is used for
+            calculating date for each datum.
+            
+            Arguments:
+            f -- file object     The text file to read from
+            header -- boolean    Specifies whether a header is present
+                                  in the file.  If True, the first
+                                  line of the file will read and used to
+                                  determine start date of the timeseries.
+                                  Date is assumed to be in the format:
+                                  "YYYY M D H"
+            timeStep -- string   One of RHESSysOutput.TIME_STEPS
+            readHour -- boolean  Control whether the hour should be read from the file header
+        
+            Returns tuple (list<datetime.datetime>, list<float>)
+            Returns tuple (empty list, list<float>) if header is false  
+            Returns tuple of empty lists if there were no data.
+        """
+        assert(timeStep in RHESSysOutput.TIME_STEPS)
+        
+        date_list = []
+        obs_data = []
+        tmpDate = None
+        delta = None
+        
+        if header:
+            headerData = f.readline().split()
+            if readHour:
+                tmpDate = datetime(int(headerData[0]), int(headerData[1]), 
+                                   int(headerData[2]), int(headerData[3]) )
+            else:
+                tmpDate = datetime(int(headerData[0]), int(headerData[1]), 
+                                   int(headerData[2]) )
+                
+            if timeStep == RHESSysOutput.TIME_STEP_HOURLY:
+                delta = timedelta(hours=1)
+            else:
+                delta = timedelta(days=1)
+            if logger:
+                logger.debug("Observed timeseries begin date: %s" % (str(tmpDate),) )
+           
+        data = f.readline()
+        while data:
+            obs_data.append(float(data))
+            if header:
+                date_list.append(tmpDate)
+                tmpDate = tmpDate + delta
+            
+            data = f.readline()
+
+        return (date_list, obs_data)
+
+    @classmethod
+    def readColumnsFromFile(cls, f, column_names, sep=' ', logger=None):
+        """ Reads the specified columns from the text file.  The file
+            must have a header.  Reads dates/datetime from file by searching
+            for headers with names of 'hour', 'day', 'month', 'year'
+        
+            Arguments:
+            f -- file object  The text file to read from
+            column_names -- A list of column names to return
+            sep -- The field separator (defaults to ' ')
+
+            Returns Pandas DataFrame object indexed by date
+            
+            Raises exception if data file does not include year, month, and day fields
+        """
+        cols = column_names + [RHESSysOutput.HOUR_HEADER, 
+                 RHESSysOutput.DAY_HEADER, 
+                 RHESSysOutput.MONTH_HEADER, 
+                 RHESSysOutput.YEAR_HEADER]
+        df = pd.read_csv(f, sep=' ', usecols=cols)
+        # Build index
+        time_stamps = None
+        try:
+            time_stamps = df[RHESSysOutput.YEAR_HEADER].apply(str)
+            df = df.drop(RHESSysOutput.YEAR_HEADER, 1)
+        except KeyError:
+            raise Exception('Data file lacks year column')
+        try:
+            time_stamps += '/' + df[RHESSysOutput.MONTH_HEADER].apply(str)
+            df = df.drop(RHESSysOutput.MONTH_HEADER, 1)
+        except KeyError:
+            raise Exception('Data file lacks month column')
+        try:
+            time_stamps += '/' + df[RHESSysOutput.DAY_HEADER].apply(str)
+            df = df.drop(RHESSysOutput.DAY_HEADER, 1)
+        except KeyError:
+            raise Exception('Data file lacks day column')
+        try:
+            time_stamps += ' ' + df[RHESSysOutput.HOUR_HEADER].apply(str) + '00:00'
+            df = df.drop(RHESSysOutput.HOUR_HEADER, 1)
+        except KeyError:
+            pass
+        
+        dates = [pd.to_datetime(date) for date in time_stamps]
+        datesDf = pd.DataFrame(dates, columns=['datetime'])
+        
+        df = datesDf.join(df, how='inner')
+        df = df.set_index('datetime')
+        return df
+   
+
+    @classmethod
+    def readColumnFromFile(cls, f, column_name, sep=" ", logger=None, startHour=1):
+        """ Reads the specified column from the text file.  The file
+            must have a header.  Reads dates/datetime from file by searching
+            for headers with names of 'hour', 'day', 'month', 'year'
+        
+            Arguments:
+            f -- file object  The text file to read from
+            column_name -- The name of the column to return
+            sep -- The field separator (defaults to " ")
+            startHour -- Hour to use for daily data
+
+            Returns tuple (list<datetime.datetime>, list<float>).  
+            Returns tuple of empty lists if the column had no data, or if the column was
+            not found
+        """
+        date_list = []
+        col_data = []
+
+        # Read the header line
+        header = f.readline()
+        headers = string.split(header, sep)
+        col_idx = -1
+        hour_idx = -1
+        day_idx = -1
+        month_idx = -1
+        year_idx = -1
+        col_found = False
+        # Find column_name in headers
+        for (counter, col) in enumerate(headers):
+            if col == column_name:
+                col_idx = counter
+                col_found = True
+            elif col == RHESSysOutput.HOUR_HEADER:
+                hour_idx = counter
+            elif col == RHESSysOutput.DAY_HEADER:
+                day_idx = counter
+            elif col == RHESSysOutput.MONTH_HEADER:
+                month_idx = counter
+            elif col == RHESSysOutput.YEAR_HEADER:
+                year_idx = counter
+            
+        # We found column_name, read the data
+        if col_found:
+            data = f.readline()
+            while data:
+                hour = day = month = year = None
+                cols = string.split(data, sep)
+                # Get data
+                col_data.append(float(cols[col_idx]))
+                # Get datetime
+                if hour_idx >= 0:
+                    hour = int(cols[hour_idx])
+                if day_idx >= 0:
+                    day = int(cols[day_idx])
+                if month_idx >= 0:
+                    month = int(cols[month_idx])
+                if year_idx >= 0:
+                    year = int(cols[year_idx])
+                # Construct date object
+                tmpDate = None
+                if hour and day and month and year:
+                    tmpDate = datetime(year, month, day, hour)
+                elif day and month and year:
+                    tmpDate = datetime(year, month, day, startHour)
+                elif month and year:
+                    tmpDate = datetime(year, month, 1)
+                elif year:
+                    tmpDate = datetime(year, 12, 31)
+                date_list.append(tmpDate)
+                
+                data = f.readline()
+
+        return (date_list, col_data)
+
+    @classmethod
+    def readColumnsFromPatchDailyFile(cls, f, column_names, sep=" "):
+        """ Reads the specified columns of data from a RHESSys patch daily output 
+            file.  The file must have a header.  Reads dates/datetime from file by searching
+            for headers with names of 'hour', 'day', 'month', 'year'
+        
+            Arguments:
+            f -- file object  The text file to read from
+            column_names -- List of the names of the columns to return
+            sep -- The field separator (defaults to " ")
+
+            Returns collection.OrderedDict<datetime.datetime, dict<string, list<float>>, 
+            where the value dict for each datetime key uses column_name as its key.  
+            Returns An empty dict if data for the specified columns were not found.
+        """
+        returnDict = OrderedDict()
+
+        col_idx = {}
+        found = False
+
+        # Read the header line
+        header = f.readline().strip()
+        if ' ' == sep:
+            headers = string.split(header)
+        else:
+            headers = string.split(header, sep)
+        hour_idx = -1
+        day_idx = -1
+        month_idx = -1
+        year_idx = -1
+        # Find column_name in headers
+        for (counter, col) in enumerate(headers):
+            if col in column_names:
+                col_idx[col] = counter
+                found = True
+            elif col == RHESSysOutput.HOUR_HEADER:
+                hour_idx = counter
+            elif col == RHESSysOutput.DAY_HEADER:
+                day_idx = counter
+            elif col == RHESSysOutput.MONTH_HEADER:
+                month_idx = counter
+            elif col == RHESSysOutput.YEAR_HEADER:
+                year_idx = counter
+            
+        # We found column_name, read the data
+        if found:
+            data = f.readline().strip()
+            while data and data != '':
+                hour = day = month = year = None
+                if ' ' == sep:
+                    cols = string.split(data)
+                else:
+                    cols = string.split(data, sep)
+                if not len(cols): break;
+                # Get datetime
+                if hour_idx >= 0:
+                    hour = int(cols[hour_idx])
+                if day_idx >= 0:
+                    day = int(cols[day_idx])
+                if month_idx >= 0:
+                    month = int(cols[month_idx])
+                if year_idx >= 0:
+                    year = int(cols[year_idx])
+                # Construct date object
+                tmpDate = None
+                if hour and day and month and year:
+                    tmpDate = datetime(year, month, day, hour)
+                elif day and month and year:
+                    tmpDate = datetime(year, month, day, 1)
+                elif month and year:
+                    tmpDate = datetime(year, month, 1)
+                elif year:
+                    tmpDate = datetime(year, 12, 31)
+                    
+                try:
+                    dataForDate = returnDict[tmpDate]
+                except KeyError:
+                    dataForDate = {}
+                    returnDict[tmpDate] = dataForDate
+                 
+                # Get data
+                for key in col_idx:
+                    try:
+                        tmpData = dataForDate[key]
+                    except KeyError:
+                        tmpData = []
+                        dataForDate[key] = tmpData
+                    # TODO: intelligently handle different types    
+                    tmpData.append( float(cols[ col_idx[key] ]) )
+                
+                data = f.readline()
+
+        return (returnDict)
 
 def generateCommandString(binPath, outputPrefix, startDate, endDate, tecPath,
                           worldPath, surfaceFlowPath, subsurfaceFlowPath=None,
