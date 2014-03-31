@@ -11,7 +11,7 @@ import statsmodels.api as sm
 import matplotlib.pyplot as plt
 import matplotlib
 
-from rhessyscalibrator.postprocess import RHESSysCalibratorPostprocess
+from rhessysworkflows.rhessys import RHESSysOutput
 
 PLOT_TYPE_STD = 'standard'
 PLOT_TYPE_LOGY = 'logy'
@@ -127,7 +127,8 @@ def plotGraph(args, plottype, obs, data, columns, min_x, max_x, ax, secondary=No
         (plottype == PLOT_TYPE_STD or plottype == PLOT_TYPE_LOGY):
 #         sec_file = open(args.secondaryData, 'r')
 #         (sec_datetime, sec_data) = RHESSysCalibratorPostprocess.readColumnFromFile(sec_file,
-#                                                                                    args.secondaryColumn)
+#                                                                                    args.secondaryColumn,
+#                                                                                    startHour=0)
 #         sec_file.close()
         #sec = pd.Series(sec_data, index=sec_datetime)
 #         import pdb; pdb.set_trace()
@@ -191,7 +192,8 @@ if __name__ == "__main__":
 
     # Open observed data
     obs_file = open(args.obs, 'r')
-    (obs_datetime, obs_data) = RHESSysCalibratorPostprocess.readObservedDataFromFile(obs_file)
+    (obs_datetime, obs_data) = RHESSysOutput.readObservedDataFromFile(obs_file,
+                                                                                     readHour=False)
     obs_file.close()
     #obs = pd.Series(obs_data, index=obs_datetime)
     obs = pd.DataFrame(obs_data, index=obs_datetime, columns=['observed'])
@@ -204,7 +206,7 @@ if __name__ == "__main__":
     #for d in args.data:
         #mod_file = open(d, 'r')
     mod_file = open(args.data, 'r')
-    mod_df = RHESSysCalibratorPostprocess.readColumnsFromFile(mod_file,
+    mod_df = RHESSysOutput.readColumnsFromFile(mod_file,
                                                               cols)
     #tmp_mod = pd.Series(tmp_data, index=tmp_datetime)
     # Align timeseries
