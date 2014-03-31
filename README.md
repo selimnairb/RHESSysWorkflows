@@ -1541,7 +1541,7 @@ have RHESSys simulations for which patch-scale output was created
 (e.g. using the *-p* output option).  The following example will create
 an animation for infiltration:
 
-    PatchToMovie.py -r PATH_TO_SIMULATION_WITH_PATCH_OUTPUT/rhessys_patch.daily -g PROJECT_PATH/GRASSData -o OUTPUT_DIRECTORY -f OUTPUT_FILENAME -v "recharge * 1000.0" --mask GRASS_RASTER_LAYER --overlay GRASS_RASTER_LAYER_1 [GRASS_RASTER_LAYER_N] --fps 30 -t "infiltration"
+    PatchToMovie.py -p PROJECT_DIR -d PATH_TO_SIMULATION_WITH_PATCH_OUTPUT/rhessys_patch.daily -o OUTPUT_DIRECTORY -f OUTPUT_FILENAME -v "recharge * 1000.0" --mask GRASS_RASTER_LAYER --overlay GRASS_RASTER_LAYER_1 [GRASS_RASTER_LAYER_N] --fps 30 -t "infiltration"
 
 Note that the variable can be an aribitrary mathematical expression
 (using '+', '-', '*', and '/') combining patch-level RHESSys variable 
