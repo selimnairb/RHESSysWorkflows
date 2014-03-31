@@ -293,7 +293,7 @@ of RHESSysWorkflows into
 Not that you do not need to use 'sudo' when running in a virtual environment as the
 files are installed in a directory owned by your user account.
 
-### Setup EcohydroLib and RHESSysWorkflows configuration file
+### <a name="configfile"></a>Setup EcohydroLib and RHESSysWorkflows configuration file
 - Choose the appropriate prototype configuration file:
 
     + [OS X 10.6](https://raw.github.com/selimnairb/RHESSysWorkflows/master/docs/config/ecohydro-OSX_10.6.cfg)
@@ -1510,6 +1510,81 @@ custom workflow steps you applied to the data in your project directory.
 
 Appendix
 --------
+
+### Visualizing RHESSys output
+
+RHESSysWorkflows includes tools to visualize RHESSys model output.
+
+> Note that both of these tools are still in development, but beta versions
+> are provided for your convenience; functionality and options may
+> change without notice.
+
+The first tool, *RHESSysPlot*, will produce plots for basin-scale
+variables such as streamflow.  This tool is very flexible, and includes
+the ability to plot observed data vs. modeled data, and to plot data
+for multiple simulations.  A prototypical usage to plot a scatter plot of
+streamflow data for two simulations is as follows:
+
+    RHESSysPlot.py -p scatter -o PATH_TO_OBSERVED -d  PATH_TO_SIMULATION_1/rhessys_basin.daily PATH_TO_SIMULATION_2/rhessys_basin.daily -c streamflow -t "MY TITLE" -l "Sim. 1 streamflow (mm/day)" "Sim. 2 streamflow (mm/day)" -f MY_PLOT_FILENAME --figureX 8 --figureY 6
+
+The *--figureX* and *--figureY* options control the size of the plot (in
+inches).  RHESSysPlot also allows you to make standard time series, semi-log 
+scale timeseries, and cumulative distribution function plots. For a full 
+description of options, use the *--help* option:
+
+    RHESSysPlot.py --help
+    
+In addition to making static plots of basin-scale output variables, 
+RHESSysWorkflows provides a tool, *PatchToMoviy*, for making animations 
+of patch-scale output variables.  To use this tool, you first need to 
+have RHESSys simulations for which patch-scale output was created 
+(e.g. using the *-p* output option).  The following example will create
+an animation for infiltration:
+
+    PatchToMovie.py -r PATH_TO_SIMULATION_WITH_PATCH_OUTPUT/rhessys_patch.daily -g PROJECT_PATH/GRASSData -o OUTPUT_DIRECTORY -f OUTPUT_FILENAME -v "recharge * 1000.0" --mask GRASS_RASTER_LAYER --overlay GRASS_RASTER_LAYER_1 [GRASS_RASTER_LAYER_N] --fps 30 -t "infiltration"
+
+Note that the variable can be an aribitrary mathematical expression
+(using '+', '-', '*', and '/') combining patch-level RHESSys variable 
+names as well as numerical constants (as in the example).  When using
+such expressions, you'll want to specify a title for each frame in your
+animation using the *-t* (a.k.a. *--mapTitle*) option (otherwise the expression
+will be used as the title, which likely won't fit on the frame). 
+
+When specifying simulation output (e.g. *-r*) and the GRASS mapset (e.g. *-g*),
+it is important to use the same GRASS mapset that was used to create the
+worldfile used to run the simulation.
+
+For a full description of options, use the *--help* option:
+
+    PatchToMovie.py --help  
+    
+*PatchToMovie* uses a command line program called *ffmpeg* to encode
+individual maps into a movie file.  To install *ffmpeg* do the following:
+
+#### OS X:
+- Install [homebrew](http://brew.sh)
+- Install *ffmpeg*:
+
+    brew install ffmpeg
+
+#### Linux (Debian/Ubuntu-based systems):
+- Install *ffmpeg*:
+
+    sudo apt-get install ffmpeg
+    
+Lastly, you must add an entry to your EcohydroLib configuration file.  For
+OS X:
+
+    [RHESSYS]
+    PATH_OF_FFMPEG = /usr/local/bin/ffmpeg
+    
+For Linux:
+
+    [RHESSYS]
+    PATH_OF_FFMPEG = /usr/bin/ffmpeg
+
+See [Setup EcohydroLib and RHESSysWorkflows configuration file](#configfile)
+for more details on setting up your configuration file.
 
 ### Install local data
 

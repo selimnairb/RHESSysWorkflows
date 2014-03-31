@@ -1,12 +1,56 @@
 #!/usr/bin/env python
-"""
-    Args: 
-        - rhessys output dir
-        - GRASSdata path
-        - location of output movie
-        - name of output movie
-        - variable to output
+"""@package PatchToMovie
 
+@brief Tool for animations of patch-scale RHESSys output variables.
+
+This software is provided free of charge under the New BSD License. Please see
+the following license information:
+
+Copyright (c) 2014, University of North Carolina at Chapel Hill
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in the
+      documentation and/or other materials provided with the distribution.
+    * Neither the name of the University of North Carolina at Chapel Hill nor the
+      names of its contributors may be used to endorse or promote products
+      derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE UNIVERSITY OF NORTH CAROLINA AT CHAPEL HILL
+BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT 
+LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
+OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+@author Brian Miles <brian_miles@unc.edu>
+
+
+Pre conditions
+--------------
+1. Configuration file must define the following sections and values:
+   'GRASS', 'GISBASE'
+   'RHESSYS', 'PATH_OF_FFMPEG'
+
+2. The following metadata entry(ies) must be present in the RHESSys section of the metadata associated with the project directory:
+   grass_dbase
+   grass_location
+   grass_mapset
+
+
+Post conditions
+---------------
+None
+   
 """
 import os, sys, shutil, tempfile, re
 import subprocess, shlex
@@ -17,25 +61,23 @@ import operator
 import numpy as np
 
 from ecohydrolib.context import Context
+from rhessysworkflows.metadata import RHESSysMetadata
 from ecohydrolib.grasslib import *
 
 from rhessysworkflows.rhessys import RHESSysOutput
 
-FFMPEG_PATH = '/usr/local/bin/ffmpeg'
 PATCH_DAILY_RE = re.compile('^(.+_patch.daily)$')
 VARIABLE_EXPR_RE = re.compile(r'\b([a-zA-z]\w+)\b')
 RECLASS_MAP_TMP = "patchtomovietmp_%d" % (random.randint(100000, 999999),)
 
 # Handle command line options
 parser = argparse.ArgumentParser(description='Generate movie from patch level daily RHESSys output')
-parser.add_argument('-r', '--rhessysOutFile', required=True,
+parser.add_argument('-i', '--configfile', dest='configfile', required=False,
+                    help='The configuration file.')
+parser.add_argument('-p', '--projectDir', dest='projectDir', required=True,
+                    help='The directory to which metadata, intermediate, and final files should be saved')
+parser.add_argument('-d', '--rhessysOutFile', required=True,
                     help='Directory containing RHESSys patch output, specificically patch daily output stored in a file whose name ends with "_patch.daily".')
-parser.add_argument('-g', '--grassDbase', required=True,
-                    help='GRASS DBase directory')
-parser.add_argument('-l', '--grassLocation', required=False, default='default',
-                    help='GRASS location')
-parser.add_argument('-m', '--grassMapset', required=False, default='PERMANENT',
-                    help='GRASS mapset')
 parser.add_argument('--mask', required=False, default=None,
                     help='Name of raster to use as a mask')
 parser.add_argument('--overlay', required=False, default=None, nargs='*',
@@ -46,7 +88,7 @@ parser.add_argument('-o', '--outputDir', required=True,
                     help='Directory to which movie should be output')
 parser.add_argument('-f', '--outputFile', required=True,
                     help='Name of file to store movie in; .mp4 extension will be added.  If file exists it will be overwritten.')
-parser.add_argument('-p', '--patchMap', required=False, default='patch',
+parser.add_argument('--patchMap', required=False, default='patch',
                     help='Name of patch map')
 parser.add_argument('-v', '--outputVariable', required=True,
                     help='Name of RHESSys variable to be mapped.  Can be an expression such as "trans_sat + trans_unsat"')
@@ -58,8 +100,24 @@ parser.add_argument('--fps', required=False, type=int, default=15,
                     help='Frames per second of output video')
 parser.add_argument('--rescale', required=False, type=float,
                     help='Rescale raster values of 0 to args.resample to 0 to 255 in output images.')
-group = parser.add_mutually_exclusive_group()
 args = parser.parse_args()
+
+configFile = None
+if args.configfile:
+    configFile = args.configfile
+
+context = Context(args.projectDir, configFile)
+
+ffmpegPath = context.config.get('RHESSYS', 'PATH_OF_FFMPEG')
+
+# Check for necessary information in metadata
+metadata = RHESSysMetadata.readRHESSysEntries(context)
+if not 'grass_dbase' in metadata:
+    sys.exit("Metadata in project directory %s does not contain a GRASS Dbase" % (context.projectDir,)) 
+if not 'grass_location' in metadata:
+    sys.exit("Metadata in project directory %s does not contain a GRASS location" % (context.projectDir,)) 
+if not 'grass_mapset' in metadata:
+    sys.exit("Metadata in project directory %s does not contain a GRASS mapset" % (context.projectDir,))
 
 if not os.path.isfile(args.rhessysOutFile) or not os.access(args.rhessysOutFile, os.R_OK):
     sys.exit("Unable to read RHESSys output file %s" % (args.rhessysOutFile,))
@@ -94,11 +152,8 @@ print("Temp dir: %s" % (tmpDir,) )
 reclassRule = os.path.join(tmpDir, 'reclass.rule')
 
 # 2. Initialize GRASS
-context = Context(tmpDir)
-if not os.path.isdir(args.grassDbase) or not os.access(args.grassDbase, os.R_OK):
-    sys.exit("Unable to read GRASS DBase directory")
-grassDbase = os.path.abspath(args.grassDbase)
-grassConfig = GRASSConfig(context, grassDbase, args.grassLocation, args.grassMapset)
+grassDbase = os.path.join(context.projectDir, metadata['grass_dbase'])
+grassConfig = GRASSConfig(context, grassDbase, metadata['grass_location'], metadata['grass_mapset'])
 grassLib = GRASSLib(grassConfig=grassConfig)
 
 # Set mask (if present)
@@ -114,8 +169,8 @@ if args.mask:
                                          rast='MASK',
                                          zoom='MASK')
     if result != 0:
-        sys.exit("Failed to zoom in to map %s while rendering image %s" % \
-                 (RECLASS_MAP_TMP, imageFilename) )
+        sys.exit("Failed to set region to layer %s" % \
+                 (args.mask,) )
         
 # Set environment variables for GRASS PNG output driver
 os.environ['GRASS_RENDER_IMMEDIATE'] = 'FALSE'
@@ -162,7 +217,7 @@ for (i, key) in enumerate(data):
                                          rules=reclassRule,
                                          overwrite=True)
     if result != 0:
-        sys.exit("Failed to create reclass map for date %s" % (str(date),) )
+        sys.exit("Failed to create reclass map for date %s" % (dateStr,) )
         
     tmpMap = RECLASS_MAP_TMP
     if args.rescale:
@@ -283,7 +338,7 @@ for (i, key) in enumerate(data):
 # 5. Combine images to ffmpeg movie of specified name in specified location  
 # Documentation: https://trac.ffmpeg.org/wiki/Create%20a%20video%20slideshow%20from%20images
 # e.g. ffmpeg -r 1/5 -i img%03d.png -c:v libx264 -r 30 -pix_fmt yuv420p out.mp4
-cmd = "%s -y -r %d -i %s%%04d.png -c:v libx264 -pix_fmt yuv420p %s" % (FFMPEG_PATH, args.fps, RECLASS_MAP_TMP, outputFilePath)
+cmd = "%s -y -r %d -i %s%%04d.png -c:v libx264 -pix_fmt yuv420p %s" % (ffmpegPath, args.fps, RECLASS_MAP_TMP, outputFilePath)
 # print(cmd)
 cmdArray = shlex.split(cmd)
 p = subprocess.Popen(cmdArray, cwd=tmpDir)
