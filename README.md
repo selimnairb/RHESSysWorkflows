@@ -260,7 +260,8 @@ To upgrade to a newer version of RHESSysWorkflows, enter the following into the 
     
 If pip does not install the version you expect, it may be necessary
 to first remove RHESSysWorkflows and Ecohydrolib before installing the 
-new version:
+new version (especially under Linux where some Python packages fail to
+build when installed via *pip*):
 
     sudo pip uninstall rhessysworkflows
     sudo pip uninstall ecohydrolib
