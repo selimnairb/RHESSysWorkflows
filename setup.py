@@ -5,7 +5,7 @@ def readme():
         return f.read()
 
 setup(name='rhessysworkflows',
-      version='1.21',
+      version='1.22',
       description='Libraries and command-line scripts for performing RHESSys data preparation workflows.',
       long_description=readme(),
       classifiers=[
@@ -28,7 +28,10 @@ setup(name='rhessysworkflows',
         'ecohydrolib>=1.19',
         'numpy>=1.7',
         'matplotlib>=1.1',
-        'pandas'
+        'pandas',
+        'scipy',
+        'patsy',
+        'statsmodels'
       ],
       scripts=['bin/CreateFlowtable.py',
                'bin/CreateGRASSLocationFromDEM.py',

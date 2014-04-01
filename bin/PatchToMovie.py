@@ -70,6 +70,11 @@ PATCH_DAILY_RE = re.compile('^(.+_patch.daily)$')
 VARIABLE_EXPR_RE = re.compile(r'\b([a-zA-z]\w+)\b')
 RECLASS_MAP_TMP = "patchtomovietmp_%d" % (random.randint(100000, 999999),)
 
+MPEG4_CODEC = 'mpeg4'
+H264_CODEC = 'libx264'
+DEFAULT_CODEC = MPEG4_CODEC
+CODECS = [MPEG4_CODEC, H264_CODEC]
+
 # Handle command line options
 parser = argparse.ArgumentParser(description='Generate movie from patch level daily RHESSys output')
 parser.add_argument('-i', '--configfile', dest='configfile', required=False,
@@ -98,6 +103,8 @@ parser.add_argument('-u', '--variableUnit', required=False, default='mm',
                     help='Units of variable, which will be displayed in paranthesis next to the variable name on the map')
 parser.add_argument('--fps', required=False, type=int, default=15,
                     help='Frames per second of output video')
+parser.add_argument('--codec', required=False, default=DEFAULT_CODEC, choices=CODECS,
+                    help="Video codec to use. Default: %s" % (DEFAULT_CODEC,) )
 parser.add_argument('--rescale', required=False, type=float,
                     help='Rescale raster values of 0 to args.resample to 0 to 255 in output images.')
 args = parser.parse_args()
@@ -278,7 +285,7 @@ for (i, key) in enumerate(data):
     # Add annotations
     result = grassLib.script.run_command('d.legend',
                                          map=tmpMap,
-                                         at='15,90,82,87')
+                                         at='63,88,85,95')
     if result != 0:
         sys.exit("Failed to add legend to map while rendering image %s" % \
                  (imageFilename,) )
@@ -289,7 +296,7 @@ for (i, key) in enumerate(data):
                                              text='High',
                                              size=5,
                                              color='black',
-                                             at='90,20',
+                                             at='90,61',
                                              align='cc')
         if result != 0:
             sys.exit("Failed to high scale legend to map while rendering image %s" % \
@@ -301,7 +308,7 @@ for (i, key) in enumerate(data):
                                              text='Low',
                                              size=5,
                                              color='black',
-                                             at='89,88',
+                                             at='88,91',
                                              align='cc')
         if result != 0:
             sys.exit("Failed to add low scale legend to map while rendering image %s" % \
@@ -312,7 +319,7 @@ for (i, key) in enumerate(data):
                                          text=title,
                                          size=5,
                                          color='black',
-                                         at='75,98',
+                                         at='73,98',
                                          align='cc')
     if result != 0:
         sys.exit("Failed to add title to map while rendering image %s" % \
@@ -337,8 +344,8 @@ for (i, key) in enumerate(data):
     
 # 5. Combine images to ffmpeg movie of specified name in specified location  
 # Documentation: https://trac.ffmpeg.org/wiki/Create%20a%20video%20slideshow%20from%20images
-# e.g. ffmpeg -r 1/5 -i img%03d.png -c:v libx264 -r 30 -pix_fmt yuv420p out.mp4
-cmd = "%s -y -r %d -i %s%%04d.png -c:v libx264 -pix_fmt yuv420p %s" % (ffmpegPath, args.fps, RECLASS_MAP_TMP, outputFilePath)
+# e.g. ffmpeg -r 1/5 -i img%03d.png -vcodec libx264 -r 30 -pix_fmt yuv420p out.mp4
+cmd = "%s -y -r %d -i %s%%04d.png -vcodec %s -pix_fmt yuv420p %s" % (ffmpegPath, args.fps, RECLASS_MAP_TMP, args.codec, outputFilePath)
 # print(cmd)
 cmdArray = shlex.split(cmd)
 p = subprocess.Popen(cmdArray, cwd=tmpDir)

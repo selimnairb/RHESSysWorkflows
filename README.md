@@ -183,11 +183,11 @@ First install aptitude:
 The install RHESSysWorkflows/EcohydroLib dependencies using aptitude:
 
     aptitude install build-essential git subversion p7zip-full \
-    aptitude install python python-dev python-pip \
+    python python-dev python-pip python-scipy \
     libxml2-dev libxslt-dev \
     gdal gdal-bin python-gdal \
     grass grass-dev \
-    libbsd-dev
+    libbsd-dev ffmpeg vlc
 
 
 #### Install GRASS Addons for RHESSysWorkflows
@@ -1522,10 +1522,15 @@ RHESSysWorkflows includes tools to visualize RHESSys model output.
 The first tool, *RHESSysPlot*, will produce plots for basin-scale
 variables such as streamflow.  This tool is very flexible, and includes
 the ability to plot observed data vs. modeled data, and to plot data
-for multiple simulations.  A prototypical usage to plot a scatter plot of
-streamflow data for two simulations is as follows:
+for multiple simulations.  A prototypical usage to plot observed and
+simulated hydrographs with rainfall plotted on a second y-axis is as 
+follows:
 
-    RHESSysPlot.py -p scatter -o PATH_TO_OBSERVED -d  PATH_TO_SIMULATION_1/rhessys_basin.daily PATH_TO_SIMULATION_2/rhessys_basin.daily -c streamflow -t "MY TITLE" -l "Sim. 1 streamflow (mm/day)" "Sim. 2 streamflow (mm/day)" -f MY_PLOT_FILENAME --figureX 8 --figureY 6
+	RHESSysPlot.py --plottype standard -o PATH_TO_OBSERVED -d PATH_TO_SIMULATION/rhessys_basin.daily -c streamflow --secondaryData PATH_TO_SIMULATION/rhessys_basin.daily --secondaryColumn precip --secondaryLabel "Rainfall (mm/day)" -t "DR5 streamflow" -l "Test simulation" -f test_plot --figureX 8 --figureY 3 -y "Streamflow (mm/day)" --color magenta
+
+> Go [here](https://drive.google.com/file/d/0B7aK-9pTSLS-Q0JDeE4wQmN2VVU/edit?usp=sharing) 
+> to download example observed streamflow for the DR5 study catchment 
+> used in the first part of this tutorial
 
 The *--figureX* and *--figureY* options control the size of the plot (in
 inches).  RHESSysPlot also allows you to make standard time series, semi-log 
@@ -1535,11 +1540,11 @@ description of options, use the *--help* option:
     RHESSysPlot.py --help
     
 In addition to making static plots of basin-scale output variables, 
-RHESSysWorkflows provides a tool, *PatchToMoviy*, for making animations 
+RHESSysWorkflows provides a tool, *PatchToMovie*, for making animations 
 of patch-scale output variables.  To use this tool, you first need to 
 have RHESSys simulations for which patch-scale output was created 
 (e.g. using the *-p* output option).  The following example will create
-an animation for infiltration:
+a 30-frames-per-second animation for infiltration:
 
     PatchToMovie.py -p PROJECT_DIR -d PATH_TO_SIMULATION_WITH_PATCH_OUTPUT/rhessys_patch.daily -o OUTPUT_DIRECTORY -f OUTPUT_FILENAME -v "recharge * 1000.0" --mask GRASS_RASTER_LAYER --overlay GRASS_RASTER_LAYER_1 [GRASS_RASTER_LAYER_N] --fps 30 -t "infiltration"
 
@@ -1568,9 +1573,9 @@ individual maps into a movie file.  To install *ffmpeg* do the following:
     brew install ffmpeg
 
 #### Linux (Debian/Ubuntu-based systems):
-- Install *ffmpeg*:
+- Install *ffmpeg* (and *vlc* for viewing animations):
 
-    sudo apt-get install ffmpeg
+    sudo apt-get install ffmpeg vlc
     
 Lastly, you must add an entry to your EcohydroLib configuration file.  For
 OS X:

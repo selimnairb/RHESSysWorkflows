@@ -153,10 +153,10 @@ def plotGraph(args, obs, data, sizeX=1, sizeY=1, dpi=80):
         data_plt.append(mod_plt)
     
     # Plot annotations
+    columnName = args.column.capitalize()
     if args.title:
         title = args.title
     else:
-        columnName = args.column.capitalize()
         if args.plottype == PLOT_TYPE_STD:
             title = columnName
         elif args.plottype == PLOT_TYPE_LOGY:
@@ -207,8 +207,8 @@ def plotGraph(args, obs, data, sizeX=1, sizeY=1, dpi=80):
        (args.plottype == PLOT_TYPE_STD or args.plottype == PLOT_TYPE_LOGY):
         sec_file = open(args.secondaryData, 'r')
         (sec_datetime, sec_data) = RHESSysOutput.readColumnFromFile(sec_file,
-                                                                                   args.secondaryColumn,
-                                                                                   startHour=0)
+                                                                    args.secondaryColumn,
+                                                                    startHour=0)
         sec_file.close()
         sec = pd.Series(sec_data, index=sec_datetime)
         # Align timeseries
