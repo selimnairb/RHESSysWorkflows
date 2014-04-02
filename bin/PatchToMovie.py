@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """@package PatchToMovie
 
-@brief Tool for animations of patch-scale RHESSys output variables.
+@brief Tool for making animations of patch-scale RHESSys output variables.
 
 This software is provided free of charge under the New BSD License. Please see
 the following license information:
