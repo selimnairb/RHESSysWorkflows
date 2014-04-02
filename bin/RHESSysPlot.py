@@ -301,7 +301,7 @@ if __name__ == "__main__":
     # Open observed data
     obs_file = open(args.obs, 'r')
     (obs_datetime, obs_data) = RHESSysOutput.readObservedDataFromFile(obs_file,
-                                                                                     readHour=False)
+                                                                      readHour=False)
     obs_file.close()
     obs = pd.Series(obs_data, index=obs_datetime)
 
