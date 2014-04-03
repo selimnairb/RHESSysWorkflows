@@ -61,6 +61,8 @@ import argparse
 import operator
 
 import numpy as np
+import statsmodels.api as sm
+import matplotlib.pyplot as plt
 
 from ecohydrolib.context import Context
 from rhessysworkflows.metadata import RHESSysMetadata
@@ -78,7 +80,7 @@ parser.add_argument('-i', '--configfile', dest='configfile', required=False,
                     help='The configuration file.')
 parser.add_argument('-p', '--projectDir', dest='projectDir', required=True,
                     help='The directory to which metadata, intermediate, and final files should be saved')
-parser.add_argument('-d', '--rhessysOutFile', required=True,
+parser.add_argument('-d', '--rhessysOutFile', required=True, nargs='+',
                     help='Directory containing RHESSys patch output, specificically patch daily output stored in a file whose name ends with "_patch.daily".')
 parser.add_argument('--mask', required=False, default=None,
                     help='Name of raster to use as a mask')
@@ -88,8 +90,10 @@ parser.add_argument('--overlayLegend', required=False, default=False,
                     help='Display legend for overlay layer. If more than one overlay is present, will only draw legend for the first.')
 parser.add_argument('-o', '--outputDir', required=True,
                     help='Directory to which map should be output')
-parser.add_argument('-f', '--outputFile', required=True,
+parser.add_argument('-f', '--outputFile', required=True, nargs='+',
                     help='Name of file to store map in; .png extension will be added.  If file exists it will be overwritten.')
+parser.add_argument('-c', '--cdfOutputfile', required=True,
+                    help='Name of file to write CDF output to')
 parser.add_argument('--patchMap', required=False, default='patch',
                     help='Name of patch map')
 parser.add_argument('-v', '--outputVariable', required=True,
@@ -106,6 +110,10 @@ if args.configfile:
 
 context = Context(args.projectDir, configFile)
 
+if len(args.rhessysOutFile) != len(args.outputFile):
+    sys.exit("Number of data files %d does not match number of output filenames %d" % \
+             (len(args.rhessysOutFile), len(args.outputFile)) )
+
 # Check for necessary information in metadata
 metadata = RHESSysMetadata.readRHESSysEntries(context)
 if not 'grass_dbase' in metadata:
@@ -115,15 +123,21 @@ if not 'grass_location' in metadata:
 if not 'grass_mapset' in metadata:
     sys.exit("Metadata in project directory %s does not contain a GRASS mapset" % (context.projectDir,))
 
-if not os.path.isfile(args.rhessysOutFile) or not os.access(args.rhessysOutFile, os.R_OK):
-    sys.exit("Unable to read RHESSys output file %s" % (args.rhessysOutFile,))
-patchDailyFilepath = os.path.abspath(args.rhessysOutFile) 
+patchDailyFilepaths = []
+for outfile in args.rhessysOutFile:
+    if not os.path.isfile(outfile) or not os.access(outfile, os.R_OK):
+        sys.exit("Unable to read RHESSys output file %s" % (outfile,))
+    patchDailyFilepaths.append( os.path.abspath(outfile) ) 
 
-if not os.path.isdir(args.outputDir) or not os.access(args.outputDir, os.W_OK):
-    sys.exit("Unable to write to output directory %s" % (args.outputDir,) )
-outputDir = os.path.abspath(args.outputDir)
-outputFile = "%s.png" % (args.outputFile)
-outputFilePath = os.path.join(outputDir, outputFile)
+outputFilePaths = []
+for outfile in args.outputFile:
+    if not os.path.isdir(args.outputDir) or not os.access(args.outputDir, os.W_OK):
+        sys.exit("Unable to write to output directory %s" % (args.outputDir,) )
+    outputDir = os.path.abspath(args.outputDir)
+    outputFile = "%s.png" % (outfile,)
+    outputFilePaths.append( os.path.join(outputDir, outputFile) )
+
+cdfFilepath = os.path.join(outputDir, args.cdfOutputfile)
 
 # Determine output variables
 variables = ['patchID']
@@ -138,14 +152,24 @@ if args.mapTitle:
 else:
     title = args.outputVariable
 title += ' (' + args.variableUnit + ')'
-  
-if not os.path.isfile(patchDailyFilepath) or not os.access(patchDailyFilepath, os.R_OK):
-    sys.exit("Unable to read RHESSys patch daily output file %s" % (patchDailyFilepath,))
 
-# 1. Get tmp folder for temprarily storing images 
+
+# 1. Get tmp folder for temprarily storing rules
 tmpDir = tempfile.mkdtemp()
 print("Temp dir: %s" % (tmpDir,) )
 reclassRule = os.path.join(tmpDir, 'reclass.rule')
+colorTable = os.path.join(tmpDir, 'color.rule')
+# Create our own color ramp  
+with open(colorTable, 'w') as colorsOut:
+    colorsOut.write('0 50:0:0\n')
+    colorsOut.write('0.0001 75:0:0\n')
+    colorsOut.write('0.001 100:0:0\n')
+    colorsOut.write('0.01 125:0:0\n')
+    colorsOut.write('0.1 150:0:0\n')
+    colorsOut.write('0.25 175:0:0\n')
+    colorsOut.write('0.5 200:0:0\n')
+    colorsOut.write('0.75 225:0:0\n')
+    colorsOut.write('1 255:0:0\n')
 
 # 2. Initialize GRASS
 grassDbase = os.path.join(context.projectDir, metadata['grass_dbase'])
@@ -174,112 +198,173 @@ os.environ['GRASS_TRUECOLOR'] = 'TRUE'
 os.environ['GRASS_WIDTH'] = '960'
 os.environ['GRASS_HEIGHT'] = '720'
 
-# 3. Open file ending in "patch.daily" in rhessys output dir
-print("Reading RHESSys output data (this may take a while)...")
-f = open(patchDailyFilepath)
-data = RHESSysOutput.readColumnsFromPatchDailyFile(f, variables)
-f.close()
-if len(data) < 1:
-    sys.exit("No data found for variable in RHESSys output file '%s'" % \
-             (patchDailyFilepath,) )
-
-# 4. For each day
-patchIDs = None
-variable = None
-for (i, key) in enumerate(data):
-    dataForDate = data[key]
-    expr = VARIABLE_EXPR_RE.sub(r'np.array(dataForDate["\1"])', args.outputVariable)
-    if variable is None:
-        variable = eval(expr)
-    else:
-        variable += eval(expr)
-    if patchIDs is None:
-        patchIDs = [ int(f) for f in dataForDate['patchID'] ]
-          
-# 5. Write reclass rule to temp file
-reclass = open(reclassRule, 'w') 
-for (j, var) in enumerate(variable):
-    reclass.write("%d:%d:%f:%f\n" % (patchIDs[j], patchIDs[j], var, var) )
-reclass.close()
+# 3. For each rhessys output file ...
+variablesList = []
+for (i, patchDailyFilepath) in enumerate(patchDailyFilepaths):
+    print("\nReading RHESSys output %s from %s  (this may take a while)...\n" \
+          % (os.path.basename(patchDailyFilepath), os.path.dirname(patchDailyFilepath)) )
+    f = open(patchDailyFilepath)
+    data = RHESSysOutput.readColumnsFromPatchDailyFile(f, variables)
+    f.close()
+    if len(data) < 1:
+        sys.exit("No data found for variable in RHESSys output file '%s'" % \
+                 (patchDailyFilepath,) )
     
-# 6. Generate map for variable
-result = grassLib.script.run_command('r.recode', 
-                                     input=args.patchMap, 
-                                     output=RECLASS_MAP_TMP,
-                                     rules=reclassRule,
-                                     overwrite=True)
-if result != 0:
-    sys.exit("Failed to create reclass map while rendering image %s" % (outputFilePath,) )
+    # For each day
+    patchIDs = None
+    variable = None
+    for (i, key) in enumerate(data):
+        dataForDate = data[key]
+        expr = VARIABLE_EXPR_RE.sub(r'np.array(dataForDate["\1"])', args.outputVariable)
+        if variable is None:
+            variable = eval(expr)
+        else:
+            variable += eval(expr)
+        if patchIDs is None:
+            patchIDs = [ int(f) for f in dataForDate['patchID'] ]
     
-# 7. Render map with annotations to PNG image
-# Start a new PNG driver
-os.environ['GRASS_PNGFILE'] = outputFilePath
-result = grassLib.script.run_command('d.mon', start='PNG')
-if result != 0:
-    sys.exit("Failed to start PNG driver while rendering image %s" % \
-             (outputFilePath,) )
-
-# Render image
-result = grassLib.script.run_command('d.rast',
-                                     map=RECLASS_MAP_TMP)
-if result != 0:
-    sys.exit("Failed to render map %s while rendering image %s" % \
-             (RECLASS_MAP_TMP, outputFilePath) )
-   
-# Draw overlays 
-if args.overlay:
-    for (i, overlay) in enumerate(args.overlay):
-        result = grassLib.script.run_command('d.rast',
-                                             map=overlay,
-                                             flags='o')
-        if result != 0:
-            sys.exit("Failed to draw overlay map %s while rendering image %s" % \
-                     (overlay, outputFilePath) )
-        if i == 0 and args.overlayLegend:
-            # Add legend for overlay
-            result = grassLib.script.run_command('d.legend',
-                                             map=overlay,
-                                             at='15,50,10,15')
-            if result != 0:
-                sys.exit("Failed to add legend for overlay map %s while rendering image %s" % \
-                         (args.overlay, outputFilePath) )
-            # Write name of overlay layer
-            result = grassLib.script.run_command('d.text',
-                                             text=overlay,
-                                             size=2.5,
-                                             color='black',
-                                             at='12, 12',
-                                             align='cc')
-            if result != 0:
-                sys.exit("Failed to add overlay annotation to map while rendering image %s" % \
-                         (outputFilePath,) )
+    print("\nCumulative %s = %.2f\n" % (args.outputVariable, variable.sum()) )
+    variablesList.append(variable)
         
-# Add annotations
-result = grassLib.script.run_command('d.legend',
-                                     map=RECLASS_MAP_TMP,
-                                     at='63,88,85,95')
-if result != 0:
-    sys.exit("Failed to add legend to map while rendering image %s" % \
-             (outputFilePath,) )
-
-# Set title
-result = grassLib.script.run_command('d.text',
-                                     text=title,
-                                     size=5,
-                                     color='black',
-                                     at='73,98',
-                                     align='cc')
-if result != 0:
-    sys.exit("Failed to add title to map while rendering image %s" % \
-             (outputFilePath,) )
-
-# Write map imaage to file
-result = grassLib.script.run_command('d.mon', stop='PNG')
-if result != 0:
-    sys.exit("Error occured when closing PNG driver for image %s" % \
-             (outputFilePath,) )
+# 4. Normalize values to maximum  
+max_val = 0
+for var in variablesList:
+    max_val = max( max_val, np.max(var) )
     
+print("\nMax cumulative %s = %.2f\n" % (args.outputVariable, max_val) )
+max_idx = None
+max_patchID = None
+# Find the max value
+for var in variablesList:
+    max_idx = np.where(var == max_val)
+    if max_idx[0] >= 0: 
+        max_patchID = patchIDs[max_idx[0]]
+        break;
+if max_patchID:
+    print("\nPatchID of max value: %d" % (max_patchID,) )
+ 
+normalizedVariables = []
+for var in variablesList:
+    normalizedVariables.append( var / max_val )
+        
+# Write normalized maps for each input file
+for (i, variable) in enumerate(normalizedVariables):
+    outputFilePath = outputFilePaths[i]
+    # 5. Write reclass rule to temp file
+    reclass = open(reclassRule, 'w') 
+    for (j, var) in enumerate(variable):
+        reclass.write("%d:%d:%f:%f\n" % (patchIDs[j], patchIDs[j], var, var) )
+    reclass.close()
+        
+    # 6. Generate map for variable
+    result = grassLib.script.run_command('r.recode', 
+                                         input=args.patchMap, 
+                                         output=RECLASS_MAP_TMP,
+                                         rules=reclassRule,
+                                         overwrite=True)
+    if result != 0:
+        sys.exit("Failed to create reclass map while rendering image %s" % (outputFilePath,) )
+    
+    # Set color table
+    result = grassLib.script.run_command('r.colors', 
+                                         map=RECLASS_MAP_TMP,
+                                         rules=colorTable)
+    if result != 0:
+        sys.exit("Failed to modify color map while rendering image %s" % (outputFilePath,) )
+    
+    # 7. Render map with annotations to PNG image
+    # Start a new PNG driver
+    os.environ['GRASS_PNGFILE'] = outputFilePath
+    result = grassLib.script.run_command('d.mon', start='PNG')
+    if result != 0:
+        sys.exit("Failed to start PNG driver while rendering image %s" % \
+                 (outputFilePath,) )
+    
+    # Render image
+    result = grassLib.script.run_command('d.rast',
+                                         map=RECLASS_MAP_TMP)
+    if result != 0:
+        sys.exit("Failed to render map %s while rendering image %s" % \
+                 (RECLASS_MAP_TMP, outputFilePath) )
+       
+    # Draw overlays 
+    if args.overlay:
+        for (i, overlay) in enumerate(args.overlay):
+            result = grassLib.script.run_command('d.rast',
+                                                 map=overlay,
+                                                 flags='o')
+            if result != 0:
+                sys.exit("Failed to draw overlay map %s while rendering image %s" % \
+                         (overlay, outputFilePath) )
+            if i == 0 and args.overlayLegend:
+                # Add legend for overlay
+                result = grassLib.script.run_command('d.legend',
+                                                 map=overlay,
+                                                 at='15,50,10,15')
+                if result != 0:
+                    sys.exit("Failed to add legend for overlay map %s while rendering image %s" % \
+                             (args.overlay, outputFilePath) )
+                # Write name of overlay layer
+                result = grassLib.script.run_command('d.text',
+                                                 text=overlay,
+                                                 size=2.5,
+                                                 color='black',
+                                                 at='12, 12',
+                                                 align='cc')
+                if result != 0:
+                    sys.exit("Failed to add overlay annotation to map while rendering image %s" % \
+                             (outputFilePath,) )
+            
+    # Add annotations
+    result = grassLib.script.run_command('d.legend',
+                                         map=RECLASS_MAP_TMP,
+                                         at='63,88,85,95')
+    if result != 0:
+        sys.exit("Failed to add legend to map while rendering image %s" % \
+                 (outputFilePath,) )
+    
+    # Set title
+    result = grassLib.script.run_command('d.text',
+                                         text=title,
+                                         size=5,
+                                         color='black',
+                                         at='73,98',
+                                         align='cc')
+    if result != 0:
+        sys.exit("Failed to add title to map while rendering image %s" % \
+                 (outputFilePath,) )
+    
+    # Write map imaage to file
+    result = grassLib.script.run_command('d.mon', stop='PNG')
+    if result != 0:
+        sys.exit("Error occured when closing PNG driver for image %s" % \
+                 (outputFilePath,) )
+
+# Plot CDF
+fig = plt.figure(figsize=(8, 6), dpi=80, tight_layout=True)
+ax = fig.add_subplot(111)
+
+min_val = 0.01
+x = np.linspace(min_val, max_val, num=len(variablesList[0]))
+
+data_plt = []
+for var in variablesList:
+    tmp_ecdf = sm.distributions.ECDF(var)
+    (tmp_plot, ) = ax.plot(x, tmp_ecdf(x))
+    data_plt.append(tmp_plot)
+ax.set_xlim(min_val, max_val)
+ax.set_xscale('log')
+ax.set_xlabel(title) 
+fig.suptitle("Cumulative distribution - %s" % (title,), y=0.99)
+ax.legend( data_plt, args.outputFile, 'upper left', fontsize='x-small', ncol=1, frameon=False)
+    
+cdfFilepath_png = "%s.png" % (cdfFilepath,)
+cdfFilepath_pdf = "%s.pdf" % (cdfFilepath,)
+plt.savefig(cdfFilepath_png)
+plt.savefig(cdfFilepath_pdf)
+
 # Cleanup
+shutil.rmtree(tmpDir)
 result = grassLib.script.run_command('g.remove', rast=RECLASS_MAP_TMP)
 if result != 0:
     sys.exit("Failed to remove temporary map %s" % (RECLASS_MAP_TMP,) )
