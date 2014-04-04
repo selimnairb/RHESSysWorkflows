@@ -100,8 +100,6 @@ parser.add_argument('-v', '--outputVariable', required=True,
                     help='Name of RHESSys variable to be mapped.  Can be an expression such as "trans_sat + trans_unsat"')
 parser.add_argument('-t' ,'--mapTitle', required=False,
                     help='Text to use for title.  If not supplied, variable name will be used')
-parser.add_argument('-u', '--variableUnit', required=False, default='mm',
-                    help='Units of variable, which will be displayed in paranthesis next to the variable name on the map')
 args = parser.parse_args()
 
 configFile = None
@@ -151,8 +149,6 @@ if args.mapTitle:
     title = args.mapTitle
 else:
     title = args.outputVariable
-title += ' (' + args.variableUnit + ')'
-
 
 # 1. Get tmp folder for temprarily storing rules
 tmpDir = tempfile.mkdtemp()
@@ -161,15 +157,16 @@ reclassRule = os.path.join(tmpDir, 'reclass.rule')
 colorTable = os.path.join(tmpDir, 'color.rule')
 # Create our own color ramp  
 with open(colorTable, 'w') as colorsOut:
-    colorsOut.write('0 50:0:0\n')
-    colorsOut.write('0.0001 75:0:0\n')
-    colorsOut.write('0.001 100:0:0\n')
-    colorsOut.write('0.01 125:0:0\n')
-    colorsOut.write('0.1 150:0:0\n')
-    colorsOut.write('0.25 175:0:0\n')
-    colorsOut.write('0.5 200:0:0\n')
-    colorsOut.write('0.75 225:0:0\n')
-    colorsOut.write('1 255:0:0\n')
+    colorsOut.write('0 96:0:0\n')
+    colorsOut.write('0.001 96:32:0\n')
+    colorsOut.write('0.01 128:64:32\n')
+    colorsOut.write('0.1 160:96:64\n')
+    colorsOut.write('0.2 192:128:96\n')
+    colorsOut.write('0.4 224:160:128\n')
+    colorsOut.write('0.8 255:192:160\n')
+    colorsOut.write('0.9 255:224:192\n')
+    colorsOut.write('0.95 255:255:224\n')
+    colorsOut.write('1 255:255:255\n')
 
 # 2. Initialize GRASS
 grassDbase = os.path.join(context.projectDir, metadata['grass_dbase'])
@@ -223,7 +220,10 @@ for (i, patchDailyFilepath) in enumerate(patchDailyFilepaths):
         if patchIDs is None:
             patchIDs = [ int(f) for f in dataForDate['patchID'] ]
     
-    print("\nCumulative %s = %.2f\n" % (args.outputVariable, variable.sum()) )
+    print("Sum of cumulative %s = %.2f" % (args.outputVariable, variable.sum()) )
+    print("Mean of cumulative %s = %.2f" % (args.outputVariable, variable.mean()) )
+    print("Max of cumulative %s = %.2f" % (args.outputVariable, variable.max()) )
+    print("Min of cumulative %s = %.2f\n" % (args.outputVariable, variable.min()) )
     variablesList.append(variable)
         
 # 4. Normalize values to maximum  
