@@ -73,15 +73,22 @@ def plotGraphScatter(args, obs, data, log=False, sizeX=1, sizeY=1, dpi=80):
     
     assert( len(data) == len(args.legend) == 2 )
     
-    fig = plt.figure(figsize=(sizeX, sizeY), dpi=dpi, tight_layout=True)
+    fig = plt.figure(figsize=(sizeX, sizeY), dpi=dpi, tight_layout=False)
     ax = fig.add_subplot(111)
 
     x = data[0]
     y = data[1]
-    one_to_one = np.linspace(math.floor(min(x)), math.ceil(max(x)), 1000)
+    min_val = min( min(x), min(y) )
+    max_val = max( max(x), max(y) )
+    floor = math.floor(min_val)
+    ceil = math.ceil(max_val)
+    one_to_one = np.linspace(floor, ceil, 1000)
     
     ax.plot(data[0], data[1], '.')
     ax.plot(one_to_one, one_to_one, 'k-')
+    
+    ax.set_xlim(floor, ceil)
+    ax.set_ylim(floor, ceil)
     
     if log:
         ax.set_xscale('log')
@@ -92,7 +99,7 @@ def plotGraphScatter(args, obs, data, log=False, sizeX=1, sizeY=1, dpi=80):
         title = args.title
     else:
         title = "%s vs. %s" % (args.legend[0], args.legend[1])
-    fig.suptitle(title, y=0.99)
+    fig.suptitle(title, y=0.98)
     
     # X-axis
     ax.set_xlabel(args.legend[0])
@@ -246,8 +253,11 @@ if __name__ == "__main__":
                         help='Suffix to append on to name part of file name (i.e. before extension)')
     parser.add_argument('-o', '--obs', required=True,
                         help='File containing observed data')
-    parser.add_argument('-d', '--data', required=True, nargs='+',
-                        help='One or more data files')
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('-d', '--data', nargs='+',
+                       help='One or more RHESSys output data files')
+    group.add_argument('-b', '--behavioralData', nargs='+',
+                       help='One or more ensemble output files from RHESSys behavioral runs')
     parser.add_argument('--color', required=False, nargs='+',
                         help='Color of symbol to be applied to plots of data. Color must be expressed in form recognized by matplotlib.')
     parser.add_argument('--linewidth', required=False, nargs='+', type=float,
@@ -295,33 +305,58 @@ if __name__ == "__main__":
     if args.secondaryData and not args.secondaryColumn:
         sys.exit('A secondary data file was specified, but the secondary column to use was not')
     
-    if len(args.data) != len(args.legend):
+    if args.data and ( len(args.data) != len(args.legend) ):
         sys.exit('Number of legend items must equal the number of data files')
-
-    # Open observed data
-    obs_file = open(args.obs, 'r')
-    (obs_datetime, obs_data) = RHESSysOutput.readObservedDataFromFile(obs_file,
-                                                                      readHour=False)
-    obs_file.close()
-    obs = pd.Series(obs_data, index=obs_datetime)
+    elif args.behavioralData and ( len(args.behavioralData) != len(args.legend) ):
+        sys.exit('Number of legend items must equal the number of data files')
 
     # Open data and align to observed
     obs_align = None
     data = []
     max_x = min_x = 0
-    for d in args.data:
-        mod_file = open(d, 'r')
-        (tmp_datetime, tmp_data) = RHESSysOutput.readColumnFromFile(mod_file, args.column, startHour=0)
-        tmp_mod = pd.Series(tmp_data, index=tmp_datetime)
-        # Align timeseries
-        (mod_align, obs_align) = tmp_mod.align(obs, join='inner')
-        tmp_max_x = max(mod_align.max(), obs_align.max())
-        if tmp_max_x > max_x:
-            max_x = tmp_max_x
-        min_x = max(min_x, mod_align.min())
     
-        mod_file.close()
-        data.append( mod_align )
+    if args.data:
+        # Open observed data
+        obs_file = open(args.obs, 'r')
+        (obs_datetime, obs_data) = RHESSysOutput.readObservedDataFromFile(obs_file,
+                                                                          readHour=False)
+        obs_file.close()
+        obs = pd.Series(obs_data, index=obs_datetime)
+        
+        for d in args.data:
+            mod_file = open(d, 'r')
+            (tmp_datetime, tmp_data) = RHESSysOutput.readColumnFromFile(mod_file, args.column, startHour=0)
+            tmp_mod = pd.Series(tmp_data, index=tmp_datetime)
+            # Align timeseries
+            (mod_align, obs_align) = tmp_mod.align(obs, join='inner')
+            tmp_max_x = max(mod_align.max(), obs_align.max())
+            if tmp_max_x > max_x:
+                max_x = tmp_max_x
+            min_x = max(min_x, mod_align.min())
+        
+            mod_file.close()
+            data.append( mod_align )
+    elif args.behavioralData:
+        
+        # Open observed data (behavioral data has hour in it, so we need to read obs. data differently)
+        obs_file = open(args.obs, 'r')
+        (obs_datetime, obs_data) = RHESSysOutput.readObservedDataFromFile(obs_file,
+                                                                          readHour=True)
+        obs_file.close()
+        obs = pd.Series(obs_data, index=obs_datetime)
+        
+        for b in args.behavioralData:
+            tmp_mod = pd.read_csv(b, index_col=0, parse_dates=True)
+            # Convert df to series
+            tmp_mod = pd.Series(tmp_mod[args.column], index=tmp_mod.index)
+            # Align timeseries
+            (mod_align, obs_align) = tmp_mod.align(obs, join='inner')
+            tmp_max_x = max(mod_align.max(), obs_align.max())
+            if tmp_max_x > max_x:
+                max_x = tmp_max_x
+            min_x = max(min_x, mod_align.min())
+        
+            data.append( mod_align )
 
     if args.plottype == PLOT_TYPE_SCATTER:
         plotGraphScatter(args, obs_align, data, log=False, 
