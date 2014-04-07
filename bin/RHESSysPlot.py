@@ -222,7 +222,10 @@ def plotGraph(args, obs, data, sizeX=1, sizeY=1, dpi=80):
         (sec_align, obs_align) = sec.align(obs, join='inner')
         # Plot
         ax2 = ax.twinx()
-        (sec_plot,) = ax2.plot(x, sec_align)
+        if args.secondaryPlotType == 'line':
+            (sec_plot,) = ax2.plot(x, sec_align)
+        elif args.secondaryPlotType == 'bar':
+            sec_plot = ax2.bar(x, sec_align, facecolor='blue', edgecolor='none', width=2.0)
         secondaryLabel = args.secondaryColumn.capitalize()
         if args.secondaryLabel:
             secondaryLabel = args.secondaryLabel
@@ -282,6 +285,8 @@ if __name__ == "__main__":
                         help='Do not plot observed data.  Observed data will still be used for aligning timeseries. Not applicable to scatter plot output.')
     parser.add_argument('--secondaryData', required=False,
                         help='A data file containing the varaible to plot on a secondary Y-axis')
+    parser.add_argument('--secondaryPlotType', required=False, choices=['bar', 'line'], default='bar',
+                        help='Type of plot to use for secondary data.')
     parser.add_argument('--secondaryColumn', required=False,
                         help='Name of column to use from secondary data file')
     parser.add_argument('--secondaryLabel', required=False,
