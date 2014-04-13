@@ -1213,7 +1213,7 @@ watershed delineation, flow table creations); the standard DEM will be
 used for determining elevation, slope, aspect, etc.  To use a stream
 burned DEM, do the following:
 
-    RegisterRaster.py -p PROJECT_DIR -t stream_burned_dem -b -r /path/to/my/burnedDEM.tif "City of Springfield, Custom LIDAR, storm drain burned with Whitebox GAT 3.1.2"
+    RegisterRaster.py -p PROJECT_DIR -t stream_burned_dem -r /path/to/my/burnedDEM.tif -b "City of Springfield, Custom LIDAR, storm drain burned with Whitebox GAT 3.1.2"
 
 Once the stream burned raster has been registered with the workflow the
 *DelineateWatershed* and *CreateFlowtable* tools will know to use this raster
