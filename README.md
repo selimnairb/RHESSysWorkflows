@@ -145,7 +145,7 @@ RHESSysWorkflows uses Git to download RHESSys source code so you don't have to.
 #### OS X 10.7, 10.8, and 10.9: Install Xcode (OS X developer tools):
 1. Install Xcode via the App Store
 2. Launch Xcode
-3. Install 'Command Line Tools' from menu Xcode > Preferences... > Downloads (not required under Xcode 5.0)
+3. Install 'Command Line Tools' from menu Xcode > Preferences... > Downloads (if you don't see it, it's already installed)
 
 #### Install GIS tools: GRASS QGIS
 Note, GRASS version 6.4 is required for RHESSysWorkflows.  GRASS is
@@ -167,15 +167,17 @@ Here you will need to download and install the following:
 1. GDAL Complete framework
 2. FreeType framework
 3. cairo framework
-4. GRASS.app
+4. PIL (Python imaging library)
+5. GRASS.app
 
-While you are there, we recommend you also install QGIS (Quantum GIS) from http://www.kyngchaos.com/software/qgis
+While you are there, we recommend you also install QGIS (Quantum GIS)
 
 In addition to GRASS and components installed above, install:
 
-1. NumPy from http://www.kyngchaos.com/software/grass
-2. Matplotlib Python module from http://www.kyngchaos.com/software/grass
-3. QGIS
+1. NumPy from http://www.kyngchaos.com/software/python
+2. SciPy from http://www.kyngchaos.com/software/python
+2. Matplotlib Python module from http://www.kyngchaos.com/software/python
+3. QGIS from from http://www.kyngchaos.com/software/qgis
 
 QGIS is useful for visualizing output for earlier workflow steps that precede the importing data into GRASS. 
 
@@ -241,9 +243,35 @@ from OS X 10.6). From a Terminal window type the following:
     sudo pip install --no-download GDAL
 
 #### Install RHESSysWorkflows Python modules (including EcohydroLib) 
-To install RHESSysWorkflows and its dependencies (including EcohydroLib), enter the following from your Terminal:
+Before installing RHESSysWorkflows, we need to install some
+dependencies by hand (this is annoying, but unavoidable):
+
+    sudo pip install pandas patsy
+
+This is necessary because another depdendency (statsmodels) requires
+that we install its dependencies first. If you are running XCode 5.1 or later, 
+you may encounter this error:
+
+    clang: warning: unknown argument: '-mno-fused-madd' [-Wunused-command-line-argument-hard-error-in-future]
+    clang: note: this will be a hard error (cannot be downgraded to a warning) in the future
+    clang: warning: argument unused during compilation: '-mno-fused-madd'
+    
+To work around this, install pandas this way (you'll probably want to
+copy and paste this rather than typing it):
+
+    sudo ARCHFLAGS=-Wno-error=unused-command-line-argument-hard-error-in-future pip install pandas patsy
+    
+This too is annoying, but is unaviodable (for now).
+
+To install RHESSysWorkflows and its dependencies (including EcohydroLib), 
+enter the following from your Terminal if you are running XCode 5.0 or earlier:
 
     sudo pip install rhessysworkflows
+
+If you are running XCode 5.1 or later, we need to set the ARCHFLAGS variable 
+as above:
+
+	sudo ARCHFLAGS=-Wno-error=unused-command-line-argument-hard-error-in-future pip install rhessysworkflows
 
 This may take a while as several of the modules rely on non-Python code that has to be compiled.
     
@@ -314,21 +342,16 @@ files are installed in a directory owned by your user account.
 - Set ECOHYDROLIB_CFG environment variable so that RHESSysWorkflows
   can find your configuration file
 
-    For example, under OS X, from Terminal, do the following:
+    + Under OS X, from Terminal, do the following:
 
-	+ Open your bash profile in an editor:
-
-		nano ~/.bash_profile (~/.profile under Linux)
-
-	+ Add the following at the end of the file:
-
-		export ECOHYDROLIB_CFG=${HOME}/.ecohydro.cfg
+		echo "export ECOHYDROLIB_CFG=${HOME}/.ecohydro.cfg" >> ~/.bash_profile
 		
-	+ If you're running Linux also add the following to your bash profile:
+	+ If you're running Linux, do the following:
 	
-	    export LD_LIBRARY_PATH=/usr/lib/grass64/lib:${LD_LIBRARY_PATH}
+		echo "export ECOHYDROLIB_CFG=${HOME}/.ecohydro.cfg" >> ~/.profile
+	    
+	    echo "export LD_LIBRARY_PATH=/usr/lib/grass64/lib:${LD_LIBRARY_PATH}" >> ~/.profile
 
-	+ Save the file
 
 	+ Re-load bash profile (or close and open a new Terminal window):
 
@@ -442,6 +465,9 @@ with this gage.  By default, RHESSysWorkflows will use a web service
 to perform this query.  (If you are using a local copy of the NHDPlusV2 
 data add the *-s local* command line argument to the above command; 
 Most users should ignore this.)
+
+> Note that USGS NWIS gage identifiers can begin with '0'. You must 
+> enter this leading 0 when specifying a streamflow gage.
 
 #### Extract NHD catchments that drain through the streamflow gage
 
