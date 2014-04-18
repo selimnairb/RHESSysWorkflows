@@ -256,7 +256,7 @@ you may encounter this error:
     clang: note: this will be a hard error (cannot be downgraded to a warning) in the future
     clang: warning: argument unused during compilation: '-mno-fused-madd'
     
-To work around this, install pandas this way (you'll probably want to
+To work around this, install statsmodels' dependencies this way (you'll probably want to
 copy and paste this rather than typing it):
 
     sudo ARCHFLAGS=-Wno-error=unused-command-line-argument-hard-error-in-future pip install pandas patsy
