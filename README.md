@@ -349,6 +349,7 @@ files are installed in a directory owned by your user account.
 	+ If you're running Linux, do the following:
 	
 		echo "export ECOHYDROLIB_CFG=${HOME}/.ecohydro.cfg" >> ~/.profile
+	    
 	    echo "export LD_LIBRARY_PATH=/usr/lib/grass64/lib:${LD_LIBRARY_PATH}" >> ~/.profile
 
 
