@@ -5,7 +5,7 @@ def readme():
         return f.read()
 
 setup(name='rhessysworkflows',
-      version='1.22',
+      version='1.23',
       description='Libraries and command-line scripts for performing RHESSys data preparation workflows.',
       long_description=readme(),
       classifiers=[
@@ -50,6 +50,7 @@ setup(name='rhessysworkflows',
                'bin/RegisterCustomSoilReclassRules.py',
                'bin/RegisterLandcoverReclassRules.py',
                'bin/RHESSysPlot.py',
+               'bin/RHESSysPlotMassbalance.py',
                'bin/RunLAIRead.py',
                'bin/RunModel.py'
       ],

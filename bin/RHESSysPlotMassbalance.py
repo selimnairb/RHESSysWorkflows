@@ -23,22 +23,29 @@ PLOT_DEFAULT = PLOT_TYPE_STD
 
 def plotTable(args, col_names, obs, data, ax):
     
-    #import pdb; pdb.set_trace()
-    
-    data = np.append( [np.sum(obs['observed'])], np.sum(data['streamflow']) )
-    text = [ ["%.2f" % num for num in data] ]
-    #nrows, ncols = len(data)+1, len(col_names)
-    #hcell, wcell = 0.3, 1.
-    #hpad, wpad = 0, 0    
-    #fig=plt.figure(figsize=(ncols*wcell+wpad, nrows*hcell+hpad))
+    obsRunoffRat = np.sum( obs['observed'] ) / np.sum( data['precip'] )
+    modRunoffRat = np.sum( data['streamflow']) / np.sum( data['precip'] )
+    obsET = np.sum( data['precip'] ) - np.sum( obs['observed'] )
+    summary = [ [ np.sum( data['precip'] ), np.sum( data['precip'] ) ],
+                [ np.sum(obs['observed']), np.sum(data['streamflow']) ],
+                [ obsET, np.sum( data['evap'] ) + np.sum( data['trans'] ) ],
+                [ obsRunoffRat, modRunoffRat ]
+              ]
+    text = [ [ "%.2f" % num for num in summary[0] ],
+             [ "%.2f" % num for num in summary[1] ],
+             [ "%.2f" % num for num in summary[2] ],
+             [ "%.2f" % num for num in summary[3] ]
+           ]
+
     ax.axis('off')
-    #do the table
+    # Draw the table
     table = ax.table(cellText=text,
+                     colWidths=[0.4, 0.4],
                      colLabels=col_names,
-                     rowLabels=['Streamflow (mm)'],
-                     loc='center')
+                     rowLabels=['Precip ($mm^{-day}$)', 'Streamflow ($mm^{-day}$)', 'ET ($mm^{-day}$)', 'Runoff ratio'],
+                     loc='center right')
     table.auto_set_font_size(False)
-    table.set_fontsize(8)
+    table.set_fontsize(9)
     
 
 def plotGraph(args, plottype, obs, data, columns, min_x, max_x, ax, secondary=None):
@@ -47,14 +54,12 @@ def plotGraph(args, plottype, obs, data, columns, min_x, max_x, ax, secondary=No
        plottype == PLOT_TYPE_LOGY:
         x = obs.index
     elif plottype == PLOT_TYPE_CDF:
-        #import pdb; pdb.set_trace()
         x = np.linspace(min_x, max_x, num=1000 )
     
     # Plot observed values
     # Standard or log plot
     obs_y = obs
     if plottype == PLOT_TYPE_CDF:
-        #import pdb; pdb.set_trace()
         obs_ecdf = sm.distributions.ECDF(obs['observed'])
         obs_y = obs_ecdf(x)
     obs_plt = None
@@ -103,46 +108,21 @@ def plotGraph(args, plottype, obs, data, columns, min_x, max_x, ax, secondary=No
         y_label = 'Streamflow ($mm^{-day}$)'
         ax.set_ylabel( y_label )
     
-    if args.supressObs:
-        legend_items = columns
-    else:
-        data_plt.insert(0, obs_plt)
-        legend_items = ['Observed'] + columns
+    data_plt.insert(0, obs_plt)
     
     # Plot secondary data (if specified)
     if secondary and \
         (plottype == PLOT_TYPE_STD or plottype == PLOT_TYPE_LOGY):
-        sec_file = open(args.secondaryData, 'r')
-        (sec_datetime, sec_data) = RHESSysOutput.readColumnFromFile(sec_file,
-                                                                    args.secondaryColumn,
-                                                                    startHour=0)
-        sec_file.close()
-        #sec = pd.Series(sec_data, index=sec_datetime)
-#         import pdb; pdb.set_trace()
-        sec = pd.DataFrame(sec_data, index=sec_datetime, columns=[args.secondaryColumn])
-        # Align timeseries
-        (sec_align, obs_align) = sec.align(obs, join='inner')
-        (sec_align, data_align) = sec.align(data, axis=0, join='inner')
         # Plot
         ax2 = ax.twinx()
-        for s in secondary:
-            if args.secondaryPlotType == 'line':
-                (sec_plot,) = ax2.plot(x, data[s])
-            elif args.secondaryPlotType == 'bar':
-                sec_plot = ax2.bar(x, data[s], facecolor='blue', edgecolor='none', width=2.0)
-        secondaryLabel = args.secondaryColumn.capitalize()
-        if args.secondaryLabel:
-            secondaryLabel = args.secondaryLabel
+        if args.secondaryPlotType == 'line':
+            (sec_plot,) = ax2.plot(x, data[secondary])
+        elif args.secondaryPlotType == 'bar':
+            sec_plot = ax2.bar(x, data[secondary], facecolor='blue', edgecolor='none', width=2.0)
         ax2.invert_yaxis()
-        ax2.set_ylabel(args.secondaryLabel)
+        ax2.set_ylabel('Precipication ($mm^{-day}$)')
     
-    # Plot legend last
-    if plottype == PLOT_TYPE_CDF:
-        ax.legend( data_plt, legend_items, 'lower right', fontsize='x-small' )
-    elif secondary:
-        ax.legend( data_plt, legend_items, 'center right', fontsize='x-small' )
-    else:
-        ax.legend( data_plt, legend_items, 'best', fontsize='x-small' )
+    return data_plt
 
 if __name__ == "__main__":
     # Handle command line options
@@ -153,12 +133,8 @@ if __name__ == "__main__":
                         help='File containing observed data')
     parser.add_argument('-d', '--data', required=True, #nargs='+',
                         help='One or more data files')
-#     parser.add_argument('-c', '--column', required=True,
-#                         help='Name of column to use from data files')
     parser.add_argument('-t', '--title', required=False,
                         help='Title of figure')
-#     parser.add_argument('-l', '--legend', required=True, nargs='+',
-#                         help='Legend item labels')
     parser.add_argument('-x', '--xlabel', required=False,
                         help='X-axis label')
     parser.add_argument('-y', '--ylabel', required=False,
@@ -169,21 +145,11 @@ if __name__ == "__main__":
                         help='The height of the plot, in inches')
     parser.add_argument('--supressObs', required=False, action='store_true',
                         help='Do not plot observed data.  Observed data will still be used for aligning timeseries')
-    parser.add_argument('--secondaryData', required=False,
-                        help='A data file containing the varaible to plot on a secondary Y-axis')
     parser.add_argument('--secondaryPlotType', required=False, choices=['bar', 'line'], default='bar',
                         help='Type of plot to use for secondary data.')
-    parser.add_argument('--secondaryColumn', required=False,
-                        help='Name of column to use from secondary data file')
     parser.add_argument('--secondaryLabel', required=False,
                         help='Label to use for seconary Y-axis')
     args = parser.parse_args()
-    
-    if args.secondaryData and not args.secondaryColumn:
-        sys.exit('A secondary data file was specified, but the secondary column to use was not')
-    
-#     if len(args.data) != len(args.legend):
-#         sys.exit('Number of legend items must equal the number of data files')
 
     # Open observed data
     obs_file = open(args.obs, 'r')
@@ -207,7 +173,6 @@ if __name__ == "__main__":
     min_x = max(min_x, mod_align['streamflow'].min())
 
     mod_file.close()
-    #data.append( mod_align )
 
     fig = plt.figure(figsize=(args.figureX, args.figureY), dpi=80, tight_layout=True)
     ax_std = fig.add_subplot(221)
@@ -217,7 +182,7 @@ if __name__ == "__main__":
 
     #import pdb; pdb.set_trace()
 
-    plotGraph(args, PLOT_TYPE_STD, obs_align, mod_align, ['streamflow'], min_x, max_x, ax_std, secondary=['precip'])
+    data_plt = plotGraph(args, PLOT_TYPE_STD, obs_align, mod_align, ['streamflow'], min_x, max_x, ax_std, secondary='precip')
     plotGraph(args, PLOT_TYPE_LOGY, obs_align, mod_align, ['streamflow'], min_x, max_x, ax_log)
     plotGraph(args, PLOT_TYPE_CDF, obs_align, mod_align, ['streamflow'], min_x, max_x, ax_cdf)
     
@@ -227,6 +192,9 @@ if __name__ == "__main__":
     # Figure annotations
     if args.title:
         fig.suptitle(args.title, y=1.01)
+
+    legend_items = ['Observed', 'Modeled']
+    fig.legend( data_plt, legend_items, 'lower right' )
 
     # Output plot
     plot_filename_png = "%s.png" % (args.outname,)
