@@ -58,7 +58,17 @@ def plotTable(args, col_names, obs, data, ax):
             fontsize=10)
     
 
-def plotGraph(args, plottype, obs, data, columns, min_x, max_x, ax, secondary=None):
+def plotGraph(args, plottype, obs, data, columns, min_x, max_x, ax, secondary=None,
+              plotColor=True):
+    
+    if plotColor:
+        obs_color = 'black'
+        mod_color = 'green'
+        second_color = 'blue'
+    else:
+        obs_color = 'black'
+        mod_color = 'grey'
+        second_color = 'black'
     
     if plottype == PLOT_TYPE_STD or \
        plottype == PLOT_TYPE_LOGY:
@@ -74,7 +84,7 @@ def plotGraph(args, plottype, obs, data, columns, min_x, max_x, ax, secondary=No
         obs_y = obs_ecdf(x)
     obs_plt = None
     if not args.supressObs:
-        (obs_plt,) = ax.plot(x, obs_y)
+        (obs_plt,) = ax.plot(x, obs_y, obs_color, linewidth=2)
         
     # Plot modeled values
     data_plt = []
@@ -84,7 +94,7 @@ def plotGraph(args, plottype, obs, data, columns, min_x, max_x, ax, secondary=No
         if plottype == PLOT_TYPE_CDF:
             mod_ecdf = sm.distributions.ECDF(data[c])
             mod_y = mod_ecdf(x)
-        (mod_plt,) = ax.plot(x, mod_y)
+        (mod_plt,) = ax.plot(x, mod_y, color=mod_color, linewidth=1)
         data_plt.append(mod_plt)
     
     # X-axis
@@ -128,7 +138,7 @@ def plotGraph(args, plottype, obs, data, columns, min_x, max_x, ax, secondary=No
         if args.secondaryPlotType == 'line':
             (sec_plot,) = ax2.plot(x, data[secondary])
         elif args.secondaryPlotType == 'bar':
-            sec_plot = ax2.bar(x, data[secondary], facecolor='blue', edgecolor='none', width=2.0)
+            sec_plot = ax2.bar(x, data[secondary], facecolor=second_color, edgecolor='none', width=2.0)
         ax2.invert_yaxis()
         ax2.set_ylabel('Precipication ($mm\ day^{-1}$)')
     
@@ -155,6 +165,8 @@ if __name__ == "__main__":
                         help='The height of the plot, in inches')
     parser.add_argument('--supressObs', required=False, action='store_true',
                         help='Do not plot observed data.  Observed data will still be used for aligning timeseries')
+    parser.add_argument("--color", action="store_true", required=False, default=False,
+                        help="Plot in color")
     parser.add_argument('--secondaryPlotType', required=False, choices=['bar', 'line'], default='bar',
                         help='Type of plot to use for secondary data.')
     parser.add_argument('--secondaryLabel', required=False,
@@ -191,13 +203,13 @@ if __name__ == "__main__":
     ax_tab = fig.add_subplot(224)
 
     data_plt = plotGraph(args, PLOT_TYPE_STD, obs_align, mod_align, ['streamflow'], 
-                         min_x, max_x, ax_std, secondary='precip')
+                         min_x, max_x, ax_std, secondary='precip', plotColor=args.color)
     fig.text(0.0, 1.0, '(a)')
     plotGraph(args, PLOT_TYPE_LOGY, obs_align, mod_align, ['streamflow'], 
-              min_x, max_x, ax_log)
+              min_x, max_x, ax_log, plotColor=args.color)
     fig.text(1.0, 1.0, '(b)')
     plotGraph(args, PLOT_TYPE_CDF, obs_align, mod_align, ['streamflow'], 
-              min_x, max_x, ax_cdf)
+              min_x, max_x, ax_cdf, plotColor=args.color)
     fig.text(0.0, 0.5, '(c)')
     
     col_names = ['Observed', 'Modeled']
@@ -212,7 +224,11 @@ if __name__ == "__main__":
     fig.legend( data_plt, legend_items, 'lower right', fontsize=10, ncol=2 )
 
     # Output plot
-    plot_filename_png = "%s.png" % (args.outname,)
-    plot_filename_pdf = "%s.pdf" % (args.outname,)
+    if args.color:
+        outname = "%s_color" % (args.outname,)
+    else:
+        outname=args.outname
+    plot_filename_png = "%s.png" % (outname,)
+    plot_filename_pdf = "%s.pdf" % (outname,)
     plt.savefig(plot_filename_png, bbox_inches='tight') #, bbox_extra_artists=[table])
     plt.savefig(plot_filename_pdf, bbox_inches='tight') #, bbox_extra_artists=[table])
