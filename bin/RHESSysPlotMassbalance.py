@@ -190,21 +190,26 @@ if __name__ == "__main__":
     ax_cdf = fig.add_subplot(223)
     ax_tab = fig.add_subplot(224)
 
-    #import pdb; pdb.set_trace()
-
-    data_plt = plotGraph(args, PLOT_TYPE_STD, obs_align, mod_align, ['streamflow'], min_x, max_x, ax_std, secondary='precip')
-    plotGraph(args, PLOT_TYPE_LOGY, obs_align, mod_align, ['streamflow'], min_x, max_x, ax_log)
-    plotGraph(args, PLOT_TYPE_CDF, obs_align, mod_align, ['streamflow'], min_x, max_x, ax_cdf)
+    data_plt = plotGraph(args, PLOT_TYPE_STD, obs_align, mod_align, ['streamflow'], 
+                         min_x, max_x, ax_std, secondary='precip')
+    fig.text(0.0, 1.0, '(a)')
+    plotGraph(args, PLOT_TYPE_LOGY, obs_align, mod_align, ['streamflow'], 
+              min_x, max_x, ax_log)
+    fig.text(1.0, 1.0, '(b)')
+    plotGraph(args, PLOT_TYPE_CDF, obs_align, mod_align, ['streamflow'], 
+              min_x, max_x, ax_cdf)
+    fig.text(0.0, 0.5, '(c)')
     
     col_names = ['Observed', 'Modeled']
     plotTable(args, col_names, obs_align, mod_align, ax_tab)
+    fig.text(1.0, 0.5, '(d)')
 
     # Figure annotations
     if args.title:
         fig.suptitle(args.title, y=1.01)
 
     legend_items = ['Observed', 'Modeled']
-    fig.legend( data_plt, legend_items, 'lower right' )
+    fig.legend( data_plt, legend_items, 'lower right', fontsize=10, ncol=2 )
 
     # Output plot
     plot_filename_png = "%s.png" % (args.outname,)
