@@ -47,7 +47,7 @@ def plotTable(args, col_names, obs, data, ax):
     table = ax.table(cellText=text,
                      colWidths=[0.33, 0.33],
                      colLabels=col_names,
-                     rowLabels=['Precip ($mm\ day^{-1}$)', 'Streamflow ($mm\ day^{-1}$)', 'ET ($mm\ day^{-1}$)', 'Runoff ratio'],
+                     rowLabels=['Precip ($mm$)', 'Streamflow ($mm$)', 'ET ($mm$)', 'Runoff ratio'],
                      loc='center right')
     table.auto_set_font_size(False)
     table.set_fontsize(9)
