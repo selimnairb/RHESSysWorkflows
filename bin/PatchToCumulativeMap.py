@@ -71,7 +71,7 @@ from ecohydrolib.grasslib import *
 from rhessysworkflows.rhessys import RHESSysOutput
 
 PATCH_DAILY_RE = re.compile('^(.+_patch.daily)$')
-VARIABLE_EXPR_RE = re.compile(r'\b([a-zA-z]\w+)\b')
+VARIABLE_EXPR_RE = re.compile(r'\b([a-zA-z][a-zA-Z0-9_\.]+)\b') # variable names can have "." in them
 RECLASS_MAP_TMP = "patchtomovietmp_%d" % (random.randint(100000, 999999),)
 
 # Handle command line options
@@ -237,7 +237,8 @@ max_patchID = None
 # Find the max value
 for var in variablesList:
     max_idx = np.where(var == max_val)
-    if max_idx[0] >= 0: 
+    # Could be multiple indices
+    if type(max_idx) != tuple and max_idx[0] >= 0: 
         max_patchID = patchIDs[max_idx[0]]
         break;
 if max_patchID:
