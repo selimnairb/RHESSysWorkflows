@@ -238,7 +238,7 @@ max_patchID = None
 for var in variablesList:
     max_idx = np.where(var == max_val)
     # Could be multiple indices
-    if type(max_idx) != tuple and max_idx[0] >= 0: 
+    if len(max_idx[0]) == 1 and max_idx[0] >= 0: 
         max_patchID = patchIDs[max_idx[0]]
         break;
 if max_patchID:
