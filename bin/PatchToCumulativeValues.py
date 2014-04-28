@@ -71,8 +71,6 @@ from ecohydrolib.grasslib import *
 
 from rhessysworkflows.rhessys import RHESSysOutput
 
-#VARIABLE_EXPR_RE = re.compile(r'\b([a-zA-z][a-zA-Z0-9_\.]+)\b') # variable names can have "." in them
-
 # Handle command line options
 parser = argparse.ArgumentParser(description='Generate cummulative map of patch-scale RHESSys output variables')
 parser.add_argument('-i', '--configfile', dest='configfile', required=False,
