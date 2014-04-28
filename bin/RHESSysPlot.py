@@ -82,10 +82,15 @@ def plotGraphScatter(args, obs, data, log=False, sizeX=1, sizeY=1, dpi=80):
     max_val = max( max(x), max(y) )
     floor = math.floor(min_val)
     ceil = math.ceil(max_val)
-    one_to_one = np.linspace(floor, ceil, 1000)
+    range = np.linspace(floor, ceil, 1000)
     
     ax.plot(data[0], data[1], '.')
-    ax.plot(one_to_one, one_to_one, 'k-')
+    ax.plot(range, range, 'k-')
+    
+    # Fit line
+    (m, b) = np.polyfit(x, y, 1)
+    fit_y = m*range
+    ax.plot(range, fit_y, '--', color='grey')
     
     ax.set_xlim(floor, ceil)
     ax.set_ylim(floor, ceil)
@@ -95,6 +100,8 @@ def plotGraphScatter(args, obs, data, log=False, sizeX=1, sizeY=1, dpi=80):
         ax.set_yscale('log')
     
     # Plot annotations
+    ax.text(0.85*ceil, 0.8*max(fit_y), "$y = %.2f x$" % (m,) )
+    
     if args.title:
         title = args.title
     else:
