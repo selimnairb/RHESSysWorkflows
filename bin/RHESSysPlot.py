@@ -102,7 +102,7 @@ def plotGraphScatter(args, obs, data, log=False, sizeX=1, sizeY=1, dpi=80):
     # Plot annotations
     
     # Annotate fit line, making sure the annotation does not overlap 1:1 line
-    if m < 1:
+    if m <= 1:
         ax.text(0.85*ceil, 0.8*max(fit_y), "$y = %.2f x$" % (m,) )
     else:
         ax.text(0.65*ceil, 0.8*max(fit_y), "$y = %.2f x$" % (m,) )
