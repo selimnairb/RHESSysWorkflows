@@ -81,9 +81,19 @@ parser.add_argument('-v', '--outputVariables', required=True, nargs='+',
                     help='Name of RHESSys variables to be mapped.  Should be a list of individual variable names, not expressions thereof')
 parser.add_argument('-p', '--patchIDs', required=True, nargs='+', type=int,
                     help='Patches for which output should be produced')
+parser.add_argument('--startdate', type=int, nargs=4,
+                    help='Date on which to begin output, of format YYYY M D H')
 parser.add_argument('--enddate', type=int, nargs=4,
-                    help='Date on which to end fitness calculationss, of format YYYY M D H')
+                    help='Date on which to end output, of format YYYY M D H')
 args = parser.parse_args()
+
+startDate = None
+if args.startdate:
+    # Set end date based on command line
+    startDate = datetime.datetime(args.startdate[0],
+                                  args.startdate[1],
+                                  args.startdate[2],
+                                  args.startdate[3])
 
 endDate = None
 if args.enddate:
@@ -124,6 +134,8 @@ for (i, patchDailyFilepath) in enumerate(patchDailyFilepaths):
     patchIDs = None
     variable = None
     for (i, key) in enumerate(data):
+        if startDate and key < startDate:
+            continue
         if endDate and key > endDate:
             break
         #import pdb; pdb.set_trace()
