@@ -39,7 +39,6 @@ Pre conditions
 --------------
 1. Configuration file must define the following sections and values:
    'GRASS', 'GISBASE'
-   'RHESSYS', 'PATH_OF_FFMPEG'
 
 2. The following metadata entry(ies) must be present in the RHESSys section of the metadata associated with the project directory:
    grass_dbase
