@@ -127,7 +127,8 @@ parser.add_argument('-y', '--year', required=False, type=int,
 parser.add_argument('-v', '--outputVariable', required=True,
                     help='Name of RHESSys variable to be mapped.  Can be an expression such as "trans_sat + trans_unsat"')
 parser.add_argument('-n' ,'--variableName', required=False,
-                    help='Name to use for variable.  If not supplied, outputVariable will be used')
+                    help='Name to use for variable.  If not supplied, outputVariable will be used.' +
+                    'Note, do not use a dash "-" in this name.')
 parser.add_argument('-s', '--statistic', required=True,
                     choices=methods,
                     help='Statistic to calculate')
