@@ -67,19 +67,36 @@ from ecohydrolib.grasslib import *
 
 from rhessysworkflows.rhessys import RHESSysOutput
 
+LINE_TYPE_LINE = 'line'
+LINE_TYPE_DASH = 'dash'
+LINE_TYPE_DASH_DOT = 'dashdot'
+LINE_TYPE_COLON = 'colon'
+LINE_TYPE_DOT = 'dot'
+LINE_TYPE_DICT = { LINE_TYPE_LINE: '-',
+                   LINE_TYPE_DASH: '--',
+                   LINE_TYPE_DASH_DOT: '-.',
+                   LINE_TYPE_COLON: ':',
+                   LINE_TYPE_DOT: '.' }
+LINE_TYPES = [LINE_TYPE_LINE, LINE_TYPE_DASH, LINE_TYPE_DASH_DOT, LINE_TYPE_COLON, LINE_TYPE_DOT]
+NUM_LINE_TYPES = len(LINE_TYPES)
+
 def simple_axis(ax):
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     ax.get_xaxis().tick_bottom()
     ax.get_yaxis().tick_left()
 
-def plot_cdf(ax, data, numbins=1000, xlabel=None, ylabel=None, title=None):    
+def plot_cdf(ax, data, legend_items, numbins=1000, xlabel=None, ylabel=None, title=None):  
+    
     (n, bins, patches) = \
-        ax.hist(data, numbins, normed=True, cumulative=True, stacked=True,
+        ax.hist(data, numbins, label=legend_items, normed=True, cumulative=True, stacked=False,
                 histtype='step')
     # Remove last point in graph to that the end of the graph doesn't
     # go to y=0
-    patches[0].set_xy(patches[0].get_xy()[:-1])
+    for patch in patches:
+        patch[0].set_xy(patch[0].get_xy()[:-1])
+    
+    ax.legend(loc='lower right', fontsize=8)
     simple_axis(ax)
     
     if xlabel:
@@ -118,8 +135,10 @@ parser.add_argument('-z', '--zones', required=True,
                     help='Name of raster to use as zones in which statistic is to be calculated')
 parser.add_argument('-o', '--outputDir', required=True,
                     help='Directory to which map should be output')
-parser.add_argument('-f', '--outputFile', required=True, nargs='+',
-                    help='Name(s) of file(s) to store plot(s) in; ".pdf" will be appended. If file exists it will be overwritten.')
+parser.add_argument('-f', '--outputFile', required=True,
+                    help='Name of file to store plot in; ".pdf" will be appended. If file exists it will be overwritten.')
+parser.add_argument('-l', '--legend', required=True, nargs='+',
+                    help='Legend item labels')
 parser.add_argument('--patchMap', required=False, default='patch',
                     help='Name of patch map')
 parser.add_argument('-y', '--year', required=False, type=int,
@@ -142,9 +161,8 @@ if args.configfile:
 
 context = Context(args.projectDir, configFile)
 
-if len(args.rhessysOutFile) != len(args.outputFile):
-    sys.exit("Number of data files %d does not match number of output filenames %d" % \
-             (len(args.rhessysOutFile), len(args.outputFile)) )
+if len(args.rhessysOutFile) != len(args.legend):
+    sys.exit('Number of legend items must equal the number of data files')
 
 # Check for necessary information in metadata
 metadata = RHESSysMetadata.readRHESSysEntries(context)
@@ -161,13 +179,11 @@ for outfile in args.rhessysOutFile:
         sys.exit("Unable to read RHESSys output file %s" % (outfile,))
     patchFilepaths.append( os.path.abspath(outfile) ) 
 
-outputFilePaths = []
-for outfile in args.outputFile:
-    if not os.path.isdir(args.outputDir) or not os.access(args.outputDir, os.W_OK):
-        sys.exit("Unable to write to output directory %s" % (args.outputDir,) )
-    outputDir = os.path.abspath(args.outputDir)
-    outputFile = "%s.pdf" % (outfile,)
-    outputFilePaths.append( os.path.join(outputDir, outputFile) )
+if not os.path.isdir(args.outputDir) or not os.access(args.outputDir, os.W_OK):
+    sys.exit("Unable to write to output directory %s" % (args.outputDir,) )
+outputDir = os.path.abspath(args.outputDir)
+outputFile = "{0}.pdf".format(args.outputFile)
+outputFilePath = os.path.join(outputDir, outputFile)
 
 variableLabel = args.outputVariable
 if args.variableName:
@@ -225,8 +241,8 @@ for (i, patchFilepath) in enumerate(patchFilepaths):
     variablesList.append(eval(expr))
         
 # Write normalized maps for each input file
+data = []
 for (i, variable) in enumerate(variablesList):
-    outputFilePath = outputFilePaths[i]
     # Rescale variable to integer
     variable_scaled = variable * INT_RESCALE
     variable_int = variable_scaled.astype(int)
@@ -252,24 +268,25 @@ for (i, variable) in enumerate(variablesList):
                                          base=args.zones,
                                          cover=RECLASS_MAP_TMP,
                                          method=args.statistic,
-                                         output=STATS_MAP_TMP)
+                                         output=STATS_MAP_TMP,
+                                         overwrite=True)
     if result != 0:
         sys.exit("Failed to create zonal statisitcs for output: {0}".format(outputFilePath) )
     
     # Keep map (if applicable), re-scaling
     if args.keepmap:
-        print("Saving zonal stats to permanent map {0}".format(args.outputFile[i]))
+        permrast = "{0}_{1}".format(args.outputFile, args.legend[i])
+        print("Saving zonal stats to permanent map {0}".format(permrast))
         rMapcalcExpr = '$permrast=@$tmprast/float($scale)'
-        grassLib.script.raster.mapcalc(rMapcalcExpr, permrast=args.outputFile[i], tmprast=STATS_MAP_TMP,
+        grassLib.script.raster.mapcalc(rMapcalcExpr, permrast=permrast, tmprast=STATS_MAP_TMP,
                                        scale=INT_RESCALE, verbose=True)
         # Set color table
         result = grassLib.script.run_command('r.colors', 
-                                             map=args.outputFile[i],
+                                             map=permrast,
                                              color='grey1.0')
         if result != 0:
             sys.exit("Failed to modify color map")
         
-    
     # 7. Read zonal statistics
     pipe = grassLib.script.pipe_command('r.stats', flags='ln', input=STATS_MAP_TMP)
     stats_scaled = []
@@ -278,12 +295,13 @@ for (i, variable) in enumerate(variablesList):
         stats_scaled.append(float(stat))
     stats = np.array(stats_scaled)
     stats = stats / INT_RESCALE
+    data.append(stats)
     
-    # 8. Make plot
-    fig = plt.figure(figsize=(4, 3), dpi=80, tight_layout=True)
-    ax1 = fig.add_subplot(111)
-    plot_cdf(ax1, stats, xlabel=variableLabel)
-    fig.savefig(outputFilePath, bbox_inches='tight', pad_inches=0.125)
+# 8. Make plot
+fig = plt.figure(figsize=(4, 3), dpi=80, tight_layout=True)
+ax1 = fig.add_subplot(111)
+plot_cdf(ax1, data, args.legend, xlabel=variableLabel)
+fig.savefig(outputFilePath, bbox_inches='tight', pad_inches=0.125)
 
 
 # Cleanup
