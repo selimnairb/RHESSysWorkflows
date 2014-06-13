@@ -96,7 +96,7 @@ def plot_cdf(ax, data, legend_items, numbins=1000, xlabel=None, ylabel=None, tit
     for patch in patches:
         patch[0].set_xy(patch[0].get_xy()[:-1])
     
-    ax.legend(loc='lower right', fontsize=8)
+    ax.legend(loc='lower right', fontsize=6)
     simple_axis(ax)
     
     if xlabel:
