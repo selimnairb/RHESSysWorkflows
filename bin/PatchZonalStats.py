@@ -59,6 +59,7 @@ import operator
 
 import numpy as np
 import statsmodels.api as sm
+import matplotlib
 import matplotlib.pyplot as plt
 
 from ecohydrolib.context import Context
@@ -80,13 +81,32 @@ LINE_TYPE_DICT = { LINE_TYPE_LINE: '-',
 LINE_TYPES = [LINE_TYPE_LINE, LINE_TYPE_DASH, LINE_TYPE_DASH_DOT, LINE_TYPE_COLON, LINE_TYPE_DOT]
 NUM_LINE_TYPES = len(LINE_TYPES)
 
+def line_legend(ax, loc='lower right', fontsize=6, frameon=False):
+    """ Use proxy objects to force lines in legend display
+    """
+    (handles, labels) = ax.get_legend_handles_labels()
+    
+    # Make proxy objects
+    proxies = []
+    for handle in handles:
+        line = matplotlib.lines.Line2D([0], [0] , 
+                                       color=handle.get_edgecolor(),
+                                       linestyle=handle.get_linestyle(),
+                                       linewidth=handle.get_linewidth())
+        proxies.append(line)
+        
+    ax.legend(proxies, labels,
+              loc=loc, fontsize=fontsize,
+              frameon=frameon)
+
 def simple_axis(ax):
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     ax.get_xaxis().tick_bottom()
     ax.get_yaxis().tick_left()
 
-def plot_cdf(ax, data, legend_items, numbins=1000, xlabel=None, ylabel=None, title=None):  
+def plot_cdf(ax, data, legend_items, legend_loc='lower right', 
+             numbins=1000, xlabel=None, ylabel=None, title=None):
     
     (n, bins, patches) = \
         ax.hist(data, numbins, label=legend_items, normed=True, cumulative=True, stacked=False,
@@ -96,7 +116,8 @@ def plot_cdf(ax, data, legend_items, numbins=1000, xlabel=None, ylabel=None, tit
     for patch in patches:
         patch[0].set_xy(patch[0].get_xy()[:-1])
     
-    ax.legend(loc='lower right', fontsize=6)
+    # Use lines in legend instead of boxes
+    line_legend(ax, loc=legend_loc, fontsize=6)
     simple_axis(ax)
     
     if xlabel:
@@ -139,6 +160,8 @@ parser.add_argument('-f', '--outputFile', required=True,
                     help='Name of file to store plot in; ".pdf" will be appended. If file exists it will be overwritten.')
 parser.add_argument('-l', '--legend', required=True, nargs='+',
                     help='Legend item labels')
+parser.add_argument('--legendloc', required=False, default='lower right',
+                    help='Valid Matplotlib legend location (e.g. "lower right")')
 parser.add_argument('--patchMap', required=False, default='patch',
                     help='Name of patch map')
 parser.add_argument('-y', '--year', required=False, type=int,
@@ -152,7 +175,9 @@ parser.add_argument('-s', '--statistic', required=True,
                     choices=methods,
                     help='Statistic to calculate')
 parser.add_argument('--keepmap', required=False, action='store_true', default=True,
-                    help='Whether to keep resulting spatial statistics GRASS map')
+                    help='Whether to keep resulting zonal statistics GRASS map')
+parser.add_argument('--mapcolorstyle', required=False, default='grey1.0',
+                    help='Color map style to pass to r.colors, used for zonal stats map.')
 args = parser.parse_args()
 
 configFile = None
@@ -283,7 +308,7 @@ for (i, variable) in enumerate(variablesList):
         # Set color table
         result = grassLib.script.run_command('r.colors', 
                                              map=permrast,
-                                             color='grey1.0')
+                                             color=args.mapcolorstyle)
         if result != 0:
             sys.exit("Failed to modify color map")
         
@@ -300,7 +325,7 @@ for (i, variable) in enumerate(variablesList):
 # 8. Make plot
 fig = plt.figure(figsize=(4, 3), dpi=80, tight_layout=True)
 ax1 = fig.add_subplot(111)
-plot_cdf(ax1, data, args.legend, xlabel=variableLabel)
+plot_cdf(ax1, data, args.legend, legend_loc=args.legendloc, xlabel=variableLabel)
 fig.savefig(outputFilePath, bbox_inches='tight', pad_inches=0.125)
 
 
