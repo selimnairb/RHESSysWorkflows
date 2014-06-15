@@ -132,7 +132,7 @@ def plot_cdf(ax, data, legend_items, legend_loc='lower right',
     plt.setp(ax.get_xticklabels(), fontsize=6)
     plt.setp(ax.get_yticklabels(), fontsize=6)
 
-INT_RESCALE = 10 * 1000
+INT_RESCALE = 100
 VARIABLE_EXPR_RE = re.compile(r'\b([a-zA-z][a-zA-Z0-9_\.]+)\b') # variable names can have "." in them
 RANDOM = random.randint(100000, 999999)
 RECLASS_MAP_TMP = "patchzonalstats_cover_{0}".format(RANDOM)
