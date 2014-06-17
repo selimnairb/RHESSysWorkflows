@@ -103,8 +103,11 @@ def plot_cdf(ax, data, legend_items, legend_loc='lower right',
             linestyle = LINE_TYPES[i % NUM_LINE_TYPES]
         else:
             linestyle = linetype[i]
+        label = None
+        if legend_items:
+            label = legend_items[i]
         (n, bins, patches) = \
-            ax.hist(datum, numbins, label=legend_items[i], normed=True, cumulative=True, stacked=False,
+            ax.hist(datum, numbins, label=label, normed=True, cumulative=True, stacked=False,
                     histtype='step', linestyle=linestyle)
         # Remove last point in graph to that the end of the graph doesn't
         # go to y=0
@@ -112,9 +115,12 @@ def plot_cdf(ax, data, legend_items, legend_loc='lower right',
 #         for patch in patches:
 #             patch[0].set_xy(patch[0].get_xy()[:-1])
     
-    # Use lines in legend instead of boxes
-    line_legend(ax, loc=legend_loc, fontsize=6)
+    # Get rid of top and right border on axis
     simple_axis(ax)
+    
+    # Use lines in legend instead of boxes
+    if legend_items:
+        line_legend(ax, loc=legend_loc, fontsize=6)
     
     if xlabel:
         ax.set_xlabel(xlabel, fontsize=8)
@@ -156,7 +162,7 @@ parser.add_argument('-f', '--outputFile', required=True,
                     help='Name of file to store plot in; ".pdf" will be appended. If file exists it will be overwritten.')
 parser.add_argument('--outputFileNames', required=False, nargs='+',
                     help='Names to use for each outputfile.  Will be appended to outputFile.  If not specified, legend items will be used.')
-parser.add_argument('-l', '--legend', required=True, nargs='+',
+parser.add_argument('-l', '--legend', required=False, nargs='+',
                     help='Legend item labels')
 parser.add_argument('--legendloc', required=False, default='lower right',
                     help='Valid Matplotlib legend location (e.g. "lower right")')
@@ -186,7 +192,10 @@ if args.configfile:
 
 context = Context(args.projectDir, configFile)
 
-if len(args.rhessysOutFile) != len(args.legend):
+if not args.legend and not args.outputFileNames:
+    sys.exit('Must specify one of --legend or --outputFileNames')
+
+if args.legend and len(args.rhessysOutFile) != len(args.legend):
     sys.exit('Number of legend items must equal the number of data files')
 if args.outputFileNames and len(args.outputFileNames) != len(args.rhessysOutFile):
     sys.exit('Number of output file names must equal the number of data files')
