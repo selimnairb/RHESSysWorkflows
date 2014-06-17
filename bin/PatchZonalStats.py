@@ -68,17 +68,7 @@ from ecohydrolib.grasslib import *
 
 from rhessysworkflows.rhessys import RHESSysOutput
 
-LINE_TYPE_LINE = 'line'
-LINE_TYPE_DASH = 'dash'
-LINE_TYPE_DASH_DOT = 'dashdot'
-LINE_TYPE_COLON = 'colon'
-LINE_TYPE_DOT = 'dot'
-LINE_TYPE_DICT = { LINE_TYPE_LINE: '-',
-                   LINE_TYPE_DASH: '--',
-                   LINE_TYPE_DASH_DOT: '-.',
-                   LINE_TYPE_COLON: ':',
-                   LINE_TYPE_DOT: '.' }
-LINE_TYPES = [LINE_TYPE_LINE, LINE_TYPE_DASH, LINE_TYPE_DASH_DOT, LINE_TYPE_COLON, LINE_TYPE_DOT]
+LINE_TYPES = ['solid', 'dashed', 'dashdot', 'dotted']
 NUM_LINE_TYPES = len(LINE_TYPES)
 
 def line_legend(ax, loc='lower right', fontsize=6, frameon=False):
@@ -106,15 +96,21 @@ def simple_axis(ax):
     ax.get_yaxis().tick_left()
 
 def plot_cdf(ax, data, legend_items, legend_loc='lower right', 
-             numbins=1000, xlabel=None, ylabel=None, title=None):
+             numbins=1000, xlabel=None, ylabel=None, title=None, linetype=None):
     
-    (n, bins, patches) = \
-        ax.hist(data, numbins, label=legend_items, normed=True, cumulative=True, stacked=False,
-                histtype='step')
-    # Remove last point in graph to that the end of the graph doesn't
-    # go to y=0
-    for patch in patches:
-        patch[0].set_xy(patch[0].get_xy()[:-1])
+    for (i, datum) in enumerate(data):
+        if linetype == None:
+            linestyle = LINE_TYPES[i % NUM_LINE_TYPES]
+        else:
+            linestyle = linetype[i]
+        (n, bins, patches) = \
+            ax.hist(datum, numbins, label=legend_items[i], normed=True, cumulative=True, stacked=False,
+                    histtype='step', linestyle=linestyle)
+        # Remove last point in graph to that the end of the graph doesn't
+        # go to y=0
+        patches[0].set_xy(patches[0].get_xy()[:-1])
+#         for patch in patches:
+#             patch[0].set_xy(patch[0].get_xy()[:-1])
     
     # Use lines in legend instead of boxes
     line_legend(ax, loc=legend_loc, fontsize=6)
@@ -158,10 +154,14 @@ parser.add_argument('-o', '--outputDir', required=True,
                     help='Directory to which map should be output')
 parser.add_argument('-f', '--outputFile', required=True,
                     help='Name of file to store plot in; ".pdf" will be appended. If file exists it will be overwritten.')
+parser.add_argument('--outputFileNames', required=False, nargs='+',
+                    help='Names to use for each outputfile.  Will be appended to outputFile.  If not specified, legend items will be used.')
 parser.add_argument('-l', '--legend', required=True, nargs='+',
                     help='Legend item labels')
 parser.add_argument('--legendloc', required=False, default='lower right',
                     help='Valid Matplotlib legend location (e.g. "lower right")')
+parser.add_argument('--linetype', required=False, nargs='+',
+                    help='Valid Matplotlib line type, e.g. solid, dashed, dashdot, dotted.  Must specify 1 or N, where N==number of data files')
 parser.add_argument('--patchMap', required=False, default='patch',
                     help='Name of patch map')
 parser.add_argument('-y', '--year', required=False, type=int,
@@ -188,6 +188,19 @@ context = Context(args.projectDir, configFile)
 
 if len(args.rhessysOutFile) != len(args.legend):
     sys.exit('Number of legend items must equal the number of data files')
+if args.outputFileNames and len(args.outputFileNames) != len(args.rhessysOutFile):
+    sys.exit('Number of output file names must equal the number of data files')
+
+linestyles = None
+if args.linetype:
+    if len(args.linetype) == 1:
+        linestyles = [args.linetype] * len(args.rhessysOutFile)
+    elif len(args.linetype) != len(args.rhessysOutFile):
+        linestyles = args.linetype
+
+outputFileNames = args.legend
+if args.outputFileNames:
+    outputFileNames = args.outputFileNames
 
 # Check for necessary information in metadata
 metadata = RHESSysMetadata.readRHESSysEntries(context)
@@ -300,7 +313,7 @@ for (i, variable) in enumerate(variablesList):
     
     # Keep map (if applicable), re-scaling
     if args.keepmap:
-        permrast = "{0}_{1}".format(args.outputFile, args.legend[i])
+        permrast = "{0}_{1}".format(args.outputFile, outputFileNames[i])
         print("Saving zonal stats to permanent map {0}".format(permrast))
         rMapcalcExpr = '$permrast=@$tmprast/float($scale)'
         grassLib.script.raster.mapcalc(rMapcalcExpr, permrast=permrast, tmprast=STATS_MAP_TMP,
@@ -325,7 +338,8 @@ for (i, variable) in enumerate(variablesList):
 # 8. Make plot
 fig = plt.figure(figsize=(4, 3), dpi=80, tight_layout=True)
 ax1 = fig.add_subplot(111)
-plot_cdf(ax1, data, args.legend, legend_loc=args.legendloc, xlabel=variableLabel)
+plot_cdf(ax1, data, args.legend, legend_loc=args.legendloc, xlabel=variableLabel,
+         linetype=linestyles)
 fig.savefig(outputFilePath, bbox_inches='tight', pad_inches=0.125)
 
 
