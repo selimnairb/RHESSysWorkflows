@@ -79,7 +79,7 @@ def line_legend(ax, loc='lower right', fontsize=6, frameon=False):
     # Make proxy objects
     proxies = []
     for handle in handles:
-        line = matplotlib.lines.Line2D([0], [0] , 
+        line = matplotlib.lines.Line2D([0], [0], 
                                        color=handle.get_edgecolor(),
                                        linestyle=handle.get_linestyle(),
                                        linewidth=handle.get_linewidth())
@@ -89,14 +89,21 @@ def line_legend(ax, loc='lower right', fontsize=6, frameon=False):
               loc=loc, fontsize=fontsize,
               frameon=frameon)
 
-def simple_axis(ax):
+def simple_axis(ax, noy=False):
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
+    if noy:
+        ax.spines['left'].set_visible(False)
+        plt.setp(ax.get_yticklabels(), visible=False)
+        ax.yaxis.set_major_locator(plt.NullLocator())
+    else:
+        ax.get_yaxis().tick_left()
     ax.get_xaxis().tick_bottom()
-    ax.get_yaxis().tick_left()
+    
 
 def plot_cdf(ax, data, legend_items, legend_loc='lower right', 
-             numbins=1000, xlabel=None, ylabel=None, title=None, linetype=None, range=None):
+             numbins=1000, xlabel=None, ylabel=None, title=None, linetype=None, range=None,
+             fig_num=1):
     
     for (i, datum) in enumerate(data):
         if linetype == None:
@@ -106,20 +113,20 @@ def plot_cdf(ax, data, legend_items, legend_loc='lower right',
         label = None
         if legend_items:
             label = legend_items[i]
+
         (n, bins, patches) = \
             ax.hist(datum, numbins, range=range, label=label, normed=True, cumulative=True, stacked=False,
                     histtype='step', linestyle=linestyle)
         # Remove last point in graph to that the end of the graph doesn't
         # go to y=0
         patches[0].set_xy(patches[0].get_xy()[:-1])
-#         for patch in patches:
-#             patch[0].set_xy(patch[0].get_xy()[:-1])
+        ax.set_ylim(0, 1)
     
     # Get rid of top and right border on axis
     simple_axis(ax)
     
     # Use lines in legend instead of boxes
-    if legend_items:
+    if fig_num == 1 and legend_items:
         line_legend(ax, loc=legend_loc, fontsize=6)
     
     if xlabel:
@@ -130,7 +137,6 @@ def plot_cdf(ax, data, legend_items, legend_loc='lower right',
         ax.set_title(title)
     
     ax.set_xlim(right=bins[-2])
-    ax.set_ylim(0, 1)
     plt.setp(ax.get_xticklabels(), fontsize=6)
     plt.setp(ax.get_yticklabels(), fontsize=6)
 
@@ -174,8 +180,8 @@ parser.add_argument('-y', '--year', required=False, type=int,
                     help='Year for which statistics should be generated')
 parser.add_argument('-v', '--outputVariable', required=True,
                     help='Name of RHESSys variable to be mapped.  Can be an expression such as "trans_sat + trans_unsat"')
-parser.add_argument('-n' ,'--variableName', required=False,
-                    help='Name to use for variable.  If not supplied, outputVariable will be used.' +
+parser.add_argument('-n' ,'--variableName', required=False, nargs='+',
+                    help='Names to use for variables.  If not supplied, outputVariable will be used.' +
                     'Note, do not use a dash "-" in this name.')
 parser.add_argument('-s', '--statistic', required=True,
                     choices=methods,
@@ -199,6 +205,8 @@ if args.legend and len(args.rhessysOutFile) != len(args.legend):
     sys.exit('Number of legend items must equal the number of data files')
 if args.outputFileNames and len(args.outputFileNames) != len(args.rhessysOutFile):
     sys.exit('Number of output file names must equal the number of data files')
+if args.variableName and len(args.zones) != len(args.variableName):
+    sys.exit('Number of variable name must equal the number of zones') 
 
 linestyles = None
 if args.linetype:
@@ -232,9 +240,10 @@ outputDir = os.path.abspath(args.outputDir)
 outputFile = "{0}.pdf".format(args.outputFile)
 outputFilePath = os.path.join(outputDir, outputFile)
 
-variableLabel = args.outputVariable
 if args.variableName:
-    variableLabel = args.variableName
+    variableLabels = args.variableName
+else:
+    variableLabels = [args.outputVariable] * len(args.zones)
 
 # Determine output variables
 variables = ['patchID']
@@ -289,7 +298,6 @@ for (i, patchFilepath) in enumerate(patchFilepaths):
         
 # Write normalized maps for each input file, for each zone
 zones = args.zones
-fig = plt.figure(figsize=(12, 3), dpi=80, tight_layout=True)
 data = {}
 maps_to_delete = set()
 maps_to_delete.add(STATS_MAP_TMP)
@@ -365,15 +373,22 @@ for datum in data.values():
     min_x = min(np.min(datum), min_x)
     max_x = max(np.max(datum), max_x)
 
+# 8. Make plots
+fig = plt.figure(figsize=(12, 3), dpi=80, tight_layout=True)
+
 num_zones = len(zones)
 for (i, zone) in enumerate(zones):  
-    # 8. Make plot
-    ax = fig.add_subplot(1, num_zones, i+1)
-    plot_cdf(ax, data[zone], args.legend, legend_loc=args.legendloc, xlabel=variableLabel,
-             linetype=linestyles, range=(min_x, max_x))
+    var_label = variableLabels[i]
+    fig_num = i + 1
+    
+    # Make CDF
+    ax = fig.add_subplot(1, num_zones, fig_num)
+    plot_cdf(ax, data[zone], args.legend, legend_loc=args.legendloc, xlabel=var_label,
+             linetype=linestyles, range=(min_x, max_x), fig_num=fig_num)
     
 fig.savefig(outputFilePath, bbox_inches='tight', pad_inches=0.125)
 
+# Make
 
 # Cleanup
 shutil.rmtree(tmpDir)
