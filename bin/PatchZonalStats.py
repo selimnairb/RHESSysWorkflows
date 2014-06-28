@@ -96,7 +96,7 @@ def simple_axis(ax):
     ax.get_yaxis().tick_left()
 
 def plot_cdf(ax, data, legend_items, legend_loc='lower right', 
-             numbins=1000, xlabel=None, ylabel=None, title=None, linetype=None):
+             numbins=1000, xlabel=None, ylabel=None, title=None, linetype=None, range=None):
     
     for (i, datum) in enumerate(data):
         if linetype == None:
@@ -107,7 +107,7 @@ def plot_cdf(ax, data, legend_items, legend_loc='lower right',
         if legend_items:
             label = legend_items[i]
         (n, bins, patches) = \
-            ax.hist(datum, numbins, label=label, normed=True, cumulative=True, stacked=False,
+            ax.hist(datum, numbins, range=range, label=label, normed=True, cumulative=True, stacked=False,
                     histtype='step', linestyle=linestyle)
         # Remove last point in graph to that the end of the graph doesn't
         # go to y=0
@@ -154,7 +154,7 @@ parser.add_argument('-d', '--rhessysOutFile', required=True, nargs='+',
                          'specificically patch yearly output in a file ending in "_patch.yearly".')
 parser.add_argument('--mask', required=False, default=None,
                     help='Name of raster to use as a mask')
-parser.add_argument('-z', '--zones', required=True,
+parser.add_argument('-z', '--zones', required=True, nargs='+',
                     help='Name of raster to use as zones in which statistic is to be calculated')
 parser.add_argument('-o', '--outputDir', required=True,
                     help='Directory to which map should be output')
@@ -287,76 +287,97 @@ for (i, patchFilepath) in enumerate(patchFilepaths):
     expr = VARIABLE_EXPR_RE.sub(r'data["\1"]', args.outputVariable)
     variablesList.append(eval(expr))
         
-# Write normalized maps for each input file
-data = []
-for (i, variable) in enumerate(variablesList):
-    # Rescale variable to integer
-    variable_scaled = variable * INT_RESCALE
-    variable_int = variable_scaled.astype(int)
-    # 4. Write reclass rule to temp file
-    reclass = open(reclassRule, 'w') 
-    for (j, var) in enumerate(variable_int):
-        reclass.write("%d:%d:%d:%d\n" % (patchIDs[j], patchIDs[j], var, var) )
-    reclass.close()
+# Write normalized maps for each input file, for each zone
+zones = args.zones
+fig = plt.figure(figsize=(12, 3), dpi=80, tight_layout=True)
+data = {}
+maps_to_delete = set()
+maps_to_delete.add(STATS_MAP_TMP)
+for zone in zones:
+    for (i, variable) in enumerate(variablesList):
+        reclass_map = "{0}_{1}".format(RECLASS_MAP_TMP, outputFileNames[i])
+        # Rescale variable to integer
+        variable_scaled = variable * INT_RESCALE
+        variable_int = variable_scaled.astype(int)
+        # 4. Write reclass rule to temp file
+        reclass = open(reclassRule, 'w') 
+        for (j, var) in enumerate(variable_int):
+            reclass.write("%d:%d:%d:%d\n" % (patchIDs[j], patchIDs[j], var, var) )
+        reclass.close()
+            
+        # 5. Generate map for variable (only do it once per variable)
+        if not reclass_map in maps_to_delete:
+            print("\nMapping variable: {0} for intput {1} ...".format(args.outputVariable, outputFileNames[i]))
+            result = grassLib.script.run_command('r.recode', 
+                                                 input=args.patchMap, 
+                                                 output=reclass_map,
+                                                 rules=reclassRule,
+                                                 overwrite=True)
+            if result != 0:
+                sys.exit("Failed to create reclass map for output: {0}".format(outputFilePath) )
+            maps_to_delete.add(reclass_map)
         
-    # 5. Generate map for variable
-    print("Mapping variable: {0} ...".format(args.outputVariable))
-    result = grassLib.script.run_command('r.recode', 
-                                         input=args.patchMap, 
-                                         output=RECLASS_MAP_TMP,
-                                         rules=reclassRule,
-                                         overwrite=True)
-    if result != 0:
-        sys.exit("Failed to create reclass map for output: {0}".format(outputFilePath) )
-    
-    # 6. Calculate zonal statistics
-    print("Calculating zonal statistics...")
-    result = grassLib.script.run_command('r.statistics',
-                                         base=args.zones,
-                                         cover=RECLASS_MAP_TMP,
-                                         method=args.statistic,
-                                         output=STATS_MAP_TMP,
-                                         overwrite=True)
-    if result != 0:
-        sys.exit("Failed to create zonal statisitcs for output: {0}".format(outputFilePath) )
-    
-    # Keep map (if applicable), re-scaling
-    if args.keepmap:
-        permrast = "{0}_{1}".format(args.outputFile, outputFileNames[i])
-        print("Saving zonal stats to permanent map {0}".format(permrast))
-        rMapcalcExpr = '$permrast=@$tmprast/float($scale)'
-        grassLib.script.raster.mapcalc(rMapcalcExpr, permrast=permrast, tmprast=STATS_MAP_TMP,
-                                       scale=INT_RESCALE, verbose=True)
-        # Set color table
-        result = grassLib.script.run_command('r.colors', 
-                                             map=permrast,
-                                             color=args.mapcolorstyle)
+        # 6. Calculate zonal statistics
+        print("Calculating zonal statistics...")
+        result = grassLib.script.run_command('r.statistics',
+                                             base=zone,
+                                             cover=reclass_map,
+                                             method=args.statistic,
+                                             output=STATS_MAP_TMP,
+                                             overwrite=True)
         if result != 0:
-            sys.exit("Failed to modify color map")
+            sys.exit("Failed to create zonal statisitcs for output: {0}".format(outputFilePath) )
         
-    # 7. Read zonal statistics
-    pipe = grassLib.script.pipe_command('r.stats', flags='ln', input=STATS_MAP_TMP)
-    stats_scaled = []
-    for line in pipe.stdout:
-        (parcel, stat) = line.strip().split()
-        stats_scaled.append(float(stat))
-    stats = np.array(stats_scaled)
-    stats = stats / INT_RESCALE
-    data.append(stats)
+        # Keep map (if applicable), re-scaling
+        if args.keepmap:
+            permrast = "{0}_{1}_{2}".format(args.outputFile, zone, outputFileNames[i])
+            print("Saving zonal stats to permanent map {0}".format(permrast))
+            rMapcalcExpr = '$permrast=@$tmprast/float($scale)'
+            grassLib.script.raster.mapcalc(rMapcalcExpr, permrast=permrast, tmprast=STATS_MAP_TMP,
+                                           scale=INT_RESCALE, verbose=True)
+            # Set color table
+            result = grassLib.script.run_command('r.colors', 
+                                                 map=permrast,
+                                                 color=args.mapcolorstyle)
+            if result != 0:
+                sys.exit("Failed to modify color map")
+            
+        # 7. Read zonal statistics
+        pipe = grassLib.script.pipe_command('r.stats', flags='ln', input=STATS_MAP_TMP)
+        stats_scaled = []
+        for line in pipe.stdout:
+            (parcel, stat) = line.strip().split()
+            stats_scaled.append(float(stat))
+        stats = np.array(stats_scaled)
+        stats = stats / INT_RESCALE
+        print("Median for {0} for zone {1} = {2}".format(outputFileNames[i], zone, np.median(stats)))
+        print("Mean for {0} for zone {1} = {2}".format(outputFileNames[i], zone, stats.mean()))
+        print("Standard dev. for {0} for zone {1} = {2}".format(outputFileNames[i], zone, np.std(stats)))
+        try:
+            tmp_data = data[zone]
+        except KeyError:
+            tmp_data = []
+            data[zone] = tmp_data
+        tmp_data.append(stats)
+
+min_x = max_x = 0
+for datum in data.values():
+    min_x = min(np.min(datum), min_x)
+    max_x = max(np.max(datum), max_x)
+
+num_zones = len(zones)
+for (i, zone) in enumerate(zones):  
+    # 8. Make plot
+    ax = fig.add_subplot(1, num_zones, i+1)
+    plot_cdf(ax, data[zone], args.legend, legend_loc=args.legendloc, xlabel=variableLabel,
+             linetype=linestyles, range=(min_x, max_x))
     
-# 8. Make plot
-fig = plt.figure(figsize=(4, 3), dpi=80, tight_layout=True)
-ax1 = fig.add_subplot(111)
-plot_cdf(ax1, data, args.legend, legend_loc=args.legendloc, xlabel=variableLabel,
-         linetype=linestyles)
 fig.savefig(outputFilePath, bbox_inches='tight', pad_inches=0.125)
 
 
 # Cleanup
 shutil.rmtree(tmpDir)
-result = grassLib.script.run_command('g.remove', rast=RECLASS_MAP_TMP)
-if result != 0:
-    sys.exit("Failed to remove temporary map %s" % (RECLASS_MAP_TMP,) )
-result = grassLib.script.run_command('g.remove', rast=STATS_MAP_TMP)
-if result != 0:
-    sys.exit("Failed to remove temporary map %s" % (STATS_MAP_TMP,) )
+for map in maps_to_delete:
+    result = grassLib.script.run_command('g.remove', rast=map)
+    if result != 0:
+        sys.exit("Failed to remove temporary map %s" % (map,) )
