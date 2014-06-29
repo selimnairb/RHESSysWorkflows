@@ -56,6 +56,7 @@ import subprocess, shlex
 import time, random
 import argparse
 import operator
+import math
 
 import numpy as np
 import statsmodels.api as sm
@@ -103,7 +104,7 @@ def simple_axis(ax, noy=False):
 
 def plot_cdf(ax, data, legend_items, legend_loc='lower right', 
              numbins=1000, xlabel=None, ylabel=None, title=None, linetype=None, range=None,
-             fig_num=1):
+             fig_num=1, log=False):
     
     for (i, datum) in enumerate(data):
         if linetype == None:
@@ -114,9 +115,16 @@ def plot_cdf(ax, data, legend_items, legend_loc='lower right',
         if legend_items:
             label = legend_items[i]
 
-        (n, bins, patches) = \
-            ax.hist(datum, numbins, range=range, label=label, normed=True, cumulative=True, stacked=False,
-                    histtype='step', linestyle=linestyle)
+        if log:
+            log_bins = np.logspace(-1, math.log10(range[1]), numbins)
+            (n, bins, patches) = \
+                ax.hist(datum, bins=log_bins, label=label, normed=True, cumulative=True, stacked=False,
+                        histtype='step', linestyle=linestyle)
+            ax.set_xscale('log')
+        else:
+            (n, bins, patches) = \
+                ax.hist(datum, numbins, range=range, label=label, normed=True, cumulative=True, stacked=False,
+                        histtype='step', linestyle=linestyle)
         # Remove last point in graph to that the end of the graph doesn't
         # go to y=0
         patches[0].set_xy(patches[0].get_xy()[:-1])
@@ -190,6 +198,8 @@ parser.add_argument('--keepmap', required=False, action='store_true', default=Tr
                     help='Whether to keep resulting zonal statistics GRASS map')
 parser.add_argument('--mapcolorstyle', required=False, default='grey1.0',
                     help='Color map style to pass to r.colors, used for zonal stats map.')
+parser.add_argument('--log', required=False, action='store_true',
+                    help='Plot CDF/histogram with log-scaled bins')
 args = parser.parse_args()
 
 configFile = None
@@ -384,7 +394,7 @@ for (i, zone) in enumerate(zones):
     # Make CDF
     ax = fig.add_subplot(1, num_zones, fig_num)
     plot_cdf(ax, data[zone], args.legend, legend_loc=args.legendloc, xlabel=var_label,
-             linetype=linestyles, range=(min_x, max_x), fig_num=fig_num)
+             linetype=linestyles, range=(min_x, max_x), fig_num=fig_num, log=args.log)
     
 fig.savefig(outputFilePath, bbox_inches='tight', pad_inches=0.125)
 
