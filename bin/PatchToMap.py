@@ -201,11 +201,12 @@ for (i, variable) in enumerate(variablesList):
         sys.exit("Failed to create reclass map {0}".format(reclass_map) )
         
     # Set color table
-    result = grassLib.script.run_command('r.colors', 
-                                         map=reclass_map,
-                                         color=args.mapcolorstyle)
-    if result != 0:
-        sys.exit("Failed to modify color map")
+    if args.mapcolorstyle:
+        result = grassLib.script.run_command('r.colors', 
+                                             map=reclass_map,
+                                             color=args.mapcolorstyle)
+        if result != 0:
+            sys.exit("Failed to modify color map")
 
 # Cleanup
 shutil.rmtree(tmpDir)

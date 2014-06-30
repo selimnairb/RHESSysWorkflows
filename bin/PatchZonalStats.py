@@ -354,11 +354,12 @@ for zone in zones:
             grassLib.script.raster.mapcalc(rMapcalcExpr, permrast=permrast, tmprast=STATS_MAP_TMP,
                                            scale=INT_RESCALE, verbose=True)
             # Set color table
-            result = grassLib.script.run_command('r.colors', 
-                                                 map=permrast,
-                                                 color=args.mapcolorstyle)
-            if result != 0:
-                sys.exit("Failed to modify color map")
+            if args.mapcolorstyle:
+                result = grassLib.script.run_command('r.colors', 
+                                                     map=permrast,
+                                                     color=args.mapcolorstyle)
+                if result != 0:
+                    sys.exit("Failed to modify color map")
             
         # 7. Read zonal statistics
         pipe = grassLib.script.pipe_command('r.stats', flags='ln', input=STATS_MAP_TMP)
