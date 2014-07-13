@@ -385,7 +385,8 @@ for datum in data.values():
     max_x = max(np.max(datum), max_x)
 
 # 8. Make plots
-fig = plt.figure(figsize=(12, 3), dpi=80, tight_layout=True)
+fig_width = 4 * len(args.zones)
+fig = plt.figure(figsize=(fig_width, 3), dpi=80, tight_layout=True)
 
 num_zones = len(zones)
 for (i, zone) in enumerate(zones):  
