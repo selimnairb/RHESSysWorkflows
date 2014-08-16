@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-"""@package PatchZonalStats
+"""@package PatchZonalStatsNormalize
 
-@brief Tool for calculating zonal statistics for patch-scale RHESSys output variables.
+@brief Tool for calculating zonal statistics for normalized patch-scale RHESSys output variables.
 
 This software is provided free of charge under the New BSD License. Please see
 the following license information:
@@ -201,6 +201,8 @@ parser.add_argument('-c', '--constant', required=False, nargs='+', type=float,
 parser.add_argument('-n' ,'--variableName', required=False, nargs='+',
                     help='Names to use for variables.  If not supplied, outputVariable will be used.' +
                     'Note, do not use a dash "-" in this name.')
+parser.add_argument('--normalizeMap', required=True,
+                    help='Map to normalize values by (variable will be divided by this map)')
 parser.add_argument('-s', '--statistic', required=True,
                     choices=methods,
                     help='Statistic to calculate')
@@ -329,12 +331,9 @@ maps_to_delete.add(STATS_MAP_TMP)
 for zone in zones:
     for (i, variable) in enumerate(variablesList):
         reclass_map = "{0}_{1}".format(RECLASS_MAP_TMP, outputFileNames[i])
-        # Rescale variable to integer
-        variable_scaled = variable * INT_RESCALE
-        variable_int = variable_scaled.astype(int)
         # 4. Write reclass rule to temp file
         reclass = open(reclassRule, 'w') 
-        for (j, var) in enumerate(variable_int):
+        for (j, var) in enumerate(variable):
             reclass.write("%d:%d:%d:%d\n" % (patchIDs[j], patchIDs[j], var, var) )
         reclass.close()
             
@@ -348,6 +347,13 @@ for zone in zones:
                                                  overwrite=True)
             if result != 0:
                 sys.exit("Failed to create reclass map for output: {0}".format(outputFilePath) )
+            
+            print("Normalizing {0} map by {1}".format(reclass_map, args.normalizeMap))
+            # Normalize (Rescale to integer in the process)
+            rMapcalcExpr = '$reclass=int(($reclass/$norm)*$scale)'
+            grassLib.script.raster.mapcalc(rMapcalcExpr, reclass=reclass_map, norm=args.normalizeMap,
+                                           scale=INT_RESCALE, verbose=True)
+            
             maps_to_delete.add(reclass_map)
         
         # 6. Calculate zonal statistics
@@ -411,11 +417,11 @@ for (i, zone) in enumerate(zones):
     # Make CDF
     ax = fig.add_subplot(1, num_zones, fig_num)
     plot_cdf(ax, data[zone], args.legend, legend_loc=args.legendloc, xlabel=var_label,
-             linetype=linestyles,
+             linetype=linestyles, 
              linewidth=args.linewidth,
              legend_fontsize=args.legendfontsize,
              axes_fontsize=args.axesfontsize,
-             ticklabel_fontsize=args.ticklabelfontsize, 
+             ticklabel_fontsize=args.ticklabelfontsize,
              range=(min_x, max_x), fig_num=fig_num, log=args.log)
     
 fig.savefig(outputFilePath, bbox_inches='tight', pad_inches=0.125)
