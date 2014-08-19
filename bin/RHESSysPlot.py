@@ -73,6 +73,11 @@ def plotGraphScatter(args, obs, data, log=False, sizeX=1, sizeY=1, dpi=80):
     
     assert( len(data) == len(args.legend) == 2 )
     
+    if args.scatterwidth:
+        linewidth = args.scatterwidth
+    else:
+        linewidth = 1
+    
     fig = plt.figure(figsize=(sizeX, sizeY), dpi=dpi, tight_layout=False)
     ax = fig.add_subplot(111)
 
@@ -84,13 +89,13 @@ def plotGraphScatter(args, obs, data, log=False, sizeX=1, sizeY=1, dpi=80):
     ceil = math.ceil(max_val)
     range = np.linspace(floor, ceil, 1000)
     
-    ax.plot(data[0], data[1], '.')
-    ax.plot(range, range, 'k-')
+    ax.plot(data[0], data[1], '.', markersize=linewidth*6)
+    ax.plot(range, range, 'k-', linewidth=linewidth)
     
     # Fit line
     (m, b) = np.polyfit(x, y, 1)
     fit_y = m*range
-    ax.plot(range, fit_y, '--', color='grey')
+    ax.plot(range, fit_y, '--', color='grey', linewidth=linewidth)
     
     ax.set_xlim(floor, ceil)
     ax.set_ylim(floor, ceil)
@@ -103,21 +108,25 @@ def plotGraphScatter(args, obs, data, log=False, sizeX=1, sizeY=1, dpi=80):
     
     # Annotate fit line, making sure the annotation does not overlap 1:1 line
     if m <= 1:
-        ax.text(0.85*ceil, 0.8*max(fit_y), "$y = %.2f x$" % (m,) )
+        ax.text(0.85*ceil, 0.8*max(fit_y), "$y = %.2f x$" % (m,), 
+                fontsize=args.ticklabelfontsize)
     else:
-        ax.text(0.65*ceil, 0.8*max(fit_y), "$y = %.2f x$" % (m,) )
+        ax.text(0.65*ceil, 0.8*max(fit_y), "$y = %.2f x$" % (m,),
+                fontsize=args.ticklabelfontsize)
     
     if args.title:
         title = args.title
     else:
         title = "%s vs. %s" % (args.legend[0], args.legend[1])
-    fig.suptitle(title, y=0.98)
+    fig.suptitle(title, y=0.98, fontsize=args.titlefontsize, fontweight=args.fontweight)
     
     # X-axis
-    ax.set_xlabel(args.legend[0])
+    ax.set_xlabel(args.legend[0], fontsize=args.axesfontsize, fontweight=args.fontweight)
+    plt.setp(ax.get_xticklabels(), fontsize=args.ticklabelfontsize)
     
     # Y-axis
-    ax.set_ylabel(args.legend[1])
+    ax.set_ylabel(args.legend[1], fontsize=args.axesfontsize, fontweight=args.fontweight)
+    plt.setp(ax.get_yticklabels(), fontsize=args.ticklabelfontsize)
 
 
 def plotGraph(args, obs, data, sizeX=1, sizeY=1, dpi=80):
@@ -289,6 +298,19 @@ if __name__ == "__main__":
                         help='X-axis label')
     parser.add_argument('-y', '--ylabel', required=False,
                         help='Y-axis label')
+    parser.add_argument('--titlefontsize', required=False, type=float,
+                        default=12)
+    parser.add_argument('--scatterwidth', required=False, type=float,
+                        default=1, help='Width to use for lines and markers in scatter plots.  Markers size will be determine by multiplying scatterwidth by 6.')
+    parser.add_argument('--fontweight', required=False, 
+                        choices=['ultralight','light','normal','regular','book','medium','roman','semibold','demibold','demi','bold','heavy','extra bold','black'],
+                        default='regular')
+    parser.add_argument('--legendfontsize', required=False, type=float,
+                        default=6)
+    parser.add_argument('--axesfontsize', required=False, type=float,
+                        default=12)
+    parser.add_argument('--ticklabelfontsize', required=False, type=float,
+                        default=12)
     parser.add_argument('--figureX', required=False, type=int, default=4,
                         help='The width of the plot, in inches')
     parser.add_argument('--figureY', required=False, type=int, default=3,
