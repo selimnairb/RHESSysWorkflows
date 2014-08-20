@@ -72,7 +72,8 @@ from rhessysworkflows.rhessys import RHESSysOutput
 LINE_TYPES = ['solid', 'dashed', 'dashdot', 'dotted']
 NUM_LINE_TYPES = len(LINE_TYPES)
 
-def line_legend(ax, loc='lower right', fontsize=6, frameon=False):
+def line_legend(ax, loc='lower right', fontsize=6, fontweight='normal',
+                frameon=False):
     """ Use proxy objects to force lines in legend display
     """
     (handles, labels) = ax.get_legend_handles_labels()
@@ -86,9 +87,11 @@ def line_legend(ax, loc='lower right', fontsize=6, frameon=False):
                                        linewidth=handle.get_linewidth())
         proxies.append(line)
         
-    ax.legend(proxies, labels,
-              loc=loc, fontsize=fontsize,
-              frameon=frameon)
+    leg = ax.legend(proxies, labels,
+                    loc=loc,
+                    fontsize=fontsize,
+                    frameon=frameon)
+    plt.setp(leg.get_texts(), fontweight=fontweight)
 
 def simple_axis(ax, noy=False):
     ax.spines['top'].set_visible(False)
@@ -104,7 +107,7 @@ def simple_axis(ax, noy=False):
 
 def plot_cdf(ax, data, legend_items, legend_loc='lower right', 
              numbins=1000, xlabel=None, ylabel=None, title=None, linetype=None, linewidth=None, range=None,
-             legend_fontsize=6, axes_fontsize=8, ticklabel_fontsize=6,
+             fontweight='normal', legend_fontsize=6, axes_fontsize=8, ticklabel_fontsize=6,
              fig_num=1, log=False):
     
     for (i, datum) in enumerate(data):
@@ -136,12 +139,14 @@ def plot_cdf(ax, data, legend_items, legend_loc='lower right',
     
     # Use lines in legend instead of boxes
     if fig_num == 1 and legend_items:
-        line_legend(ax, loc=legend_loc, fontsize=legend_fontsize)
+        line_legend(ax, loc=legend_loc, 
+                    fontsize=legend_fontsize,
+                    fontweight=fontweight)
     
     if xlabel:
-        ax.set_xlabel(xlabel, fontsize=axes_fontsize)
+        ax.set_xlabel(xlabel, fontsize=axes_fontsize, fontweight=fontweight)
     if ylabel:
-        ax.set_ylabel(ylabel, fontsize=axes_fontsize)
+        ax.set_ylabel(ylabel, fontsize=axes_fontsize, fontweight=fontweight)
     if title:
         ax.set_title(title)
     
@@ -184,6 +189,9 @@ parser.add_argument('--legendloc', required=False, default='lower right',
 parser.add_argument('--linetype', required=False, nargs='+',
                     help='Valid Matplotlib line type, e.g. solid, dashed, dashdot, dotted.  Must specify 1 or N, where N==number of data files')
 parser.add_argument('--linewidth', required=False, type=float)
+parser.add_argument('--fontweight', required=False, 
+                        choices=['ultralight','light','normal','regular','book','medium','roman','semibold','demibold','demi','bold','heavy','extra bold','black'],
+                        default='regular')
 parser.add_argument('--legendfontsize', required=False, type=float,
                     default=6)
 parser.add_argument('--axesfontsize', required=False, type=float,
@@ -420,6 +428,7 @@ for (i, zone) in enumerate(zones):
              linetype=linestyles, 
              linewidth=args.linewidth,
              legend_fontsize=args.legendfontsize,
+             fontweight=args.fontweight,
              axes_fontsize=args.axesfontsize,
              ticklabel_fontsize=args.ticklabelfontsize,
              range=(min_x, max_x), fig_num=fig_num, log=args.log)
