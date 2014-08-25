@@ -857,8 +857,9 @@ the area.  You can view the delinated watershed in GRASS by displaying
 the raster map named *basin*.  If the area or the shape of the
 delineated watershed differs greatly from what you expect, you may
 need to vary how DelineateWatershed snaps your streamflow gage onto
-the stream network.  This is accomplished by changing the *-s*
-(a.k.a. *--streamThreshold*) or stream threshold parameter passed to
+the stream network.  This is accomplished by either changing the *-s*
+(a.k.a. *--streamThreshold*) or stream threshold parameter and/or the
+*-w* (a.k.a. *--streamWindow*) parameter passed to
 [r.findtheriver](https://svn.osgeo.org/grass/grass-addons/grass6/raster/r.findtheriver/description.html).
 
 To debug watershed delineation problems, it is also helpful to view
