@@ -117,9 +117,9 @@ from rhessysworkflows.metadata import RHESSysMetadata
 AREA_THRESHOLD = 0.2
 
 def positive_odd_integer(string):
-    msg = "%s is not a positive odd integer" % (string,)
+    msg = "%s is not an integer >=3" % (string,)
     value = int(string)
-    if value < 1:
+    if value < 2:
         raise argparse.ArgumentTypeError(msg)
     elif value % 2 == 0:
         raise argparse.ArgumentTypeError(msg)
