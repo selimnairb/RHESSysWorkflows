@@ -116,6 +116,16 @@ from rhessysworkflows.metadata import RHESSysMetadata
 
 AREA_THRESHOLD = 0.2
 
+def positive_odd_integer(string):
+    msg = "%s is not an integer >=3" % (string,)
+    value = int(string)
+    if value < 2:
+        raise argparse.ArgumentTypeError(msg)
+    elif value % 2 == 0:
+        raise argparse.ArgumentTypeError(msg)
+    return value
+        
+
 # Handle command line options
 parser = argparse.ArgumentParser(description='Delineate watershed using GRASS GIS')
 parser.add_argument('-i', '--configfile', dest='configfile', required=False,
@@ -126,6 +136,8 @@ parser.add_argument('-t', '--threshold', dest='threshold', required=True, type=i
                     help='Minimum size (in cells the size of the DEM resolution) of watershed sub-basins')
 parser.add_argument('-s', '--streamThreshold', dest='streamThreshold', required=False, type=float,
                     help='Threshold to pass to r.findtheriver for distinguishing stream from non-stream pixels')
+parser.add_argument('-w', '--streamWindow', dest='streamWindow', required=False, type=positive_odd_integer,
+                    help='Stream search window, must be a postive, odd integer')
 parser.add_argument('-a', '--areaEstimate', dest='areaEstimate', required=False, type=float,
                     help='Estimated area, in sq. km, of watershed to be delineated.  A warning message will be displayed if the delineated basin area is not close to estimated area.')
 parser.add_argument('--ignoreBurnedDEM', dest='ignoreBurnedDEM', action='store_true', required=False,
@@ -212,9 +224,15 @@ RHESSysMetadata.writeGRASSEntry(context, 'gage_vect', 'gage')
 
 # Snap the gage to the stream
 findTheRiver = os.path.join(modulePath, 'r.findtheriver')
-result = grassLib.script.read_command(findTheRiver, flags="q",
-                                      accumulation="uaa", easting=easting, northing=northing,
-                                      threshold=args.streamThreshold)
+if args.streamWindow:
+    result = grassLib.script.read_command(findTheRiver, verbose=True,
+                                          accumulation="uaa", easting=easting, northing=northing,
+                                          threshold=args.streamThreshold,
+                                          window=args.streamWindow)
+else:
+    result = grassLib.script.read_command(findTheRiver, verbose=True,
+                                          accumulation="uaa", easting=easting, northing=northing,
+                                          threshold=args.streamThreshold)
 if None == result or '' == result:
     sys.stdout.write("r.findtheriver did not find a better stream pixel, using raw gage coordinate\n")
 
