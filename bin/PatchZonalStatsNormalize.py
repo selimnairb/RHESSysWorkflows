@@ -106,7 +106,7 @@ def simple_axis(ax, noy=False):
     
 
 def plot_cdf(ax, data, legend_items, legend_loc='lower right', 
-             numbins=1000, xlabel=None, ylabel=None, title=None, linetype=None, linewidth=None, range=None,
+             numbins=1000, xlimit=None, xlabel=None, ylabel=None, title=None, linetype=None, linewidth=None, range=None,
              fontweight='normal', legend_fontsize=6, axes_fontsize=8, ticklabel_fontsize=6,
              fig_num=1, log=False):
     
@@ -133,7 +133,7 @@ def plot_cdf(ax, data, legend_items, legend_loc='lower right',
         # go to y=0
         patches[0].set_xy(patches[0].get_xy()[:-1])
         ax.set_ylim(0, 1)
-    
+            
     # Get rid of top and right border on axis
     simple_axis(ax)
     
@@ -150,7 +150,11 @@ def plot_cdf(ax, data, legend_items, legend_loc='lower right',
     if title:
         ax.set_title(title)
     
-    ax.set_xlim(right=bins[-2])
+    if xlimit:
+        ax.set_xlim(xlimit[0], xlimit[1])
+        ax.locator_params(axis='x', nbins=5)
+    else:
+        ax.set_xlim(right=bins[-2])
     plt.setp(ax.get_xticklabels(), fontsize=ticklabel_fontsize)
     plt.setp(ax.get_yticklabels(), fontsize=ticklabel_fontsize)
 
@@ -180,6 +184,8 @@ parser.add_argument('-o', '--outputDir', required=True,
                     help='Directory to which map should be output')
 parser.add_argument('-f', '--outputFile', required=True,
                     help='Name of file to store plot in; ".pdf" will be appended. If file exists it will be overwritten.')
+parser.add_argument('--xlimit', required=False, nargs=2, type=float,
+                    help='Specify range of data for use with X-axis of CDF plots')
 parser.add_argument('--outputFileNames', required=False, nargs='+',
                     help='Names to use for each outputfile.  Will be appended to outputFile.  If not specified, legend items will be used.')
 parser.add_argument('-l', '--legend', required=False, nargs='+',
@@ -239,6 +245,9 @@ if args.variableName and len(args.zones) != len(args.variableName):
     sys.exit('Number of variable name must equal the number of zones') 
 if args.constant and len(args.constant) != len(args.rhessysOutFile):
     sys.exit('Number of constants must equal the number of data files')
+if args.xlimit:
+    if args.xlimit[0] >= args.xlimit[1]:
+        sys.exit('First value of xlimit must be smaller than the second')
 
 linestyles = None
 if args.linetype:
@@ -431,7 +440,8 @@ for (i, zone) in enumerate(zones):
              fontweight=args.fontweight,
              axes_fontsize=args.axesfontsize,
              ticklabel_fontsize=args.ticklabelfontsize,
-             range=(min_x, max_x), fig_num=fig_num, log=args.log)
+             range=(min_x, max_x), fig_num=fig_num, log=args.log,
+             xlimit=args.xlimit)
     
 fig.savefig(outputFilePath, bbox_inches='tight', pad_inches=0.125)
 
