@@ -89,30 +89,41 @@ def plotGraphScatter(args, obs, data, log=False, sizeX=1, sizeY=1, dpi=80):
     ceil = math.ceil(max_val)
     range = np.linspace(floor, ceil, 1000)
     
-    ax.plot(data[0], data[1], '.', markersize=linewidth*6)
-    ax.plot(range, range, 'k-', linewidth=linewidth)
+    if not log:
+        ax.plot(data[0], data[1], '.', markersize=linewidth*6)
+        ax.plot(range, range, 'k-', linewidth=linewidth)
+    else:
+        ax.loglog(data[0], data[1], '.', markersize=linewidth*6)
+        ax.loglog(range, range, 'k-', linewidth=linewidth)
     
     # Fit line
     (m, b) = np.polyfit(x, y, 1)
     fit_y = m*range
-    ax.plot(range, fit_y, '--', color='grey', linewidth=linewidth)
+    if not log:
+        ax.plot(range, fit_y, '--', color='grey', linewidth=linewidth)
+    else:
+        ax.loglog(range, fit_y, '--', color='grey', linewidth=linewidth)
     
     ax.set_xlim(floor, ceil)
     ax.set_ylim(floor, ceil)
-    
-    if log:
-        ax.set_xscale('log')
-        ax.set_yscale('log')
     
     # Plot annotations
     
     # Annotate fit line, making sure the annotation does not overlap 1:1 line
     if m <= 1:
-        ax.text(0.85*ceil, 0.8*max(fit_y), "$y = %.2f x$" % (m,), 
-                fontsize=args.ticklabelfontsize)
+        if not log:
+            ax.text(0.85*ceil, 0.8*max(fit_y), "$y = %.2f x$" % (m,), 
+                    fontsize=args.ticklabelfontsize)
+        else:
+            ax.text(0.3*ceil, 0.2*max(fit_y), "$y = %.2f x$" % (m,), 
+                    fontsize=args.ticklabelfontsize)
     else:
-        ax.text(0.65*ceil, 0.8*max(fit_y), "$y = %.2f x$" % (m,),
-                fontsize=args.ticklabelfontsize)
+        if not log:
+            ax.text(0.65*ceil, 0.8*max(fit_y), "$y = %.2f x$" % (m,),
+                    fontsize=args.ticklabelfontsize)
+        else:
+            ax.text(0.3*ceil, 0.2*max(fit_y), "$y = %.2f x$" % (m,), 
+                    fontsize=args.ticklabelfontsize)
     
     if args.title:
         title = args.title
