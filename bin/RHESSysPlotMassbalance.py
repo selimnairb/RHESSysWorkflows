@@ -100,9 +100,15 @@ def plotGraph(args, plottype, obs, data, columns, min_x, max_x, ax, secondary=No
     # X-axis
     if plottype == PLOT_TYPE_STD or \
        plottype == PLOT_TYPE_LOGY:
-        quarterly = matplotlib.dates.MonthLocator(interval=3)
-        ax.xaxis.set_major_locator(quarterly)
-        ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%b-%Y') )
+        num_years = len(x) / 365
+        if num_years > 2:
+            if num_years > 5:
+                ax.xaxis.set_major_locator(matplotlib.dates.YearLocator())
+            else:
+                ax.xaxis.set_major_locator(matplotlib.dates.MonthLocator(interval=3))
+        else:
+            ax.xaxis.set_major_locator(matplotlib.dates.MonthLocator())
+        ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%b-%Y'))
         # Rotate
         plt.setp( ax.xaxis.get_majorticklabels(), rotation=45 )
         plt.setp( ax.xaxis.get_majorticklabels(), fontsize='x-small' )

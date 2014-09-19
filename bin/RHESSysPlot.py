@@ -210,7 +210,7 @@ def plotGraph(args, obs, data, sizeX=1, sizeY=1, dpi=80):
         num_years = len(x) / 365
         if num_years > 4:
             if num_years > 10:
-                ax.xaxis.set_major_locator(matplotlib.dates.YearLocator)
+                ax.xaxis.set_major_locator(matplotlib.dates.YearLocator())
             else:
                 ax.xaxis.set_major_locator(matplotlib.dates.MonthLocator(interval=3))
         else:
