@@ -207,11 +207,18 @@ def plotGraph(args, obs, data, sizeX=1, sizeY=1, dpi=80):
     # X-axis
     if args.plottype == PLOT_TYPE_STD or \
        args.plottype == PLOT_TYPE_LOGY:
-        ax.xaxis.set_major_locator(matplotlib.dates.MonthLocator() )
-        ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%b-%Y') )
+        num_years = len(x) / 365
+        if num_years > 4:
+            if num_years > 10:
+                ax.xaxis.set_major_locator(matplotlib.dates.YearLocator)
+            else:
+                ax.xaxis.set_major_locator(matplotlib.dates.MonthLocator(interval=3))
+        else:
+            ax.xaxis.set_major_locator(matplotlib.dates.MonthLocator())
+        ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%b-%Y'))
         # Rotate
-        plt.setp( ax.xaxis.get_majorticklabels(), rotation=45 )
-        plt.setp( ax.xaxis.get_majorticklabels(), fontsize='x-small' )
+        plt.setp( ax.xaxis.get_majorticklabels(), rotation=45)
+        plt.setp( ax.xaxis.get_majorticklabels(), fontsize='x-small')
     
     if args.plottype == PLOT_TYPE_CDF:
         ax.set_xlim(min_x, max_x)
@@ -276,7 +283,7 @@ def plotGraph(args, obs, data, sizeX=1, sizeY=1, dpi=80):
                     bbox_to_anchor=(0.5, -0.015), ncol=num_cols, frameon=False )
     else:
         fig.legend( data_plt, legend_items, 'lower center', fontsize='x-small', 
-                    bbox_to_anchor=(0.5, -0.03), ncol=num_cols, frameon=False )
+                    bbox_to_anchor=(0.5, -0.01), ncol=num_cols, frameon=False )
 
 if __name__ == "__main__":
     # Handle command line options
