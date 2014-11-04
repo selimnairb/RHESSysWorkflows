@@ -1229,7 +1229,7 @@ then, download Geoscience Australia DEM data:
 
     GetGADEMForBoundingBox.py -p PROJECT_DIR
     
-Currently, there are three type of DEM data available:
+Currently, there are three types of DEM data available:
 * 1 second SRTM Digital Elevation Model of Australia
 * 1 second SRTM Digital Elevation Model - Hydrologically Enforced
 * 1 second SRTM Digital Elevation Model - Smoothed
@@ -1249,6 +1249,9 @@ and to acquire the *1 second SRTM Digital Elevation Model - Smoothed* data:
     
 Consult the [Geoscience Australia metadata catalog](http://www.ga.gov.au/metadata-gateway/metadata/record/gcat_72759)
 for more information about these data sets. 
+
+The remainder of your workflow would proceed with importing streamflow gage coordinates
+and subsequent steps described [here](#import-streamflow-gage-coordinates).
 
 ### Custom local data workflow
 
