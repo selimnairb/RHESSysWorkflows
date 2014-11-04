@@ -1198,10 +1198,10 @@ The above standard U.S. spatial data acquisition workflow steps do not
 provide access to data outside the U.S. (by definition).  However, it is
 still possible to use RHESSysWorkflows to develop RHESSys models for watersheds
 outside the U.S.  One option is to use custom local data, which is described
-[here](#Custom local data workflow).  It is also possible to use DEM data available
+[here](#custom-local-data-workflow).  It is also possible to use DEM data available
 via web services, and then use custom local data for the remainder of your data.
 Coarse resolution DEM data for areas outside the U.S. are available via web service
-from DEMExplorer, for a list of coverages available, run:
+from DEMExplorer.  For a list of coverages available, run:
 
     GetDEMExplorerDEMForBoundingbox.py --help
     
@@ -1214,18 +1214,18 @@ provides access to 1-second (~30-meter) resolution DEM data (derived from SRTM d
 using web services interfaces provided by 
 [Geoscience Australia](http://www.ga.gov.au/data-pubs/web-services/ga-web-services).
 These data can be accessed using the *GetGADEMForBoundingBox* command.  A typical
-workflow would proceed as follows.  First, define your study area using the
+workflow would begin as follows.  First, define your study area using the
 *RegisterStudyAreaShapefile* command:
 
     RegisterStudyAreaShapefile.py -p PROJECT_DIR -s /path/to/my/study/area/shapfile.shp
     
 (Replace PROJECT_DIR with the name of your EcohydroLib project).
 
-Then, you need to extract the bounding box coordinates for your study area:
+next, extract the bounding box coordinates for your study area:
 
     GetBoundingboxFromStudyareaShapefile.py -p PROJECT_DIR
     
-Next, to download Geoscience Australia DEM data, do the following:
+then, download Geoscience Australia DEM data:
 
     GetGADEMForBoundingBox.py -p PROJECT_DIR
     
@@ -1239,11 +1239,11 @@ run *GetGADEMForBoundingBox* as follows:
 
     GetGADEMForBoundingBox.py -p PROJECT_DIR -d dem_1s
 
-To acquire the *1 second SRTM Digital Elevation Model - Hydrologically Enforced* data:
+to acquire the *1 second SRTM Digital Elevation Model - Hydrologically Enforced* data:
 
 	GetGADEMForBoundingBox.py -p PROJECT_DIR -d dem_h_1s
 	
-And to acquire the *1 second SRTM Digital Elevation Model - Smoothed* data:
+and to acquire the *1 second SRTM Digital Elevation Model - Smoothed* data:
 
     GetGADEMForBoundingBox.py -p PROJECT_DIR -d dem_s_1s
     
