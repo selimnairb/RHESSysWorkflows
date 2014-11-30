@@ -81,7 +81,7 @@ under other Linux distributions is also possible. RHESSysWorkflows may in
 theory work under Windows, but this has never been tested.  Windows users 
 are encouraged to run an Ubuntu under a virtual machine.
 
-RHESSysWorkflows is compatible with OS X 10.6, 10.7, 10.8, and 10.9.  To
+RHESSysWorkflows is compatible with OS X 10.6, 10.7, 10.8, 10.9, and 10.10.  To
 find out what version of OS X you are currently running, click on the
 apple in the upper left corner of the screen and select *About this
 Mac*.  To find out the latest version of OS X you computer can run,
@@ -142,10 +142,12 @@ requires you to register for a free developer account)
 
 RHESSysWorkflows uses Git to download RHESSys source code so you don't have to.
 
-#### OS X 10.7, 10.8, and 10.9: Install Xcode (OS X developer tools):
+#### OS X 10.7, 10.8, 10.9, and 10.10: Install Xcode (OS X developer tools):
 1. Install Xcode via the App Store
 2. Launch Xcode
 3. Install 'Command Line Tools' from menu Xcode > Preferences... > Downloads (if you don't see it, it's already installed)
+4. Agree to the Xcode license by running the following command (we only run this command to force Xcode show us the license):
+    sudo cc
 
 #### Install GIS tools: GRASS QGIS
 Note, GRASS version 6.4 is required for RHESSysWorkflows.  GRASS is
@@ -153,7 +155,7 @@ used internally to carry out workflow steps (leading to the creation
 of RHESSys world files and flow tables).  You will also find it useful
 to use GRASS to visualize the results from some workflow steps.
 
-> Before installing GRASS, etc. under OS X 10.8 or 10.9, you will need to
+> Before installing GRASS, etc. under OS X 10.8, 10.9 or 10.10, you will need to
 > enable applications from any source to be installed.  To do so open
 > *System Preferences > Security & Privacy > General* and choose
 > "Allow apps downloaded from: Andywhere". Doing so exposes your computer
@@ -212,6 +214,8 @@ the g.extension command to install the extensions)
 
     g.extension extension=r.findtheriver
 
+5. Exit GRASS
+
 For more information on these addons (r.soils.texture and r.findtheriver), see:
 - [r.findtheriver](http://grasswiki.osgeo.org/wiki/AddOns/GRASS_6#r.findtheriver)
 and r.soils.texture
@@ -256,8 +260,8 @@ you may encounter this error:
     clang: note: this will be a hard error (cannot be downgraded to a warning) in the future
     clang: warning: argument unused during compilation: '-mno-fused-madd'
     
-To work around this, install statsmodels' dependencies this way (you'll probably want to
-copy and paste this rather than typing it):
+If you don't see the above error, skip the next step.  To work around the error, install statsmodels' 
+dependencies this way (you'll probably want to copy and paste this rather than typing it):
 
     sudo ARCHFLAGS=-Wno-error=unused-command-line-argument-hard-error-in-future pip install pandas patsy
     
@@ -268,10 +272,12 @@ enter the following from your Terminal if you are running XCode 5.0 or earlier:
 
     sudo pip install rhessysworkflows
 
-If you are running XCode 5.1 or later, we need to set the ARCHFLAGS variable 
+If you are running Xcode 5.1 (but not Xcode 6.1 or later), we need to set the ARCHFLAGS variable 
 as above:
 
 	sudo ARCHFLAGS=-Wno-error=unused-command-line-argument-hard-error-in-future pip install rhessysworkflows
+
+Again, only do the above step if youa re running Xcode 5.1, not Xcode 6.1.
 
 This may take a while as several of the modules rely on non-Python code that has to be compiled.
     
@@ -331,7 +337,7 @@ files are installed in a directory owned by your user account.
 
     + [OS X 10.6](https://raw.github.com/selimnairb/RHESSysWorkflows/master/docs/config/ecohydro-OSX_10.6.cfg)
 
-    + [OS X 10.7/10.8/10.9](https://raw.github.com/selimnairb/RHESSysWorkflows/master/docs/config/ecohydro-OSX.cfg)
+    + [OS X 10.7/10.8/10.9/10.10](https://raw.github.com/selimnairb/RHESSysWorkflows/master/docs/config/ecohydro-OSX.cfg)
     
     + [Linux](https://raw.github.com/selimnairb/RHESSysWorkflows/master/docs/config/ecohydro-Linux.cfg)
 
