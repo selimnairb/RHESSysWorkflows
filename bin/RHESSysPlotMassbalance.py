@@ -191,7 +191,8 @@ if __name__ == "__main__":
     obs_align = None
     max_x = min_x = 0
     mod_file = open(args.data, 'r')
-    mod_df = RHESSysOutput.readColumnsFromFile(mod_file, cols)
+    mod_df = RHESSysOutput.readColumnsFromFile(mod_file, cols,
+                                               readHour=False)
     
     # Align timeseries
     (mod_align, obs_align) = mod_df.align(obs, axis=0, join='inner')

@@ -115,7 +115,8 @@ class RHESSysOutput(object):
         return (date_list, obs_data)
 
     @classmethod
-    def readColumnsFromFile(cls, f, column_names, sep=' ', logger=None):
+    def readColumnsFromFile(cls, f, column_names, sep=' ', logger=None,
+                            readHour=True):
         """ Reads the specified columns from the text file.  The file
             must have a header.  Reads dates/datetime from file by searching
             for headers with names of 'hour', 'day', 'month', 'year'
@@ -124,13 +125,16 @@ class RHESSysOutput(object):
             f -- file object  The text file to read from
             column_names -- A list of column names to return
             sep -- The field separator (defaults to ' ')
+            readHour -- boolean  Control whether the hour should be read from the file header
 
             Returns Pandas DataFrame object indexed by date
             
             Raises exception if data file does not include year, month, and day fields
         """
-        cols = column_names + [RHESSysOutput.HOUR_HEADER, 
-                 RHESSysOutput.DAY_HEADER, 
+        cols = column_names
+        if readHour:
+            cols = cols + [RHESSysOutput.HOUR_HEADER]
+        cols = cols + [RHESSysOutput.DAY_HEADER, 
                  RHESSysOutput.MONTH_HEADER, 
                  RHESSysOutput.YEAR_HEADER]
         df = pd.read_csv(f, sep=' ', usecols=cols)
