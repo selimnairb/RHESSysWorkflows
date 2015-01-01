@@ -611,10 +611,10 @@ sub queries.  SSURGO query tiling is enabled using the *--tile* option:
     GetSSURGOFeaturesForBoundingbox.py -p MYPROJECT_DIRECTORY --tile
     
 What this does is to split the larger query to the Soil Data Mart into many
-smaller queries (possible hundreds or thousands).  The results of these
-sub-queries are then automatically assembled into on vector feature layer by
-EcohydroLib.  To reduce download times, tiled queries are by default performed in 
-parallel.  The number queries to run in parallel is determined 
+smaller queries (possibly hundreds or thousands).  The results of these
+sub-queries are then automatically assembled into a single vector feature 
+layer by EcohydroLib.  To reduce download times, tiled queries are by default 
+performed in parallel.  The number queries to run in parallel is determined 
 automatically by the number of simultaneous threads your computer supports 
 (see [here](https://docs.python.org/2/library/multiprocessing.html#multiprocessing.cpu_count)
 for more information).  Use the *--nprocesses* option to change the
