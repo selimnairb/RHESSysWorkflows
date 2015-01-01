@@ -4,7 +4,7 @@ RHESSysWorkflows			{#index}
 This software is provided free of charge under the New BSD License. Please see
 the following license information:
 
-Copyright (c) 2013, 2014, University of North Carolina at Chapel Hill
+Copyright (c) 2013-2015, University of North Carolina at Chapel Hill
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -602,10 +602,31 @@ following command:
 
 Note that for server performance and network bandwidth issues, Soil
 Data Mart limits SSURGO spatial queries to areas of less than roughly
-10,000 sq. km.  If your study area is larger than this, you may wish
-to obtain a copy of the SURRGO data and extract your own soils data.
-In the future we hope to address this limitation by hosting a copy of
-SSURGO at UNC, however this work is still underway.
+10,000 sq. km.  For performance reasons, EcohydroLib (and therefore
+RHESSysWorkflows) limits the size of SSURGO queries to ~2,500 sq. km.
+If your study area is larger than this, you must instruct 
+*GetSSURGOFeaturesForBoundingbox* to tile the query into multiple
+sub queries.  SSURGO query tiling is enabled using the *--tile* option:
+
+    GetSSURGOFeaturesForBoundingbox.py -p MYPROJECT_DIRECTORY --tile
+    
+What this does is to split the larger query to the Soil Data Mart into many
+smaller queries (possible hundreds or thousands).  The results of these
+sub-queries are then automatically assembled into on vector feature layer by
+EcohydroLib.  To reduce download times, tiled queries are by default performed in 
+parallel.  The number queries to run in parallel is determined 
+automatically by the number of simultaneous threads your computer supports 
+(see [here](https://docs.python.org/2/library/multiprocessing.html#multiprocessing.cpu_count)
+for more information).  Use the *--nprocesses* option to change the
+number of SSURGO queries to perform in parallel.  For example, to 
+perform 16 queries in parallel (which should be fine on an 8-thread
+machine):
+
+    GetSSURGOFeaturesForBoundingbox.py -p MYPROJECT_DIRECTORY --tile --nprocesses 16
+    
+To disable parallel queries:
+
+    GetSSURGOFeaturesForBoundingbox.py -p MYPROJECT_DIRECTORY --tile --nprocesses 1
 
 You can visualize the downloaded SSURGO features and joined tabular
 data by opening the shapfile in QGIS.  The SSURGO shapefile has a
@@ -1020,7 +1041,7 @@ RHESSysWorkflows uses GRASS's
 command, and so the rules files follow this format.  It's important to
 note that the landcover reclass rules for strarum and landuse must 
 result in raster maps whose values labels match class names present 
-in the RHESSys ParamDB database.  Thus, be very carful in editing 
+in the RHESSys ParamDB database.  Thus, be very careful in editing 
 the righthand side of the expressions in your stratum and landuse
 reclass rules.
 
