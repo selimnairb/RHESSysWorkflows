@@ -83,7 +83,7 @@ group.add_argument('-k', '--generateKnownRules', dest='generateKnownRules', requ
 group.add_argument('-b', '--buildPrototypeRules', dest='buildPrototypeRules', required=False, action='store_true',
                     help='Write prototype landcover reclass rules to the project directory. You must edit these rules to match the classes in your own landcover data')
 group.add_argument('-r', '--ruleDir', dest='ruleDir', required=False,
-                    help="The directory where landcover reclass rules can be found; must contain these files %s" % (str(RHESSysMetadata.LC_RULES),) )
+                    help="The directory where landcover reclass rules can be found; should contain these files %s" % (str(RHESSysMetadata.LC_RULES),) )
 parser.add_argument('-l', '--includeLaiRules', dest='includeLaiRules', required=False, action='store_true',
                     help='Make LAI map')
 args = parser.parse_args()
@@ -136,10 +136,19 @@ if args.buildPrototypeRules:
         # LAI rule
         laiRulePath = os.path.join(projectDirRuleDir, RHESSysMetadata.LC_RULE_LAI)
         with open(laiRulePath, 'w') as f:
-            f.write('11 12 21 22 23 24 31 73 74 82 = 0\n')
-            f.write('71 72 81 95 = 2\n')
-            f.write('41 43 90 = 5\n')
-            f.write('42 51 52 = 6\n')
+            f.write('11:12:0.0\n')
+            f.write('21:24:0.0\n') 
+            f.write('31:31:0.0\n') 
+            f.write('73:74:0.0\n') 
+            f.write('82:82:0.0\n')
+            f.write('71:72:1.5\n')
+            f.write('81:81:1.5\n')
+            f.write('95:95:1.5\n')
+            f.write('41:41:5.0\n')
+            f.write('43:43:5.0\n')
+            f.write('90:90:5.0\n')
+            f.write('42:42:6.0\n')
+            f.write('51:52:6.0\n')
             
     ruleDir = None
     sys.stdout.write('done\n')

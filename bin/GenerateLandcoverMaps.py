@@ -258,10 +258,19 @@ if not args.defonly:
 
 # Reclassify landcover into LAI map
 if args.makeLaiMap and (not args.defonly):
-    result = grassLib.script.read_command('r.reclass', input=landcoverRast, output='lai', 
-                           rules=laiRulePath, overwrite=args.overwrite)
-    if None == result:
-        sys.exit("r.reclass failed to create LAI map, returning %s" % (result,))
+    if RHESSysMetadata.LC_RULE_LAI_COMPAT == os.path.basename(metadata['landcover_lai_rule']):
+        # Compatibility mode, use r.reclass
+        result = grassLib.script.read_command('r.reclass', input=landcoverRast, output='lai', 
+                                              rules=laiRulePath, overwrite=args.overwrite)
+        if None == result:
+            sys.exit("r.reclass failed to create LAI map, returning %s" % (result,))
+    else:
+        # use r.reclass
+        result = grassLib.script.read_command('r.recode', input=landcoverRast, output='lai', 
+                                              rules=laiRulePath, overwrite=args.overwrite)
+        if None == result:
+            sys.exit("r.reclass failed to create LAI map, returning %s" % (result,))
+        
     RHESSysMetadata.writeGRASSEntry(context, 'lai_rast', 'lai') 
 
 # Write metadata

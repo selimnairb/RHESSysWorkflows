@@ -75,7 +75,8 @@ class RHESSysMetadata(GenericMetadata):
     LC_RULE_IMPERVIOUS = 'impervious.rule'
     LC_RULE_LANDUSE = 'landuse.rule'
     LC_RULE_STRATUM = 'stratum.rule'
-    LC_RULE_LAI = 'lai.rule'
+    LC_RULE_LAI_COMPAT = 'lai.rule'
+    LC_RULE_LAI = 'lai-recode.rule'
     LC_RULES = [LC_RULE_ROAD, LC_RULE_IMPERVIOUS, LC_RULE_LANDUSE, LC_RULE_STRATUM, LC_RULE_LAI]
     SOILS_RULE = 'soils.rule'
     SOILS_RULES = [SOILS_RULE]

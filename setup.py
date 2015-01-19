@@ -5,7 +5,7 @@ def readme():
         return f.read()
 
 setup(name='rhessysworkflows',
-      version='1.23',
+      version='1.24',
       description='Libraries and command-line scripts for performing RHESSys data preparation workflows.',
       long_description=readme(),
       classifiers=[
@@ -60,7 +60,7 @@ setup(name='rhessysworkflows',
                'bin/RunModel.py'
       ],
       data_files=[('rhessysworkflows/etc/NLCD2006', ['etc/NLCD2006/impervious.rule',
-                           'etc/NLCD2006/lai.rule',
+                           'etc/NLCD2006/lai-recode.rule',
                            'etc/NLCD2006/landuse.rule',
                            'etc/NLCD2006/road.rule',
                            'etc/NLCD2006/stratum.rule'] ),
