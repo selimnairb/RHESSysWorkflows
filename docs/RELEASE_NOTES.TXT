@@ -1,3 +1,7 @@
+# 1.24 - 1/19/2015
+  - Improved generation of LAI maps from landcover data by adding support 
+    for floating point LAI maps.
+
 # 1.23 - 8/24/2014
   - Added ability to specify stream search window size for r.findtheriver
     when running DelineateWatershed.py
