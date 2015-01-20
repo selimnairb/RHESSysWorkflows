@@ -33,4 +33,6 @@ The compressed file is about 2 GB, so we recommend you download via a fast netwo
 
 #### Uncompress RHESSysWorkflows virtual machine##### WindowsRight-click on “RHESSysWorkflows-VM-201501.tbz” and choose to uncompress using 7-Zip.
 ##### OS X (from Finder)We do not recommend you uncompress the VM archive using Finder (i.e. by double clicking on the .tbz file); use Terminal instead (see below).##### OS X (from Terminal) or under Linux
-Un-archive the virtual machine using tar:    tar xvf RHESSysWorkflows-VM-201501.tbz#### Run RHESSysWorkflows virtual machine1.	Open the uncompressed virtual machine using the “Machine > Add…”	a.	Navigate to “RHESSysWorkflows 201501.vbox” and click “Open”2.	Click on “Start” in the VirtualBox Manager3.	When the virtual machine (VM) finishes booting, you will automatically be loged in.  If the VM, you will need the password:	a.  Username: rhessys	b.	Password: rhessys
+Un-archive the virtual machine using tar:    tar xvf RHESSysWorkflows-VM-201501.tbz#### Run RHESSysWorkflows virtual machine1.	Open the uncompressed virtual machine using the “Machine > Add…”:
+	a.	Navigate to “RHESSysWorkflows 201501.vbox” and click “Open”2.	Click on “Start” in the VirtualBox Manager3.	When the virtual machine (VM) finishes booting, you will automatically be loged in.  If the VM, you will need the password:
+	a.  Username: rhessys	b.	Password: rhessys
