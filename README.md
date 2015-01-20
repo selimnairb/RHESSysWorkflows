@@ -663,9 +663,7 @@ use to define RHESSys soil parameters for our study watershed.
 #### Registering custom local data: LAI data 
 
 EcohydroLib does not current provide direct access to vegetation leaf
-area index data from remote sensing sources, though we are working to
-make available Landsat LAI data generated from the Landsat archive on
-[NASA NEX](https://c3.nasa.gov/nex/).  LAI data are needed by RHESSys
+area index data from remote sensing sources.  LAI data are needed by RHESSys
 to initialize vegetation carbon and nitrogen stores.  RHESSysWorkflows
 relies can use a user-supplied LAI rasters to supply these initial LAI
 data to RHESSys.  For this example workflow, you can download an LAI
@@ -1032,18 +1030,19 @@ your project directory:
 - landuse.rule
 - impervious.rule
 - road.rule
-- lai.rule (if the *--includeLaiRules* option was selected)
+- lai-recode.rule (if the *--includeLaiRules* option was selected)
 
 There is no need to edit these rules for this NLCD2006 example, but
 you should take a moment to look at how these rules work.
 RHESSysWorkflows uses GRASS's
 [r.reclass](http://grass.osgeo.org/grass64/manuals/r.reclass.html)
-command, and so the rules files follow this format.  It's important to
-note that the landcover reclass rules for strarum and landuse must 
-result in raster maps whose values labels match class names present 
-in the RHESSys ParamDB database.  Thus, be very careful in editing 
-the righthand side of the expressions in your stratum and landuse
-reclass rules.
+command ([r.recode](http://grass.osgeo.org/grass64/manuals/r.recode.html)
+for creating LAI maps), and so the rules files follow this format.  
+It's important to note that the landcover reclass rules for stratum and 
+landuse must result in raster maps whose values labels match class 
+names present in the RHESSys ParamDB database.  Thus, be very careful 
+in editing the righthand side of the expressions in your stratum and 
+landuse reclass rules.
 
 Note that to keep track of edits you make to your project's reclass
 rules in your project metadata, you should use the RunCmd workflow
@@ -1143,13 +1142,19 @@ almost everything we need to run RHESSys simulations.
 #### Initializing vegetation carbon stores
 
 RHESSys provides a program called LAIread to initialize vegetation
-carbon stores in your worldfile.  Initializing carbon stores is a
-multi-step process that involves running LAI read to generate a
-redefine worldfile, running a 3-day RHESSys simulation to incorporate
-the redefine worldfile, writing out a new worldfile with initialized
-vegetation carbon stores.  RHESSysWorkflows automates all of these
-processes for you, it can even figure out what date to start the 3-day
-RHESSys simulation on based on your climate data.
+carbon stores in your worldfile.  
+
+> Note, LAIread should only be used for RHESSys simulations with 
+> static vegetation (i.e. not dynamic vegetation mode enable via 
+> the *-g* command line option to RHESSys).
+
+Initializing carbon stores is a multi-step process that involves 
+running LAI read to generate a redefine worldfile, running a 3-day 
+RHESSys simulation to incorporate the redefine worldfile, writing 
+out a new worldfile with initialized vegetation carbon stores.  
+RHESSysWorkflows automates all of these processes for you, it can 
+even figure out what date to start the 3-day RHESSys simulation on 
+based on your climate data.
 
 > In the current version of RHESSysWorkflows, RunLAIRead is only able
 > to read simulation start dates from point time-series climate data.
@@ -1174,7 +1179,7 @@ RHESSysWorkflows stores this file under the name *allometric.txt* in
 the *allometry* folder of the *ParamDB* of your *rhessys/db* folder.  
 You can edit this file to suit your needs before running RunLAIRead.  
 Consult the
-[RHESSys wiki](http://wiki.icess.ucsb.edu/rhessys/index.php/Main_Page) 
+[RHESSys wiki](https://github.com/RHESSys/RHESSys/wiki) 
 for more information on allometric relationships used by LAIread.
 
 When finished, a final worldfile named *world* will be created in the
@@ -1198,7 +1203,7 @@ model outputs starting on 10/1/2008, do the following:
 
     RunCmd.py -p standard echo "2008 10 1 1 print_daily_on" > standard/rhessys/tecfiles/tec_daily.txt
 
-For more information on tec file format, see the [RHESSys wiki](http://wiki.icess.ucsb.edu/rhessys/Generating_RHESSys_input_files#Tecfiles). 
+For more information on tec file format, see the [RHESSys wiki](https://github.com/RHESSys/RHESSys/wiki/Temporal-Event-Control-File-(TEC-file)). 
 
 Once you have built a RHESSys model using RHESSysWorkflows, you can run
 your model manually.  However this will not capture information about
