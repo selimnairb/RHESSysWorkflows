@@ -14,7 +14,7 @@ The workshop will be held at the offices of the Institute for the Environment at
 Chapel Hill, NC 27517
 
 #### When
-9:00 AM to 5:00 PM
+Tuesday January 27th and Wednesday January 28, 2015 from 9:00 AM to 5:00 PM
 
 #### Food
 This is a free workshop therefore meals will not be provided.  There is a restaurant in the Europa Center that is open for lunch and serves high-quality southern fare.  There are grocery stores, coffee, and bagel shops within a short drive of the Europa Center.
