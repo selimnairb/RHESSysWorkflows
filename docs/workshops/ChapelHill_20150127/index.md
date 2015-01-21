@@ -17,13 +17,15 @@ Chapel Hill, NC 27517
 Tuesday January 27th and Wednesday January 28, 2015 from 9:00 AM to 5:00 PM
 
 #### Food
-This is a free workshop therefore meals will not be provided.  There is a restaurant in the Europa Center that is open for lunch and serves high-quality southern fare.  There are grocery stores, coffee, and bagel shops within a short drive of the Europa Center.
+This is a free workshop therefore breakfast and lunch will not be provided, however light snacks and coffee will be provided during our afternoon breaks.  There is a restaurant in the Europa Center that is open for lunch and serves high-quality southern fare.  There are grocery stores, coffee, and bagel shops within a short drive of the Europa Center.
 
 ## Table of contents
 - [Before you arrive](#before-you-arrive)
 - [Agenda](#agenda)
 
 ### Before you arrive
+We will be using some basic Unix commands as part of this workshop.  To make this go more smoothly, we recommend that novice Unix users review lessons 1-3 of the Software Carpentry [Unix Shell lessons](http://software-carpentry.org/v5/novice/shell/index.html).
+
 Before taking part in this workshop, you will need to use the following instructions to download and install a virtual machine that has RHESSysWorkflows pre-installed.The virtual machine requires at least 10 GB of disk space once installed.  To run the virtual machine, your computer should have at least 4 GB of memory (8 GB or more is recommended).If you have any questions, please contact brian_miles@unc.edu.
 
 #### Install VirtualBox
