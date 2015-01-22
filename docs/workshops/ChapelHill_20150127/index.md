@@ -21,6 +21,9 @@ Tuesday January 27th and Wednesday January 28, 2015 from 9:00 AM to 5:00 PM
 #### Food
 This is a free workshop therefore breakfast and lunch will not be provided, however light snacks and coffee will be provided during our afternoon breaks.  There is a restaurant in the Europa Center that is open for lunch and serves high-quality southern fare.  There are grocery stores, coffee, and bagel shops within a short drive of the Europa Center.
 
+#### What to bring
+Unfortunately, we are enable to provide computers for you to use during the workshop.  Please come with your own laptop computer to use.  You will need a machine with at least 4 GB of memory to run the virtual machine we will use (8 GB or more is recommended; see below).
+
 ## Table of contents
 - [Before you arrive](#before-you-arrive)
 - [Agenda](#agenda)
