@@ -52,7 +52,7 @@ The compressed file is about 2 GB, so we recommend you download via a fast netwo
 
 #### Uncompress RHESSysWorkflows virtual machine##### WindowsRight-click on “RHESSysWorkflows-VM-201501.tbz” and choose to uncompress using 7-Zip.
 ##### OS X (from Finder)We do not recommend you uncompress the VM archive using Finder (i.e. by double clicking on the .tbz file); use Terminal instead (see below).##### OS X (from Terminal) or under Linux
-Un-archive the virtual machine using tar:    tar xvf RHESSysWorkflows-VM-201501.tbz#### Run RHESSysWorkflows virtual machine1.	Open the uncompressed virtual machine using the “Machine > Add…”:
+Un-archive the virtual machine using tar:    tar xvf RHESSysWorkflows-VM-201501.tbz#### Run RHESSysWorkflows virtual machine1.	Open the uncompressed virtual machine using the “Machine > Add…” menu:
 	a.	Navigate to “RHESSysWorkflows 201501.vbox” and click “Open”2.	Click on “Start” in the VirtualBox Manager3.	When the virtual machine (VM) finishes booting, you will automatically be loged in.  If the VM, you will need the password:
 	a.  Username: rhessys	b.	Password: rhessys### Agenda
 #### Tuesday, January 27
@@ -580,6 +580,7 @@ to match the stratum IDs used in our project; 2 becomes 21 (i.e. deciduous_BES),
 leaf area for lawn_5m frin 17.0 to 32.0 (i.e. change the second value on
 the third line).  The resulting *allometric.txt* should look as follows:
 
+    4
     1 8.2 1.2 2.2 0.22 0.16 45.0 139.7 200.0 333.33
     21 32.0 1.2 2.2 0.22 0.16 25.0 48.0 48.0 333.33
     32 32.0 1.2 2.2 0.22 0.16 27.7 47.8 250.0 333.33
