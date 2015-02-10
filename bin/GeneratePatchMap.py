@@ -43,7 +43,7 @@ Pre conditions
    'GRASS', 'GISBASE'
 
 2. The following metadata entry(ies) must be present in the study area section of the metadata associated with the project directory:
-   dem_rows (if patch type is grid)
+   dem_columns (if patch type is grid)
 
 3. The following metadata entry(ies) must be present in the GRASS section of the metadata associated with the project directory:
    basin_rast
@@ -146,9 +146,9 @@ if args.patchType == 'grid':
     sys.stdout.write('Generating gridded patch map...\n')
     sys.stdout.flush()
     
-    demRows = int(studyArea['dem_rows'])
+    demCols = int(studyArea['dem_columns'])
     result = grassLib.script.write_command('r.mapcalc', 
-                             stdin="%s=(row()-1) * %d + col()" % (PATCH_RAST, demRows) )
+                             stdin="%s=(row()-1) * %d + col()" % (PATCH_RAST, demCols) )
     if result != 0:
         sys.exit("r.mapcalc failed to create patch map, returning %s" % (result,))
     
