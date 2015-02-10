@@ -1,3 +1,7 @@
+# 1.25 - 2/10/2015
+  - Fix bug where GeneratePatchMap would incorrectly create gridded patch 
+    maps which could lead to duplicate fully qualified patch IDs in rare cases.
+
 # 1.24 - 1/19/2015
   - Improved generation of LAI maps from landcover data by adding support 
     for floating point LAI maps.
