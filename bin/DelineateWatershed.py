@@ -142,6 +142,8 @@ parser.add_argument('-a', '--areaEstimate', dest='areaEstimate', required=False,
                     help='Estimated area, in sq. km, of watershed to be delineated.  A warning message will be displayed if the delineated basin area is not close to estimated area.')
 parser.add_argument('--ignoreBurnedDEM', dest='ignoreBurnedDEM', action='store_true', required=False,
                     help='Ignore stream burned DEM, if present. Default DEM raster will be used for all operations. If not specified and if stream burned raster is present, stream burned DEM will be used for calculating flow direction maps.')
+parser.add_argument('--multiflowdirection', dest='multiflowdirection', action='store_true', required=False,
+                    help='Use multiflow direction to determine watershed boundaries.')
 parser.add_argument('--overwrite', dest='overwrite', action='store_true', required=False,
                     help='Overwrite existing datasets in the GRASS mapset.  If not specified, program will halt if a dataset already exists.')
 args = parser.parse_args()
@@ -198,9 +200,13 @@ if result != 0:
     sys.exit("g.region failed to set region to DEM, returning %s" % (result,))
 
 # Generate drainage direction map
+flags = None
+if args.multiflowdirection:
+    flags = 'f'
 result = grassLib.script.run_command('r.watershed', 
                                      elevation=flowDirDem, drainage='drain', accumulation='uaa',
-                                     overwrite=args.overwrite)
+                                     overwrite=args.overwrite,
+                                     flags=flags)
 if result != 0:
     sys.exit("r.watershed failed creating drainage direction and uaa maps, returning %s" % (result,))
 
@@ -265,12 +271,16 @@ RHESSysMetadata.writeGRASSEntry(context, 'basin_rast', basinName)
 # Generate hillslopes
 #   We have to place these options in a dictionary because one of the options
 #   has a '.' in its name.
+flags = None
+if args.multiflowdirection:
+    flags = 'f'
 rWatershedOptions = {'elevation': flowDirDem, 
                      'threshold': args.threshold,
                      'basin': 'subbasins',
                      'half.basin': 'hillslopes',
                      'stream': 'streams',
-                     'overwrite': args.overwrite}
+                     'overwrite': args.overwrite,
+                     'flags': flags }
 result = grassLib.script.run_command('r.watershed', **rWatershedOptions)
 if result != 0:
     sys.exit("r.watershed failed creating subbasins, returning %s" % (result,))
