@@ -5,7 +5,7 @@ def readme():
         return f.read()
 
 setup(name='rhessysworkflows',
-      version='1.25',
+      version='1.26-dev',
       description='Libraries and command-line scripts for performing RHESSys data preparation workflows.',
       long_description=readme(),
       classifiers=[
@@ -22,6 +22,7 @@ setup(name='rhessysworkflows',
       author_email='brian_miles@unc.edu',
       license='BSD',
       packages=['rhessysworkflows',
+                'rhessysworkflows.command',
                 'rhessysworkflows.tests'
                 ],
       install_requires=[
@@ -36,6 +37,7 @@ setup(name='rhessysworkflows',
       scripts=['bin/CreateFlowtable.py',
                'bin/CreateGRASSLocationFromDEM.py',
                'bin/CreateWorldfile.py',
+               'bin/CreateWorldfileMultiple.py',
                'bin/DelineateWatershed.py',
                'bin/GenerateBaseStationMap.py',
                'bin/GenerateCustomSoilDefinitions.py',

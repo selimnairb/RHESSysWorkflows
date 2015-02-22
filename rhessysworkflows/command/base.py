@@ -1,0 +1,79 @@
+"""@package rhessysworkflows.command.base
+    
+@brief Base classes for RHESSysWorkflows commands
+
+This software is provided free of charge under the New BSD License. Please see
+the following license information:
+
+Copyright (c) 2015, University of North Carolina at Chapel Hill
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in the
+      documentation and/or other materials provided with the distribution.
+    * Neither the name of the University of North Carolina at Chapel Hill nor the
+      names of its contributors may be used to endorse or promote products
+      derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE UNIVERSITY OF NORTH CAROLINA AT CHAPEL HILL
+BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT 
+LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
+OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+@author Brian Miles <brian_miles@unc.edu>
+"""
+import sys
+
+from ecohydrolib.grasslib import *
+
+from rhessysworkflows.command.exceptions import MetadataException
+from rhessysworkflows.context import Context
+from rhessysworkflows.metadata import RHESSysMetadata
+
+class Command(object):
+    def __init__(self, projectDir, configFile=None, outfp=sys.stdout):
+        self.context = Context(projectDir, configFile) 
+        self.outfp = outfp
+    
+    def checkMetadata(self):
+        self.metadata = RHESSysMetadata.readRHESSysEntries(self.context)
+    
+    def run(self, *args, **kwargs):
+        pass
+    
+
+class GrassCommand(Command):
+    def __init__(self, projectDir, configFile=None, outfp=sys.stdout):
+        super(GrassCommand, self).__init__(projectDir, configFile, outfp)
+        
+    def checkMetadata(self):
+        super(GrassCommand, self).checkMetadata()
+        self.grassMetadata = RHESSysMetadata.readGRASSEntries(self.context)
+        
+        if not 'grass_dbase' in self.metadata:
+            raise MetadataException("Metadata in project directory %s does not contain a GRASS Dbase" % (self.context.projectDir,)) 
+        if not 'grass_location' in self.metadata:
+            raise MetadataException("Metadata in project directory %s does not contain a GRASS location" % (self.context.projectDir,)) 
+        if not 'grass_mapset' in self.metadata:
+            raise MetadataException("Metadata in project directory %s does not contain a GRASS mapset" % (self.context.projectDir,))
+
+    def setupGrassEnv(self):
+        self.modulePath = self.context.config.get('GRASS', 'MODULE_PATH')
+        self.grassDbase = os.path.join(self.context.projectDir, self.metadata['grass_dbase'])
+        self.grassConfig = GRASSConfig(self.context, self.grassDbase, self.metadata['grass_location'], self.metadata['grass_mapset'])
+        self.grassLib = GRASSLib(grassConfig=self.grassConfig)
+        
+    def run(self):
+        pass
+    
