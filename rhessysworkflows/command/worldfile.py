@@ -33,7 +33,9 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 @author Brian Miles <brian_miles@unc.edu>
 """
+import os
 import sys
+from subprocess import *
 
 from rhessysworkflows.command.base import GrassCommand
 from rhessysworkflows.command.exceptions import MetadataException
@@ -79,52 +81,86 @@ class WorldfileMultiple(GrassCommand):
         
         verbose = kwargs.get('verbose', False)
         
-        ## Run grass2world
-        # Make sure mask and region are properly set
-        demRast = self.grassMetadata['dem_rast']
-        result = self.grassLib.script.run_command('g.region', rast=demRast)
-        if result != 0:
-            sys.exit("g.region failed to set region to DEM, returning %s" % (result,))
-        
-        basinRast = self.grassMetadata['basin_rast']
-        result = self.grassLib.script.run_command('r.mask', flags='o', input=basinRast, maskcats='1')
-        if result != 0:
-            sys.exit("r.mask failed to set mask to basin, returning %s" % (result,))
-        
         templateFilename = os.path.basename(self.metadata['template'])
-        templateFilepath = os.path.join(context.projectDir, metadata['template'])
-        
-        worldfileName = "%s_init" % (templateFilename.replace('template', 'world'), )
-        worldfilePath = os.path.join(self.paths.RHESSYS_WORLD, worldfileName)
+        templateFilepath = os.path.join(self.context.projectDir, self.metadata['template'])
         
         g2wPath = os.path.join(self.context.projectDir, self.metadata['g2w_bin'])
-        g2wCommand = "%s -t %s -w %s" % (g2wPath, templateFilepath, worldfilePath)
         
         # Make sure g2w can find rat
         g2wEnv = dict(os.environ)
         g2wEnv['PATH'] = self.paths.RHESSYS_BIN + os.pathsep + g2wEnv['PATH']
         
-        if verbose:
-            self.outfp.write("{0}\n".format(g2wCommand))
+        # Make sure region is properly set
+        demRast = self.grassMetadata['dem_rast']
+        result = self.grassLib.script.run_command('g.region', rast=demRast)
+        if result != 0:
+            raise RunException("g.region failed to set region to DEM, returning {0}".format(result))
         
-        self.outfp.write("\nRunning grass2world from %s..." % (self.paths.RHESSYS_BIN,) )
-        self.outfp.flush()
-        cmdArgs = g2wCommand.split()
-        process = Popen(cmdArgs, cwd=self.paths.RHESSYS_BIN, env=g2wEnv, 
-                        stdout=PIPE, stderr=PIPE)
-        (process_stdout, process_stderr) = process.communicate()
+        # Get list of subbasins
+        subbasin_raster = 'subbasins'
+        result = self.grassLib.script.read_command('r.stats', flags='n', input=subbasin_raster)
+        if result is None or result == '':
+            raise RunException("Error reading subbasin map {0}".format(subbasin_raster))
+             
+        subbasins = result.split()
+        subbasin_masks = []
+        worldfiles = []
+        for subbasin in subbasins:
+            # Remove mask
+            result = self.grassLib.script.run_command('r.mask', flags='r')
+            if result != 0:
+                raise RunException("r.mask failed to remove mask")
+            
+            # Make a mask layer for the sub-basin
+            mask_name = "subbasin_{0}".format(subbasin)
+            subbasin_masks.append(mask_name)
+            result = self.grassLib.script.write_command('r.mapcalc',
+                                                        stdin="{mask_name}={subbasins} == {subbasin_number}".format(mask_name=mask_name,
+                                                                                                                    subbasins=subbasin_raster,
+                                                                                                                    subbasin_number=subbasin))
+            if result != 0:
+                raise RunException("r.mapcalc failed to generate mask for subbasin {0}".format(subbasin))
         
-        if verbose:
-            self.outfp.write(process_stdout)
-            self.outfp.write(process_stderr)
-        
-        if process.returncode != 0:
-            raise RunException("grass2world failed, returning {0}".format(process.returncode))
-        
-        # Write metadata
-        RHESSysMetadata.writeRHESSysEntry(context, 'worldfile_zero', self.paths.relpath(worldfilePath) )
+            # Mask to the sub-basin
+            result = self.grassLib.script.run_command('r.mask', flags='o', input=mask_name, maskcats='1')
+            if result != 0:
+                raise RunException("r.mask failed to set mask to sub-basin {0}, returning {1}".format(mask_name,
+                                                                                                      result))
+         
+            worldfileName = "world_subbasin_{0}_init".format(subbasin)
+            worldfiles.append(worldfileName)
+            worldfilePath = os.path.join(self.paths.RHESSYS_WORLD, worldfileName)
+            g2wCommand = "{g2w} -t {template} -w {worldfile}".format(g2w=g2wPath, 
+                                                                     template=templateFilepath, 
+                                                                     worldfile=worldfilePath)
+            
+            if verbose:
+                self.outfp.write("{0}\n".format(g2wCommand))
+                self.outfp.write("\nRunning grass2world from {0}...".format(self.paths.RHESSYS_BIN))
+                self.outfp.flush()
 
-        self.outfp.write('\n\nFinished creating worldfile\n')
+#            cmdArgs = g2wCommand.split()
+#             process = Popen(cmdArgs, cwd=self.paths.RHESSYS_BIN, env=g2wEnv, 
+#                             stdout=PIPE, stderr=PIPE)
+#             (process_stdout, process_stderr) = process.communicate()
+#             if process.returncode != 0:
+#                 raise RunException("grass2world failed, returning {0}".format(process.returncode))
+#     
+#             if verbose:
+#                 self.outfp.write(process_stdout)
+#                 self.outfp.write(process_stderr)
+         
+        # Remove mask
+        result = self.grassLib.script.run_command('r.mask', flags='r')
+        if result != 0:
+            raise RunException("r.mask failed to remove mask") 
+         
+        # Write metadata
+#        RHESSysMetadata.writeRHESSysEntry(context, 'worldfiles', ",".join([w for w in worldfiles]))
+#        RHESSysMetadata.writeRHESSysEntry(context, 'subbasin_masks', ",".join([m for m in subbasin_masks]))
+
+#        if verbose:
+#            self.outfp.write('\n\nFinished creating worldfiles\n')
 
         # Write processing history
-        RHESSysMetadata.appendProcessingHistoryItem(self.context, RHESSysMetadata.getCommandLine())
+#        RHESSysMetadata.appendProcessingHistoryItem(self.context, RHESSysMetadata.getCommandLine())
