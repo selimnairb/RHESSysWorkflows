@@ -5,7 +5,7 @@ def readme():
         return f.read()
 
 setup(name='rhessysworkflows',
-      version='1.26-dev',
+      version='1.27-dev',
       description='Libraries and command-line scripts for performing RHESSys data preparation workflows.',
       long_description=readme(),
       classifiers=[

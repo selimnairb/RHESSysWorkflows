@@ -107,9 +107,11 @@ parser.add_argument('-s', '--sourceDir', dest='sourceDir', required=False,
                     help='The directory from which RHESys source should be copied. NOTE: will delete any sources already in the project directory')
 group = parser.add_mutually_exclusive_group()
 group.add_argument('-t', '--tag', dest='tag', required=False,
-                    help='Use source code from the specified tagged version of RHESSys; applies only when code is cloned from Git repository (i.e. -s not specified)')
+                   help='Use source code from the specified tagged version of RHESSys; applies only when code is cloned from Git repository (i.e. -s not specified)')
 group.add_argument('-b', '--branch', dest='branch', required=False,
-                    help='Use source code from the specified branch of the RHESSys source; applies only when code is cloned from Git repository (i.e. -s not specified)')
+                   help='Use source code from the specified branch of the RHESSys source; applies only when code is cloned from Git repository (i.e. -s not specified)')
+group.add_argument('-c', '--commit', dest='commit', required=False,
+                   help='Use source code from the specified commit of the RHESSys source; applies only when code is clone from Git repository (i.e. -s not specified)')
 parser.add_argument('--overwrite', dest='overwrite', action='store_true', required=False,
                     help='Overwrite existing source code in the project directory; If specified, will delete existing code before importing new code.  If not specified, new code will be added to existing code.')
 args = parser.parse_args()
@@ -254,7 +256,7 @@ else:
     # Write metadata
     RHESSysMetadata.writeRHESSysEntry(context, 'rhessys_src', RHESSYS_REPO_URL)
     
-    if args.branch or args.tag:
+    if args.branch or args.tag or args.commit:
         gitCommand = None
         gitSHA1Command = None
         # Check out desired branch or tag
@@ -292,6 +294,10 @@ else:
                 sha1Identifier = args.tag
             # Write metadata
             RHESSysMetadata.writeRHESSysEntry(context, 'rhessys_tag', args.tag)
+        if args.commit:
+            sys.stdout.write("Checking out commit {0}\n".format(args.commit))
+            gitCommand = "%s checkout %s" % (gitPath, args.commit)
+            sha1Identifier = args.tag
         if gitCommand:        
             # Check out the branch or tag
             process = Popen(gitCommand, shell=True, cwd=paths.RHESSYS_SRC)

@@ -1,3 +1,6 @@
+# 1.26 - 2/25/2015
+  - Added ability to checkout a particular commit of RHESSys
+
 # 1.25 - 2/10/2015
   - Fix bug where GeneratePatchMap would incorrectly create gridded patch 
     maps which could lead to duplicate fully qualified patch IDs in rare cases.
