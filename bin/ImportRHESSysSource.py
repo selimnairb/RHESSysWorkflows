@@ -297,7 +297,7 @@ else:
         if args.commit:
             sys.stdout.write("Checking out commit {0}\n".format(args.commit))
             gitCommand = "%s checkout %s" % (gitPath, args.commit)
-            sha1Identifier = args.tag
+            sha1Identifier = args.commit
         if gitCommand:        
             # Check out the branch or tag
             process = Popen(gitCommand, shell=True, cwd=paths.RHESSYS_SRC)
