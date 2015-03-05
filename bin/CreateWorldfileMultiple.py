@@ -46,7 +46,7 @@ from rhessysworkflows.command.worldfile import WorldfileMultiple
 if __name__ == "__main__":
     
     # Handle command line options
-    parser = argparse.ArgumentParser(description='Create multiple RHESSys worldfiles using GRASS GIS data and grass2world utility')
+    parser = argparse.ArgumentParser(description='Create multiple RHESSys worldfiles, one worldfile for each sub basin, using GRASS GIS data and grass2world utility')
     parser.add_argument('-i', '--configfile', dest='configfile', required=False,
                         help='The configuration file. Must define section "GRASS" and option "GISBASE"')
     parser.add_argument('-p', '--projectDir', dest='projectDir', required=True,

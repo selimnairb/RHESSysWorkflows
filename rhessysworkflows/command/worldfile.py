@@ -53,6 +53,10 @@ class WorldfileMultiple(GrassCommand):
         super(WorldfileMultiple, self).checkMetadata()
         
         # Check for necessary information in metadata
+        if not 'basin_rast' in self.grassMetadata:
+            raise MetadataException("Metadata in project directory %s does not contain a basin raster in a GRASS mapset" % (self.context.projectDir,))
+        if not 'subbasins_rast' in self.grassMetadata:
+            raise MetadataException("Metadata in project directory %s does not contain a sub-basin raster in a GRASS mapset" % (self.context.projectDir,))
         if not 'dem_rast' in self.grassMetadata:
             raise MetadataException("Metadata in project directory %s does not contain a DEM raster in a GRASS mapset" % (self.context.projectDir,)) 
         if not 'soil_rast' in self.grassMetadata:
@@ -96,9 +100,26 @@ class WorldfileMultiple(GrassCommand):
         if result != 0:
             raise RunException("g.region failed to set region to DEM, returning {0}".format(result))
         
+        # Mask subbasin to basin
+        basin_rast = self.grassMetadata['basin_rast']
+        result = self.grassLib.script.run_command('r.mask', flags='o', input=basin_rast, maskcats='1',
+                                                  quiet=True)
+        if result != 0:
+            sys.exit("r.mask failed to set mask to basin, returning %s" % (result,))
+        subbasin_raster = self.grassMetadata['subbasins_rast']
+        subbasin_mask = "{0}_mask".format(subbasin_raster)
+        mapcalc_input = "{subbasin_mask}={subbasins}".format(subbasin_mask=subbasin_mask,
+                                                             subbasins=subbasin_raster)
+        result = self.grassLib.script.write_command('r.mapcalc',
+                                                    stdin=mapcalc_input,
+                                                    stdout=PIPE,
+                                                    stderr=PIPE)
+        if result != 0:
+            raise RunException("r.mapcalc failed to generate masked subbasin map {0}, input: {1}".format(subbasin_raster,
+                                                                                                         mapcalc_input))
+        
         # Get list of subbasins
-        subbasin_raster = 'subbasins'
-        result = self.grassLib.script.read_command('r.stats', flags='n', input=subbasin_raster)
+        result = self.grassLib.script.read_command('r.stats', flags='n', input=subbasin_raster, quiet=True)
         if result is None or result == '':
             raise RunException("Error reading subbasin map {0}".format(subbasin_raster))
              
@@ -107,7 +128,7 @@ class WorldfileMultiple(GrassCommand):
         worldfiles = []
         for subbasin in subbasins:
             # Remove mask
-            result = self.grassLib.script.run_command('r.mask', flags='r')
+            result = self.grassLib.script.run_command('r.mask', flags='r', quiet=True)
             if result != 0:
                 raise RunException("r.mask failed to remove mask")
             
@@ -116,13 +137,16 @@ class WorldfileMultiple(GrassCommand):
             subbasin_masks.append(mask_name)
             result = self.grassLib.script.write_command('r.mapcalc',
                                                         stdin="{mask_name}={subbasins} == {subbasin_number}".format(mask_name=mask_name,
-                                                                                                                    subbasins=subbasin_raster,
-                                                                                                                    subbasin_number=subbasin))
+                                                                                                                    subbasins=subbasin_mask,
+                                                                                                                    subbasin_number=subbasin),
+                                                        stdout=PIPE,
+                                                        stderr=PIPE)
             if result != 0:
                 raise RunException("r.mapcalc failed to generate mask for subbasin {0}".format(subbasin))
         
             # Mask to the sub-basin
-            result = self.grassLib.script.run_command('r.mask', flags='o', input=mask_name, maskcats='1')
+            result = self.grassLib.script.run_command('r.mask', flags='o', input=mask_name, maskcats='1',
+                                                      quiet=True)
             if result != 0:
                 raise RunException("r.mask failed to set mask to sub-basin {0}, returning {1}".format(mask_name,
                                                                                                       result))
@@ -139,28 +163,28 @@ class WorldfileMultiple(GrassCommand):
                 self.outfp.write("\nRunning grass2world from {0}...".format(self.paths.RHESSYS_BIN))
                 self.outfp.flush()
 
-#            cmdArgs = g2wCommand.split()
-#             process = Popen(cmdArgs, cwd=self.paths.RHESSYS_BIN, env=g2wEnv, 
-#                             stdout=PIPE, stderr=PIPE)
-#             (process_stdout, process_stderr) = process.communicate()
-#             if process.returncode != 0:
-#                 raise RunException("grass2world failed, returning {0}".format(process.returncode))
-#     
-#             if verbose:
-#                 self.outfp.write(process_stdout)
-#                 self.outfp.write(process_stderr)
+            cmdArgs = g2wCommand.split()
+            process = Popen(cmdArgs, cwd=self.paths.RHESSYS_BIN, env=g2wEnv, 
+                            stdout=PIPE, stderr=PIPE)
+            (process_stdout, process_stderr) = process.communicate()
+            if process.returncode != 0:
+                raise RunException("grass2world failed, returning {0}".format(process.returncode))
+     
+            if verbose:
+                self.outfp.write(process_stdout)
+                self.outfp.write(process_stderr)
          
         # Remove mask
-        result = self.grassLib.script.run_command('r.mask', flags='r')
+        result = self.grassLib.script.run_command('r.mask', flags='r', quiet=True)
         if result != 0:
             raise RunException("r.mask failed to remove mask") 
          
         # Write metadata
-#        RHESSysMetadata.writeRHESSysEntry(context, 'worldfiles', ",".join([w for w in worldfiles]))
-#        RHESSysMetadata.writeRHESSysEntry(context, 'subbasin_masks', ",".join([m for m in subbasin_masks]))
+        RHESSysMetadata.writeRHESSysEntry(self.context, 'worldfiles', ",".join([w for w in worldfiles]))
+        RHESSysMetadata.writeRHESSysEntry(self.context, 'subbasin_masks', ",".join([m for m in subbasin_masks]))
 
-#        if verbose:
-#            self.outfp.write('\n\nFinished creating worldfiles\n')
+        if verbose:
+            self.outfp.write('\n\nFinished creating worldfiles\n')
 
         # Write processing history
-#        RHESSysMetadata.appendProcessingHistoryItem(self.context, RHESSysMetadata.getCommandLine())
+        RHESSysMetadata.appendProcessingHistoryItem(self.context, RHESSysMetadata.getCommandLine())

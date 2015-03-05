@@ -286,6 +286,8 @@ if result != 0:
     sys.exit("r.watershed failed creating subbasins, returning %s" % (result,))
 
 # Make binary stream layer
+# First save stream segment raster
+
 result = grassLib.script.write_command('r.mapcalc', stdin='streams=(streams >= 0)')
 if result != 0:
     sys.exit("r.mapcalc failed to create binary streams, returning %s" % (result,))
