@@ -46,7 +46,8 @@ class Command(object):
         self.context = Context(projectDir, configFile) 
         self.outfp = outfp
     
-    def checkMetadata(self):
+    def checkMetadata(self, *args, **kwargs):
+        self.studyArea = RHESSysMetadata.readStudyAreaEntries(self.context)
         self.metadata = RHESSysMetadata.readRHESSysEntries(self.context)
     
     def run(self, *args, **kwargs):
@@ -57,7 +58,7 @@ class GrassCommand(Command):
     def __init__(self, projectDir, configFile=None, outfp=sys.stdout):
         super(GrassCommand, self).__init__(projectDir, configFile, outfp)
         
-    def checkMetadata(self):
+    def checkMetadata(self, *args, **kwargs):
         super(GrassCommand, self).checkMetadata()
         self.grassMetadata = RHESSysMetadata.readGRASSEntries(self.context)
         

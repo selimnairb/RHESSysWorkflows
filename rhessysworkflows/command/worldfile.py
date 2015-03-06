@@ -77,13 +77,14 @@ class WorldfileMultiple(GrassCommand):
             
     
     def run(self, *args, **kwargs):
+        verbose = kwargs.get('verbose', False)
+        
         self.checkMetadata()
+        
         rhessysDir = self.metadata['rhessys_dir']
         self.paths = RHESSysPaths(self.context.projectDir, rhessysDir)
         
         self.setupGrassEnv()
-        
-        verbose = kwargs.get('verbose', False)
         
         templateFilename = os.path.basename(self.metadata['template'])
         templateFilepath = os.path.join(self.context.projectDir, self.metadata['template'])
@@ -180,8 +181,10 @@ class WorldfileMultiple(GrassCommand):
             raise RunException("r.mask failed to remove mask") 
          
         # Write metadata
-        RHESSysMetadata.writeRHESSysEntry(self.context, 'worldfiles', ",".join([w for w in worldfiles]))
-        RHESSysMetadata.writeRHESSysEntry(self.context, 'subbasin_masks', ",".join([m for m in subbasin_masks]))
+        RHESSysMetadata.writeRHESSysEntry(self.context, 'worldfiles', 
+                                          RHESSysMetadata.VALUE_DELIM.join([w for w in worldfiles]))
+        RHESSysMetadata.writeRHESSysEntry(self.context, 'subbasin_masks', 
+                                          RHESSysMetadata.VALUE_DELIM.join([m for m in subbasin_masks]))
 
         if verbose:
             self.outfp.write('\n\nFinished creating worldfiles\n')

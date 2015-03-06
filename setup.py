@@ -35,6 +35,7 @@ setup(name='rhessysworkflows',
         'statsmodels'
       ],
       scripts=['bin/CreateFlowtable.py',
+               'bin/CreateFlowtableMultiple.py',
                'bin/CreateGRASSLocationFromDEM.py',
                'bin/CreateWorldfile.py',
                'bin/CreateWorldfileMultiple.py',
