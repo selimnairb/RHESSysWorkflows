@@ -47,9 +47,18 @@ from rhessysworkflows.metadata import RHESSysMetadata
 class WorldfileMultiple(GrassCommand):
     
     def __init__(self, projectDir, configFile=None, outfp=sys.stdout):
+        """ Construct a WorldfileMultiple command.
+        Arguments:
+        projectDir -- string    The path to the project directory
+        configFile -- string    The path to an EcohydroLib configuration file
+        outfp -- file-like object    Where output should be written to
+        
+        """
         super(WorldfileMultiple, self).__init__(projectDir, configFile, outfp)
     
     def checkMetadata(self):
+        """ Check to make sure the project directory has the necessary metadata to run this command.
+        """
         super(WorldfileMultiple, self).checkMetadata()
         
         # Check for necessary information in metadata
@@ -77,6 +86,11 @@ class WorldfileMultiple(GrassCommand):
             
     
     def run(self, *args, **kwargs):
+        """ Multiple worldfiles, one worldfile for each subbasin delineated. 
+        
+        Arguments:
+        verbose -- boolean    Produce verbose output. Default: False.
+        """
         verbose = kwargs.get('verbose', False)
         
         self.checkMetadata()

@@ -43,22 +43,59 @@ from rhessysworkflows.metadata import RHESSysMetadata
 
 class Command(object):
     def __init__(self, projectDir, configFile=None, outfp=sys.stdout):
+        """ Construct a RHESSysWorkflows abstract command.  Concrete commands
+            must call this super class method in their constructor.
+        
+        Arguments:
+        projectDir -- string    The path to the project directory
+        configFile -- string    The path to an EcohydroLib configuration file
+        outfp -- file-like object    Where output should be written to
+        
+        """
         self.context = Context(projectDir, configFile) 
         self.outfp = outfp
     
     def checkMetadata(self, *args, **kwargs):
+        """ Check to make sure the project directory has the necessary metadata to run this command.
+        
+            @note Concrete commands must call this super class method in their own
+            implementation of checkMetadata(), and must call their implementation
+            near the beginning of their run method.
+        
+        """
         self.studyArea = RHESSysMetadata.readStudyAreaEntries(self.context)
         self.metadata = RHESSysMetadata.readRHESSysEntries(self.context)
     
     def run(self, *args, **kwargs):
+        """ Run the command
+        
+            @note Concrete classes must call checkMetadata() near the beginning
+            of their run methods. 
+        """
         pass
     
 
 class GrassCommand(Command):
     def __init__(self, projectDir, configFile=None, outfp=sys.stdout):
+        """ Construct a RHESSysWorkflows abstract command that runs GRASS commands.  
+            Concrete GRASS commands must call this super class method in their constructor.
+        
+        Arguments:
+        projectDir -- string    The path to the project directory
+        configFile -- string    The path to an EcohydroLib configuration file
+        outfp -- file-like object    Where output should be written to
+        
+        """
         super(GrassCommand, self).__init__(projectDir, configFile, outfp)
         
     def checkMetadata(self, *args, **kwargs):
+        """ Check to make sure the project directory has the necessary metadata to run this command.
+        
+            @note Concrete commands must call this super class method in their own
+            implementation of checkMetadata(), and must call their implementation
+            near the beginning of their run method.
+        
+        """
         super(GrassCommand, self).checkMetadata()
         self.grassMetadata = RHESSysMetadata.readGRASSEntries(self.context)
         
@@ -78,5 +115,10 @@ class GrassCommand(Command):
         self.grassLib = GRASSLib(grassConfig=self.grassConfig)
         
     def run(self, *args, **kwargs):
+        """ Run the command
+        
+            @note Concrete classes must call checkMetadata() near the beginning
+            of their run methods. 
+        """
         pass
     

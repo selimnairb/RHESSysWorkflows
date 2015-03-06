@@ -52,9 +52,18 @@ from rhessysworkflows.climateio import getStartAndEndDateForClimateStation
 
 class LAIReadMultiple(GrassCommand):
     def __init__(self, projectDir, configFile=None, outfp=sys.stdout):
+        """ Construct a LAIReadMultiple command.
+        Arguments:
+        projectDir -- string    The path to the project directory
+        configFile -- string    The path to an EcohydroLib configuration file
+        outfp -- file-like object    Where output should be written to
+        
+        """
         super(LAIReadMultiple, self).__init__(projectDir, configFile, outfp)
         
     def checkMetadata(self, *args, **kwargs):
+        """ Check to make sure the project directory has the necessary metadata to run this command.
+        """
         super(LAIReadMultiple, self).checkMetadata()
         
         # Check for necessary information in self.metadata
@@ -92,6 +101,12 @@ class LAIReadMultiple(GrassCommand):
                 raise MetadataException("Metadata in project directory %s does not contain a subsurface flowtables" % (self.context.projectDir,))
         
     def run(self, *args, **kwargs):
+        """ Run lairead for multiple worldfiles 
+        
+        Arguments:
+        topmodel -- boolean   Whether to run RHESSys in TOPMODEL model. Default: False.
+        verbose -- boolean    Produce verbose output. Default: False.
+        """
         verbose = kwargs.get('verbose', False)
         topmodel = kwargs.get('topmodel', False)
         

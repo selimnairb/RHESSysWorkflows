@@ -47,9 +47,18 @@ from rhessysworkflows.metadata import RHESSysMetadata
 class FlowtableMultiple(GrassCommand):
     
     def __init__(self, projectDir, configFile=None, outfp=sys.stdout):
+        """ Construct a FlowtableMultiple command.
+        Arguments:
+        projectDir -- string    The path to the project directory
+        configFile -- string    The path to an EcohydroLib configuration file
+        outfp -- file-like object    Where output should be written to
+        
+        """
         super(FlowtableMultiple, self).__init__(projectDir, configFile, outfp)
     
     def checkMetadata(self, *args, **kwargs):
+        """ Check to make sure the project directory has the necessary metadata to run this command.
+        """
         super(FlowtableMultiple, self).checkMetadata(args, kwargs)
         
         # Check for necessary information in metadata
@@ -89,6 +98,16 @@ class FlowtableMultiple(GrassCommand):
                 raise MetadataException("Metadata in project directory %s does not contain a GRASS dataset with a impervious raster" % (self.context.projectDir,))
         
     def run(self, *args, **kwargs):
+        """ Create flow tables for multiple worldfiles 
+        
+        Arguments:
+        routeRoads -- boolean    Whether road routing should be enabled in createflowpaths. Default: False.
+        routeRoofs -- boolean    Whether roof routing should be enabled in createflowpaths. Default: False.
+        ignoreBurnedDEM -- boolean    If true, use the base DEM when running createflowpaths. 
+                                      If false, use the stream-burned DEM (if present).  Default: False.
+        force -- boolean        Whether to force createflowpaths to run if DEM X resolution != Y resolution. Default: False.
+        verbose -- boolean    Produce verbose output. Default: False.
+        """
         routeRoads = kwargs.get('routeRoads', False)
         routeRoofs = kwargs.get('routeRoofs', False)
         force = kwargs.get('force', False)
