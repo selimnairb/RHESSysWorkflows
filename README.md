@@ -1625,6 +1625,30 @@ through RunCmd, it will write an entry to the processing history
 of your project metadata.  This way, you at least have a record of the
 custom workflow steps you applied to the data in your project directory.
 
+#### Creating multiple worldfiles based on subbasins
+
+For large model domains, it may be desirable to break up your watershed
+into multiple worldfiles.  RHESSysWorkflows allows you to do this using
+the *CreateWorldfileMultiple* command:
+
+    CreateWorldfileMultiple.py -p PROJECT_DIR
+
+This will create one worldfile for each subbasin delineated for your
+watershed.
+
+Once you've created multiple worldfiles, you can create corresponding
+flow tables using the *CreateFlowtableMultiple* command:
+
+    CreateFlowtableMultiple.py -p PROJECT_DIR
+    
+*CreateFlowtableMultiple* supports the same command line options as
+its counterpart *CreateFlowtable*.
+
+Finally, you can initialize vegetation carbon and nitrogen stores
+for multiple worldfiles using *RunLAIReadMultiple*:
+
+    RunLAIReadMultiple.py -p PROJECT_DIR
+
 
 Appendix
 --------
