@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 """@package CreateWorldfileMultiple
 
-@brief Command line driver program to create multiple RHESSys worldfiles.  
-This will create an initial worldfiles that may be used for input into the 
-lairead utility, which initializes vegetation carbon stores.
+@brief Command line driver program to create multiple RHESSys worldfiles,
+one worldfile for each subbasin delineated. This will create an initial 
+worldfiles that may be used for input into the lairead utility, which 
+initializes vegetation carbon stores.
 
 This software is provided free of charge under the New BSD License. Please see
 the following license information:
