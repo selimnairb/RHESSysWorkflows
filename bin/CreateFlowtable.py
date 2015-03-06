@@ -251,7 +251,7 @@ if pStderr:
 cfOut.close()
 
 cfCmd = "%s out=%s template=%s dem=%s slope=%s stream=%s road=%s roof=%s impervious=%s cellsize=%s" % \
-    (cfPath, flowOutpath, templatePath, grassMetadata['dem_rast'], grassMetadata['slope_rast'],
+    (cfPath, flowOutpath, templatePath, demRast, grassMetadata['slope_rast'],
      grassMetadata['streams_rast'], roads, roofs, impervious, demResX)
 RHESSysMetadata.writeRHESSysEntry(context, 'flowtable_cmd', cfCmd)
 RHESSysMetadata.writeRHESSysEntry(context, 'surface_flowtable', paths.relpath(os.path.join(paths.RHESSYS_FLOW, surfaceFlowtable) ) )
