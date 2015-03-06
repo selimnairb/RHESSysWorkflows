@@ -339,7 +339,7 @@ class RHESSysOutput(object):
         return (returnDict)
 
 def generateCommandString(binPath, outputPrefix, startDate, endDate, tecPath,
-                          worldPath, surfaceFlowPath, subsurfaceFlowPath=None,
+                          worldPath, subsurfaceFlowPath=None, surfaceFlowPath=None,
                           flags="", **kwargs):
     """ Return a string representing a properly formatted RHESSys command with
         the executable and all command line options and arguments specified.
@@ -349,8 +349,8 @@ def generateCommandString(binPath, outputPrefix, startDate, endDate, tecPath,
         @param endDate datetime
         @param tecPath String representing tec file to be used
         @param worldPath String representing world file to be used
-        @param surfaceFlowPath String representing surface flowtable to be used
         @param subsurfaceFlowPath String representing subsurface flowtable to be used
+        @param surfaceFlowPath String representing surface flowtable to be used
         @params flags String representing flags to include (e.g. b for -b or basin output)
         @params **kwargs Mapping type describing calibration options, with key
         representing the parameter name and value a tuple of arguments to pass to the
@@ -358,14 +358,16 @@ def generateCommandString(binPath, outputPrefix, startDate, endDate, tecPath,
         
         @return String representing the RHESSys command line 
     """
-    cmd = "%s -st %s -ed %s -t %s -w %s -r %s" % \
+    cmd = "%s -st %s -ed %s -t %s -w %s" % \
             (binPath,
              datetimeToString(startDate), datetimeToString(endDate),
-             tecPath, worldPath, surfaceFlowPath)
+             tecPath, worldPath)
+    if subsurfaceFlowPath:
+        cmd = "%s -r %s" % (cmd, subsurfaceFlowPath)
+    if surfaceFlowPath and subsurfaceFlowPath:
+        cmd = "%s %s" % (cmd, surfaceFlowPath)
     if outputPrefix:
         cmd = "%s -pre %s" % (cmd, outputPrefix)
-    if subsurfaceFlowPath:
-        cmd = "%s %s" % (cmd, subsurfaceFlowPath)
     # Add flags
     flagsStr = ''
     if len(flags) > 0:

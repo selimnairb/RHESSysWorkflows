@@ -84,8 +84,6 @@ class WorldfileMultiple(GrassCommand):
         rhessysDir = self.metadata['rhessys_dir']
         self.paths = RHESSysPaths(self.context.projectDir, rhessysDir)
         
-        self.setupGrassEnv()
-        
         templateFilename = os.path.basename(self.metadata['template'])
         templateFilepath = os.path.join(self.context.projectDir, self.metadata['template'])
         
@@ -153,8 +151,8 @@ class WorldfileMultiple(GrassCommand):
                                                                                                       result))
          
             worldfileName = "world_subbasin_{0}_init".format(subbasin)
-            worldfiles.append(worldfileName)
             worldfilePath = os.path.join(self.paths.RHESSYS_WORLD, worldfileName)
+            worldfiles.append(worldfilePath)
             g2wCommand = "{g2w} -t {template} -w {worldfile}".format(g2w=g2wPath, 
                                                                      template=templateFilepath, 
                                                                      worldfile=worldfilePath)
@@ -181,8 +179,8 @@ class WorldfileMultiple(GrassCommand):
             raise RunException("r.mask failed to remove mask") 
          
         # Write metadata
-        RHESSysMetadata.writeRHESSysEntry(self.context, 'worldfiles', 
-                                          RHESSysMetadata.VALUE_DELIM.join([w for w in worldfiles]))
+        RHESSysMetadata.writeRHESSysEntry(self.context, 'worldfiles_init', 
+                                          RHESSysMetadata.VALUE_DELIM.join([self.paths.relpath(w) for w in worldfiles]))
         RHESSysMetadata.writeRHESSysEntry(self.context, 'subbasin_masks', 
                                           RHESSysMetadata.VALUE_DELIM.join([m for m in subbasin_masks]))
 

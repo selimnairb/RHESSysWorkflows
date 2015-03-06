@@ -71,8 +71,6 @@ class FlowtableMultiple(GrassCommand):
             raise MetadataException("Metadata in project directory %s does not contain a RHESSys directory" % (self.self.context.projectDir,))
         if not 'cf_bin' in self.metadata:
             raise MetadataException("Metadata in project directory %s does not contain a createflowpaths executable" % (self.context.projectDir,))
-        if not 'worldfiles' in self.metadata:
-            raise MetadataException("Metadata in project directory %s does not contain multiple worldfiles" % (self.context.projectDir,))
         if not 'subbasin_masks' in self.metadata:
             raise MetadataException("Metadata in project directory %s does not contain multiple worldfile masks" % (self.context.projectDir,))
         if not 'template' in self.metadata:
@@ -93,17 +91,15 @@ class FlowtableMultiple(GrassCommand):
     def run(self, *args, **kwargs):
         routeRoads = kwargs.get('routeRoads', False)
         routeRoofs = kwargs.get('routeRoofs', False)
-        verbose = kwargs.get('verbose', False)
         force = kwargs.get('force', False)
         ignoreBurnedDEM = kwargs.get('ignoreBurnedDEM', False)
+        verbose = kwargs.get('verbose', False)
         
         self.checkMetadata(routeRoads=routeRoads, 
                            routeRoofs=routeRoofs)
         
         rhessysDir = self.metadata['rhessys_dir']
         self.paths = RHESSysPaths(self.context.projectDir, rhessysDir)
-        
-        self.setupGrassEnv()
         
         demResX = float(self.studyArea['dem_res_x'])
         demResY = float(self.studyArea['dem_res_y'])

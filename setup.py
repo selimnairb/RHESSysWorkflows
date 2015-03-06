@@ -60,6 +60,7 @@ setup(name='rhessysworkflows',
                'bin/RHESSysPlot.py',
                'bin/RHESSysPlotMassbalance.py',
                'bin/RunLAIRead.py',
+               'bin/RunLAIReadMultiple.py',
                'bin/RunModel.py'
       ],
       data_files=[('rhessysworkflows/etc/NLCD2006', ['etc/NLCD2006/impervious.rule',

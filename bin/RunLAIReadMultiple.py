@@ -1,8 +1,10 @@
 #!/usr/bin/env python
-"""@package CreateFlowtable
+"""@package RunLAIReadMultiple
 
-@brief Command line driver program to create multiple RHESSys flowtables,
-one flowtable for each worldfile.
+@brief Command line driver program to run lairead utility to initializes 
+vegetation carbon stores. Will, for each worldfile in the project: (1) run 
+lairead to produce a redefine worldfile; (2) run RHESSys simulation for 
+3-days to generate base worldfile.
 
 This software is provided free of charge under the New BSD License. Please see
 the following license information:
@@ -40,41 +42,32 @@ import os
 import argparse
 
 from rhessysworkflows.command.exceptions import *
-from rhessysworkflows.command.flowtable import FlowtableMultiple
+from rhessysworkflows.command.modelrun import LAIReadMultiple
 
 if __name__ == "__main__":
-    
     # Handle command line options
-    parser = argparse.ArgumentParser(description='Create RHESSys flowtables for multiple worldfiles using GRASS GIS data and createflowpaths utility')
+    parser = argparse.ArgumentParser(description='Run lairead utility to initializes vegetation carbon stores. ' +
+                                                 'Will, for each worldfile in the project: (1) run lairead to ' +
+                                                 'produce a redefine worldfile; (2) run RHESSys simulation for 3-days to generate base worldfile')
     parser.add_argument('-i', '--configfile', dest='configfile', required=False,
                         help='The configuration file. Must define section "GRASS" and option "GISBASE"')
     parser.add_argument('-p', '--projectDir', dest='projectDir', required=True,
                         help='The directory to which metadata, intermediate, and final files should be saved')
-    parser.add_argument('--routeRoads', dest='routeRoads', required=False, action='store_true',
-                        help='Tell createflowpaths to route flow from roads to the nearest stream pixel (requires roads_rast to be defined in metadata)')
-    parser.add_argument('--routeRoofs', dest='routeRoofs', required=False, action='store_true',
-                        help='Tell createflowpaths to route flow from roof tops based on roof top connectivity to nearest impervious surface (requires roof_connectivity_rast and impervious_rast to be defined in metadata)')
-    parser.add_argument('-f', '--force', dest='force', action='store_true',
-                        help='Run createflowpaths even if DEM x resolution does not match y resolution')
-    parser.add_argument('--ignoreBurnedDEM', dest='ignoreBurnedDEM', action='store_true', required=False,
-                        help='Ignore stream burned DEM, if present. Default DEM raster will be used for all operations. If not specified and if stream burned raster is present, stream burned DEM will be used for generating the flow table.')
+    parser.add_argument('--topmodel', dest='topmodel', required=False, action='store_true',
+                        help='Run RHESSys in topmodel mode when running lairead')
     parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
                         help='Print detailed information about what the program is doing')
     args = parser.parse_args()
-
+    
     configFile = None
     if args.configfile:
         configFile = args.configfile
         
-    command = FlowtableMultiple(args.projectDir, configFile)
+    command = LAIReadMultiple(args.projectDir, configFile)
     
     exitCode = os.EX_OK
     try: 
-        command.run(routeRoads=args.routeRoads, 
-                    routeRoofs=args.routeRoofs,
-                    ignoreBurnedDEM=args.ignoreBurnedDEM,
-                    force=args.force,
-                    verbose=args.verbose)
+        command.run(verbose=args.verbose, topmodel=args.topmodel)
     except CommandException as e:
         print(str(e))
         exitCode = os.EX_DATAERR

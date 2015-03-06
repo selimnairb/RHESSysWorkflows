@@ -68,6 +68,8 @@ class GrassCommand(Command):
             raise MetadataException("Metadata in project directory %s does not contain a GRASS location" % (self.context.projectDir,)) 
         if not 'grass_mapset' in self.metadata:
             raise MetadataException("Metadata in project directory %s does not contain a GRASS mapset" % (self.context.projectDir,))
+        
+        self.setupGrassEnv()
 
     def setupGrassEnv(self):
         self.modulePath = self.context.config.get('GRASS', 'MODULE_PATH')
@@ -75,6 +77,6 @@ class GrassCommand(Command):
         self.grassConfig = GRASSConfig(self.context, self.grassDbase, self.metadata['grass_location'], self.metadata['grass_mapset'])
         self.grassLib = GRASSLib(grassConfig=self.grassConfig)
         
-    def run(self):
+    def run(self, *args, **kwargs):
         pass
     

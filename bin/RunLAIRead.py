@@ -91,7 +91,8 @@ from rhessysworkflows.worldfileio import getClimateBaseStationFilenames
 from rhessysworkflows.climateio import getStartAndEndDateForClimateStation
 
 # Handle command line options
-parser = argparse.ArgumentParser(description='Create RHESSys worldfile using GRASS GIS data and grass2world utility')
+parser = argparse.ArgumentParser(description='Run lairead utility to initializes vegetation carbon stores. Will: (1) run lairead to ' +
+                                             'produce a redefine worldfile; (2) run RHESSys simulation for 3-days to generate base worldfile')
 parser.add_argument('-i', '--configfile', dest='configfile', required=False,
                     help='The configuration file. Must define section "GRASS" and option "GISBASE"')
 parser.add_argument('-p', '--projectDir', dest='projectDir', required=True,
@@ -239,7 +240,7 @@ rhessysBinPath = os.path.join(context.projectDir, metadata['rhessys_bin'])
 rhessysCmd = generateCommandString(rhessysBinPath, None,
                                    rhessysStart, rhessysEnd,
                                    tecPath, oldWorldPath,
-                                   surfaceFlowtablePath, subSurfaceFlowtablePath)
+                                   subSurfaceFlowtablePath, surfaceFlowtablePath)
 if args.verbose:
     print(rhessysCmd)
 sys.stdout.write('\nRunning RHESSys to redefine worldfile with vegetation carbon stores...')
