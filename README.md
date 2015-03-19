@@ -1,12 +1,22 @@
 **RHESSysWorkflows**			{#index}
 
+**Introduction**
+
+RHESSysWorkflows provides a series of Python tools for performing
+[RHESSys](http://fiesta.bren.ucsb.edu/~rhessys/) data preparation
+workflows.  These tools build on the workflow system defined by
+[EcohydroLib](https://github.com/selimnairb/EcohydroLib).
+
+Before reading ahead, you might want to check out 
+[this screencast](http://youtu.be/vbIqsSVROiU), which provides a 
+conceptual overview RHESSysWorkflows.
+
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**
 
 - [Authors](#authors)
 - [Funding](#funding)
-- [Introduction](#introduction)
 - [Source code](#source-code)
 - [Installation instructions](#installation-instructions)
   - [OS X 10.6 only: Install Python 2.7](#os-x-106-only-install-python-27)
@@ -101,18 +111,6 @@ This work was supported by the following NSF grants
 - Award no. 1148090 Collaborative Research: SI2-SSI: An Interactive Software
    Infrastructure for Sustaining Collaborative Innovation in the
    Hydrologic Sciences
-
-
-Introduction
-------------
-RHESSysWorkflows provides a series of Python tools for performing
-[RHESSys](http://fiesta.bren.ucsb.edu/~rhessys/) data preparation
-workflows.  These tools build on the workflow system defined by
-[EcohydroLib](https://github.com/selimnairb/EcohydroLib).
-
-Before reading ahead, you might want to check out 
-[this screencast](http://youtu.be/vbIqsSVROiU), which provides a 
-conceptual overview RHESSysWorkflows.
 
 
 Source code
