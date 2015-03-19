@@ -1275,7 +1275,29 @@ Consult the [Geoscience Australia metadata catalog](http://www.ga.gov.au/metadat
 for more information about these data sets. 
 
 The remainder of your workflow would proceed with importing streamflow gage coordinates
-and subsequent steps described [here](#import-streamflow-gage-coordinates).
+and subsequent steps described [here](#import-streamflow-gage-coordinates). 
+
+In addition to Australia DEM, EcohydroLib provides access to gridded 
+soils data provided by CSIRO and availble as part of the 
+[Soil and Landscape Grid of Australia](http://www.clw.csiro.au/aclep/soilandlandscapegrid/)
+dataset.  To download these data into your project use the
+*GetSoilGridAustralia* command:
+
+    GetSoilGridAustralia.py -p PROJECT_DIR
+    
+This will download a subset of the available gridded Australia
+Soils Data from the Australia-wide 3D Soil Attributes dataset; currently
+*GetSoilGridAustralia* will download the percent sand, percent silt, 
+and percent clay layers.  Data for the first 1-m of the soil profile is
+downloaded, and a depth-weighted average value for each pixel is
+generated using these layers.  Once these data have been downloaded,
+you can use the *GenerateSoilTextureMap* command to generate RHESSys
+soil texture map and parameters for USDA soil classes:
+
+    GenerateSoilTextureMap.py -p PROJECT_DIR
+    
+See [above](#generating-soil-texture-map) for more details.
+
 
 ### Custom local data workflow
 
