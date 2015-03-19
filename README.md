@@ -30,7 +30,7 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-**Table of Contents**
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
 - [Authors](#authors)
 - [Funding](#funding)
@@ -52,7 +52,7 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     - [Install RHESSysWorkflows Python modules (including EcohydroLib)](#install-rhessysworkflows-python-modules-including-ecohydrolib)
   - [Upgrading to a new version of RHESSysWorkflows](#upgrading-to-a-new-version-of-rhessysworkflows)
   - [A note on version numbers](#a-note-on-version-numbers)
-  - [<a name="configfile"></a>Setup EcohydroLib and RHESSysWorkflows configuration file](#a-nameconfigfileasetup-ecohydrolib-and-rhessysworkflows-configuration-file)
+  - [Setup EcohydroLib and RHESSysWorkflows configuration file](#setup-ecohydrolib-and-rhessysworkflows-configuration-file)
 - [Using RHESSysWorkflows - Introduction](#using-rhessysworkflows---introduction)
 - [Using RHESSysWorkflows - Typical workflows](#using-rhessysworkflows---typical-workflows)
   - [National spatial data workflow](#national-spatial-data-workflow)
@@ -410,7 +410,7 @@ of RHESSysWorkflows into
 Not that you do not need to use 'sudo' when running in a virtual environment as the
 files are installed in a directory owned by your user account.
 
-### <a name="configfile"></a>Setup EcohydroLib and RHESSysWorkflows configuration file
+### Setup EcohydroLib and RHESSysWorkflows configuration file
 - Choose the appropriate prototype configuration file:
 
     + [OS X 10.6](https://raw.github.com/selimnairb/RHESSysWorkflows/master/docs/config/ecohydro-OSX_10.6.cfg)
