@@ -106,7 +106,7 @@ parser.add_argument('-p', '--projectDir', dest='projectDir', required=True,
 parser.add_argument('-s', '--sourceDir', dest='sourceDir', required=False,
                     help='The directory from which RHESys source should be copied. NOTE: will delete any sources already in the project directory')
 group = parser.add_mutually_exclusive_group()
-group.add_argument('-t', '--tag', dest='tag', required=False,
+group.add_argument('-t', '--tag', dest='tag', required=False, 
                    help='Use source code from the specified tagged version of RHESSys; applies only when code is cloned from Git repository (i.e. -s not specified)')
 group.add_argument('-b', '--branch', dest='branch', required=False,
                    help='Use source code from the specified branch of the RHESSys source; applies only when code is cloned from Git repository (i.e. -s not specified)')
@@ -255,6 +255,9 @@ else:
         sys.exit("Git command '%s' failed." % (gitCommand, ) )
     # Write metadata
     RHESSysMetadata.writeRHESSysEntry(context, 'rhessys_src', RHESSYS_REPO_URL)
+    
+    if not args.branch and not args.tag and not args.commit:
+        args.tag = 'RHESSys-5.18.2' # Default to latest stable version
     
     if args.branch or args.tag or args.commit:
         gitCommand = None
