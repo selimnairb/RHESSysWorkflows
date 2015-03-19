@@ -1,3 +1,82 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [RHESSysWorkflows			{#index}](#rhessysworkflows			#index)
+  - [Authors](#authors)
+  - [Funding](#funding)
+  - [Introduction](#introduction)
+  - [Source code](#source-code)
+  - [Installation instructions](#installation-instructions)
+    - [OS X 10.6 only: Install Python 2.7](#os-x-106-only-install-python-27)
+      - [Download and install Python 2.7 (for Mac OS 10.6 and later) from: http://www.python.org/download/](#download-and-install-python-27-for-mac-os-106-and-later-from-httpwwwpythonorgdownload)
+      - [Download setuptools from: https://pypi.python.org/pypi/setuptools/0.8](#download-setuptools-from-httpspypipythonorgpypisetuptools08)
+    - [Install non-Python dependencies](#install-non-python-dependencies)
+      - [OS X 10.6: Install Xcode (OS X developer tools)](#os-x-106-install-xcode-os-x-developer-tools)
+      - [OS X 10.7, 10.8, 10.9, and 10.10: Install Xcode (OS X developer tools):](#os-x-107-108-109-and-1010-install-xcode-os-x-developer-tools)
+      - [Install GIS tools: GRASS QGIS](#install-gis-tools-grass-qgis)
+      - [Installing dependencies under Ubuntu Linux](#installing-dependencies-under-ubuntu-linux)
+      - [Install GRASS Addons for RHESSysWorkflows](#install-grass-addons-for-rhessysworkflows)
+    - [Install Python modules](#install-python-modules)
+      - [Install PIP, a tool for installing Python modules](#install-pip-a-tool-for-installing-python-modules)
+      - [OS X 10.6: Install GDAL Python modules](#os-x-106-install-gdal-python-modules)
+      - [Install RHESSysWorkflows Python modules (including EcohydroLib)](#install-rhessysworkflows-python-modules-including-ecohydrolib)
+    - [Upgrading to a new version of RHESSysWorkflows](#upgrading-to-a-new-version-of-rhessysworkflows)
+    - [A note on version numbers](#a-note-on-version-numbers)
+    - [<a name="configfile"></a>Setup EcohydroLib and RHESSysWorkflows configuration file](#a-nameconfigfileasetup-ecohydrolib-and-rhessysworkflows-configuration-file)
+  - [Using RHESSysWorkflows - Introduction](#using-rhessysworkflows---introduction)
+  - [Using RHESSysWorkflows - Typical workflows](#using-rhessysworkflows---typical-workflows)
+    - [National spatial data workflow](#national-spatial-data-workflow)
+      - [Specify a USGS streamflow data to locate on the NHD network](#specify-a-usgs-streamflow-data-to-locate-on-the-nhd-network)
+      - [Extract NHD catchments that drain through the streamflow gage](#extract-nhd-catchments-that-drain-through-the-streamflow-gage)
+      - [Get bounding box for study area](#get-bounding-box-for-study-area)
+      - [Acquire terrain data from DEM Explorer](#acquire-terrain-data-from-dem-explorer)
+      - [Extract landcover data from local NLCD 2006 data](#extract-landcover-data-from-local-nlcd-2006-data)
+      - [Download soils data from SSURGO](#download-soils-data-from-ssurgo)
+      - [Registering custom local data: LAI data](#registering-custom-local-data-lai-data)
+      - [Create a new GRASS location](#create-a-new-grass-location)
+      - [Import RHESSys source code into your project](#import-rhessys-source-code-into-your-project)
+      - [Import RHESSys climate data](#import-rhessys-climate-data)
+      - [Create climate stations map](#create-climate-stations-map)
+      - [Delineate watershed and generate derived data products](#delineate-watershed-and-generate-derived-data-products)
+      - [Generating a patch map](#generating-a-patch-map)
+      - [Generating soil texture map](#generating-soil-texture-map)
+      - [Import LAI map into GRASS](#import-lai-map-into-grass)
+      - [Generate landcover maps in GRASS](#generate-landcover-maps-in-grass)
+      - [Creating the worldfile for a watershed](#creating-the-worldfile-for-a-watershed)
+      - [Creating the flow table](#creating-the-flow-table)
+      - [Initializing vegetation carbon stores](#initializing-vegetation-carbon-stores)
+      - [Running RHESSys models](#running-rhessys-models)
+    - [Working in watersheds outside the United States](#working-in-watersheds-outside-the-united-states)
+    - [Custom local data workflow](#custom-local-data-workflow)
+      - [Import a DEM into your project](#import-a-dem-into-your-project)
+      - [Use a DEM with streams and storm drains burned into it](#use-a-dem-with-streams-and-storm-drains-burned-into-it)
+      - [Import streamflow gage coordinates](#import-streamflow-gage-coordinates)
+      - [Importing data into GRASS for use with RHESSys](#importing-data-into-grass-for-use-with-rhessys)
+      - [Importing other raster layers](#importing-other-raster-layers)
+        - [Landcover data](#landcover-data)
+        - [Rooftop connectivity](#rooftop-connectivity)
+        - [Vegetation LAI](#vegetation-lai)
+        - [Custom patch map](#custom-patch-map)
+        - [Custom soils data](#custom-soils-data)
+        - [Climate station zone map](#climate-station-zone-map)
+        - [Isohyet map](#isohyet-map)
+      - [Generating RHESSys definitions for custom soil data](#generating-rhessys-definitions-for-custom-soil-data)
+      - [Creating a world file template in areas with low slope](#creating-a-world-file-template-in-areas-with-low-slope)
+      - [Creating a surface flow table using a roof connectivity map](#creating-a-surface-flow-table-using-a-roof-connectivity-map)
+      - [Creating the worldfile and initializing vegetation carbon stores](#creating-the-worldfile-and-initializing-vegetation-carbon-stores)
+      - [Running custom commands](#running-custom-commands)
+      - [Creating multiple worldfiles based on subbasins](#creating-multiple-worldfiles-based-on-subbasins)
+  - [Appendix](#appendix)
+    - [Visualizing RHESSys output](#visualizing-rhessys-output)
+      - [OS X:](#os-x)
+      - [Linux (Debian/Ubuntu-based systems):](#linux-debianubuntu-based-systems)
+    - [Install local data](#install-local-data)
+      - [Setup NLCD2006 data](#setup-nlcd2006-data)
+      - [Setup pre-packaged NHDPlusV2 data](#setup-pre-packaged-nhdplusv2-data)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 RHESSysWorkflows			{#index}
 =======================
 
@@ -76,7 +155,7 @@ Documentation can be found at: http://pythonhosted.org/rhessysworkflows
 Installation instructions
 -------------------------
 These instructions are tailored to OS X and Linux users (specifically 
-Ubuntu 13.04 a.k.a. Raring Ringtail), however installation
+Ubuntu 13.04+ a.k.a. Raring Ringtail), however installation
 under other Linux distributions is also possible. RHESSysWorkflows may in 
 theory work under Windows, but this has never been tested.  Windows users 
 are encouraged to run an Ubuntu under a virtual machine.
@@ -150,10 +229,11 @@ RHESSysWorkflows uses Git to download RHESSys source code so you don't have to.
     sudo cc
 
 #### Install GIS tools: GRASS QGIS
-Note, GRASS version 6.4 is required for RHESSysWorkflows.  GRASS is
-used internally to carry out workflow steps (leading to the creation
-of RHESSys world files and flow tables).  You will also find it useful
-to use GRASS to visualize the results from some workflow steps.
+Note, GRASS version 6.4 is required for RHESSysWorkflows (GRASS 7.0 is not
+supported at this time).  GRASS is used internally to carry out workflow 
+steps (leading to the creation of RHESSys world files and flow tables).  
+You will also find it useful to use GRASS to visualize the results from 
+some workflow steps.
 
 > Before installing GRASS, etc. under OS X 10.8, 10.9 or 10.10, you will need to
 > enable applications from any source to be installed.  To do so open
@@ -558,9 +638,8 @@ watersheds outside the United States* section for more information.
 EcohydroLib makes it easy to import custom NLCD 2006 tiles for your
 study area into your project from either locally stored data or via
 WCS hosted at the Distributed Active Archive Center for Biogeochemical
-Dynamics group at ORNL (see installation instructions above to
-download and configure local NLCD data).  For example, to use local
-data:
+Dynamics group at ORNL (see [installation instructions](#installation-instructions) to download and configure local NLCD data).  For example, 
+to use local data:
 
     GetNLCDForDEMExtent.py -p standard
 
