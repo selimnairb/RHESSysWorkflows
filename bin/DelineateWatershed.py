@@ -79,6 +79,7 @@ Post conditions
    hillslope_rast [hillslopes within the watershed boundary]
    zone_rast [climate zones, same as hillslope_rast]
    streams_rast [streams within the watershed boundary]
+   stream_reaches_rast [streams within the watershed boundary, labeled by reach ID]
    east_horizon_rast
    west_horizon_rast
    slope_rast
@@ -287,6 +288,9 @@ if result != 0:
 
 # Make binary stream layer
 # First save stream segment raster
+result = grassLib.script.run_command('g.copy', rast='streams,stream_reaches')
+if result != 0:
+    sys.exit("Failed to save stream reach raster, g.copy returned %s" % (result,))
 
 result = grassLib.script.write_command('r.mapcalc', stdin='streams=(streams >= 0)')
 if result != 0:
@@ -294,6 +298,7 @@ if result != 0:
 
 RHESSysMetadata.writeGRASSEntry(context, 'subbasins_rast', 'subbasins')
 RHESSysMetadata.writeGRASSEntry(context, 'hillslope_rast', 'hillslopes')
+RHESSysMetadata.writeGRASSEntry(context, 'stream_reaches_rast', 'stream_reaches')
 RHESSysMetadata.writeGRASSEntry(context, 'streams_rast', 'streams')
 RHESSysMetadata.writeRHESSysEntry(context, 'watershed_threshold', args.threshold)
 
