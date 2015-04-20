@@ -357,7 +357,15 @@ else:
     subs['aspect_slope_rast'] = grassMetadata['slope_rast']
 
 if 'isohyet_rast' in grassMetadata:
-    subs['isohyet_rast'] = grassMetadata['isohyet_rast']
+    isohyet = grassMetadata['isohyet_rast']
+    # Scale isohyet by 100 to avoid integer truncation by grass2world
+    isohyet100 = isohyet + '100'
+    result = grassLib.script.write_command('r.mapcalc', 
+                                           stdin="{isohyet100} = {isohyet} * 100".format(isohyet100=isohyet100,
+                                                                                         isohyet=isohyet))
+    if result != 0:
+        sys.exit("r.mapcalc failed to create %s map, returning %s" % (isohyet100, result))
+    subs['isohyet_rast'] = isohyet100
 else:
     result = grassLib.script.write_command('r.mapcalc', stdin='onehundred=100')
     if result != 0:
