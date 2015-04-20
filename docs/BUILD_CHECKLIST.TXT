@@ -16,21 +16,20 @@
 5. Generate new documentation: doxygen
   - Note: Requires that you have doxypy installed: pip install doxypy
 
-6. Generate zip of new documentation: cd docs/html; zip -r ~/Desktop/rhessyworkflowodocs.zip *
+6. Generate zip of new documentation: cd docs/html && zip -r ~/Desktop/rhessyworkflowodocs.zip * && cd -
 
-7. Publish package to PyPi: python setup.py register sdist upload
+7. Commit release files to git: git commit -a
 
-8. Check on PyPi to make sure the new version is the only non-hidden version
+8. Push to develop: git push origin develop
 
-9. Upload new documentation to PyPi using web form
+9. Merge develop into master: git checkout master; git merge develop
 
-10. Commit to git: git commit -a
+10. Tag release in git: git tag -a 1.XY -m 'DESCRIPTION OF RELEASE'
 
-11. Push to develop: git push origin develop
+11. Push to master git repository: git push -u origin master --tags
 
-12. Merge develop into master: git checkout master; git merge develop
+12. Publish package to PyPi: python setup.py register sdist upload
 
-13. Tag release in git: git tag -a v0.9 -m 'Initial alpha release'
+13. Check on PyPi to make sure the new version is the only non-hidden version
 
-14. Push to master git repository: git push -u origin master --tags
-
+14. Upload new documentation to PyPi using web form

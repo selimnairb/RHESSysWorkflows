@@ -1,3 +1,6 @@
+# 1.30 - 4/20/2015
+  - Fix bug where isohyet will be scaled by 1/100th of values in isohyet map
+
 # 1.29 - 3/25/2015
   - Save stream reach raster in DelineateWatershed
 
