@@ -184,7 +184,7 @@ if args.verbose:
 # Read climate timeseries for start and end date, write to metadata
 (startDate, endDate) = getStartAndEndDateForClimateStation(firstStationPath, paths)
 if args.verbose:
-    sys.stdout.write("start date: %s, end date: %s\n" % ( str(startDate), str(endDate) ) )
+    sys.stdout.write("\tstart date: %s, end date: %s\n" % ( str(startDate), str(endDate) ) )
 fourDays = datetime.timedelta(days=4)
 if endDate - startDate < fourDays:
     sys.exit("Climate time-series defined by station %s is too short to run lairead (less than four-days long)" %
@@ -200,6 +200,8 @@ redefWorldName = "%s.Y%dM%dD%dH%d" % \
 redefWorldPath = os.path.join(context.projectDir, redefWorldName)
 allomPath = os.path.join(context.projectDir, metadata['allometric_table'])
 
+if args.verbose:
+    sys.stdout.write("Running lairead to generate redefine worldfile...\n")
 p = grassLib.script.pipe_command(laireadPath, old=oldWorldPath, redef=redefWorldPath,
                                       allom=allomPath, lai=grassMetadata['lai_rast'],
                                       vegid=grassMetadata['stratum_rast'],
@@ -212,8 +214,11 @@ result = p.returncode
 if result != 0:
     sys.stdout.write(stdoutStr)
     sys.exit("\nlairead failed, returning %s" % (result,))
+if args.verbose:
+    sys.stdout.write(stdoutStr)
+    sys.stdout.write(stderrStr)
 
-## 3. Write TEC file for redefining the initial flow table
+## 3. Write TEC file for redefining the initial world file
 ##    Redefine on the second day of the simulation, write output
 ##    on the third day
 tecName = 'tec.lairead'
