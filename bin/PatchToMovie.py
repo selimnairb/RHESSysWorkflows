@@ -285,7 +285,7 @@ for (i, key) in enumerate(data):
     # Add annotations
     result = grassLib.script.run_command('d.legend',
                                          map=tmpMap,
-                                         at='63,88,85,95')
+                                         at='63,88,77,87')
     if result != 0:
         sys.exit("Failed to add legend to map while rendering image %s" % \
                  (imageFilename,) )
