@@ -1,3 +1,7 @@
+# 1.31 - 6/15/2015
+  - Update RHESSysPlotMassbalance to read precip. data from observed data 
+    instead of from modeled data
+
 # 1.30 - 4/20/2015
   - Fix bug where isohyet will be scaled by 1/100th of values in isohyet map
 
