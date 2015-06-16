@@ -1,6 +1,40 @@
 #!/usr/bin/env python
-# TODO: Add ability to plot all three plot types in one figure
-# TODO: Add table plot type that print summary statistics for column
+"""@package RHESSysPlotMassbalance
+
+@brief Tool for comparing mass balance for observed and basin-scale RHESSys output.
+
+This software is provided free of charge under the New BSD License. Please see
+the following license information:
+
+Copyright (c) 2014, University of North Carolina at Chapel Hill
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in the
+      documentation and/or other materials provided with the distribution.
+    * Neither the name of the University of North Carolina at Chapel Hill nor the
+      names of its contributors may be used to endorse or promote products
+      derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE UNIVERSITY OF NORTH CAROLINA AT CHAPEL HILL
+BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT 
+LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
+OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+@author Brian Miles <brian_miles@unc.edu>
+
+"""
 import sys
 import argparse
 import math
@@ -13,6 +47,10 @@ import matplotlib
 
 from rhessysworkflows.rhessys import RHESSysOutput
 
+
+OBS_HEADER_STREAMFLOW = 'streamflow_mm'
+OBS_HEADER_PRECIP = 'precip_mm'
+
 PLOT_TYPE_STD = 'standard'
 PLOT_TYPE_LOGY = 'logy'
 PLOT_TYPE_CDF = 'cdf'
@@ -22,17 +60,14 @@ PLOT_DEFAULT = PLOT_TYPE_STD
 
 
 def plotTable(args, col_names, obs, data, ax):
-    
-    #import pdb; pdb.set_trace()
-    
     startDate = data['streamflow'].index[0]
     endDate = data['streamflow'].index[-1]
     
-    obsRunoffRat = np.sum( obs['observed'] ) / np.sum( data['precip'] )
+    obsRunoffRat = np.sum( obs[OBS_HEADER_STREAMFLOW] ) / np.sum( obs[OBS_HEADER_PRECIP] )
     modRunoffRat = np.sum( data['streamflow']) / np.sum( data['precip'] )
-    obsET = np.sum( data['precip'] ) - np.sum( obs['observed'] )
-    summary = [ [ np.sum( data['precip'] ), np.sum( data['precip'] ) ],
-                [ np.sum(obs['observed']), np.sum(data['streamflow']) ],
+    obsET = np.sum( obs[OBS_HEADER_PRECIP] ) - np.sum( obs[OBS_HEADER_STREAMFLOW] )
+    summary = [ [ np.sum( obs[OBS_HEADER_PRECIP] ), np.sum( data['precip'] ) ],
+                [ np.sum(obs[OBS_HEADER_STREAMFLOW]), np.sum(data['streamflow']) ],
                 [ obsET, np.sum( data['evap'] ) + np.sum( data['trans'] ) ],
                 [ obsRunoffRat, modRunoffRat ]
               ]
@@ -78,9 +113,9 @@ def plotGraph(args, plottype, obs, data, columns, min_x, max_x, ax, secondary=No
     
     # Plot observed values
     # Standard or log plot
-    obs_y = obs
+    obs_y = obs[OBS_HEADER_STREAMFLOW]
     if plottype == PLOT_TYPE_CDF:
-        obs_ecdf = sm.distributions.ECDF(obs['observed'])
+        obs_ecdf = sm.distributions.ECDF(obs_y)
         obs_y = obs_ecdf(x)
     obs_plt = None
     if not args.supressObs:
@@ -156,8 +191,8 @@ if __name__ == "__main__":
     parser.add_argument('-n', '--outname', required=True, 
                         help='Base name of file to output figure to.  Only specify base name of file, not extension (PDF and PNG files will be produced)')
     parser.add_argument('-o', '--obs', required=True,
-                        help='File containing observed data')
-    parser.add_argument('-d', '--data', required=True, #nargs='+',
+                        help='File containing observed data.  Must be a CSV file with the following headers: datetime, streamflow_mm, precip_mm')
+    parser.add_argument('-d', '--data', required=True,
                         help='One or more data files')
     parser.add_argument('-t', '--title', required=False,
                         help='Title of figure')
@@ -180,11 +215,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Open observed data
-    obs_file = open(args.obs, 'r')
-    (obs_datetime, obs_data) = RHESSysOutput.readObservedDataFromFile(obs_file,
-                                                                      readHour=False)
-    obs_file.close()
-    obs = pd.DataFrame(obs_data, index=obs_datetime, columns=['observed'])
+    obs = pd.read_csv(args.obs, index_col=0, parse_dates=True)
 
     # Open data and align to observed
     cols = ['streamflow', 'evap', 'trans', 'precip']
@@ -196,7 +227,7 @@ if __name__ == "__main__":
     
     # Align timeseries
     (mod_align, obs_align) = mod_df.align(obs, axis=0, join='inner')
-    tmp_max_x = max(mod_align['streamflow'].max(), obs_align['observed'].max())
+    tmp_max_x = max(mod_align['streamflow'].max(), obs_align[OBS_HEADER_STREAMFLOW].max())
     if tmp_max_x > max_x:
         max_x = tmp_max_x
     min_x = max(min_x, mod_align['streamflow'].min())
