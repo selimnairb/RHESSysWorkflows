@@ -4,6 +4,11 @@ include etc/NLCD2006/lai-recode.rule
 include etc/NLCD2006/landuse.rule
 include etc/NLCD2006/road.rule
 include etc/NLCD2006/stratum.rule
+include etc/NLCD2011/impervious.rule
+include etc/NLCD2011/lai-recode.rule
+include etc/NLCD2011/landuse.rule
+include etc/NLCD2011/road.rule
+include etc/NLCD2011/stratum.rule
 include etc/r.soils.texture/FAO.dat
 include etc/r.soils.texture/isss.dat
 include etc/r.soils.texture/USDA.dat
