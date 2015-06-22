@@ -595,22 +595,21 @@ Lastly, you are not required to use a DEM from the USGS web service.  See the
 *Custom local data workflow* example below, as well as the *Working in 
 watersheds outside the United States* section for more information.
 
-#### Extract landcover data from local NLCD 2006 data
+#### Extract landcover data from local NLCD 2006 or 2011 data
 
-EcohydroLib makes it easy to import custom NLCD 2006 tiles for your
-study area into your project from either locally stored data or via
-WCS hosted at the Distributed Active Archive Center for Biogeochemical
-Dynamics group at ORNL (see [installation instructions](#installation-instructions) to download and configure local NLCD data).  For example, 
-to use local data:
+EcohydroLib makes it easy to import custom NLCD 2006 or 2011 tiles for your
+study area into your project from web services hosted by [U.S. Geological Survey](http://raster.nationalmap.gov/arcgis/rest/services/LandCover/USGS_EROS_LandCover_NLCD/MapServer).  For example, 
+to acquire NLCD 2011 data:
 
-    GetNLCDForDEMExtent.py -p standard
+    GetUSGSNLCDForDEMExtent.py -p standard
 
-This command will download an NLCD tile matching the extent, resolution, 
+This command will download an NLCD 2011 data matching the extent, resolution, 
 and spatial reference of your DEM and store the tile in your project 
 directory. (If you wish to give your NLCD tile a particular name, use
-the *outfile* command line option.  (If you are using a local copy of 
-the NLCD 2006 data add the *-s local* command line argument to the above 
-command; Most users should ignore this.) 
+the *outfile* command line option.  To instead download NLCD 2006 data, do
+the following:
+
+    GetUSGSNLCDForDEMExtent.py -p standard -t NLCD2006
 
 #### Download soils data from SSURGO
 
@@ -1037,7 +1036,7 @@ ImportRasterMapIntoGRASS:
     ImportRasterMapIntoGRASS.py -p standard -t landcover -m nearest
 
 In our case, the landcover map in our project directory came the 
-NLCD2006 data hosted by ORNL.  However, RHESSysWorkflows supports the use of
+NLCD 2011 data hosted by USGS.  However, RHESSysWorkflows supports the use of
 custom landcover maps regsitered via RegisterRaster.  In either case,
 we need to provide raster reclassification rules so that
 RHESSysWorkflows will know how to generate vegetation, land use,
@@ -1046,7 +1045,7 @@ To do this, we use the RegisterLandcoverReclassRules tool:
 
     RegisterLandcoverReclassRules.py -p standard -k
 
-NLCD2006 is a known landcover type in RHESysWorkflows (the only one),
+NLCD2011 is a known landcover type in RHESysWorkflows (in addition to NLCD2006),
 so all we need do is use the *-k* (a.k.a. *--generateKnownRules*)
 option.  For a custom landcover map, we could instead use the *-b*
 (a.k.a. *--buildPrototypeRules*) option to generate prototype rules
@@ -1056,7 +1055,7 @@ your computer using the *-r* (a.k.a. *--ruleDir*) parameter.  To
 include LAI reclass rules when registering prototype or existing 
 rules, you must use the *-l* (a.k.a. *--includeLaiRules*) parameter
 
-> The known rules for NLCD2006 that ship with RHESSysWorkflows include
+> The known rules for NLCD2006 and NLCD2011 that ship with RHESSysWorkflows include
 > an LAI reclass rules file with values for grassland, and evergreen
 > needle leaf and deciduous broadleaf forests (both temperate) drawn 
 > from the International Satellite Land Surface Climatology Project II
@@ -1073,7 +1072,7 @@ your project directory:
 - road.rule
 - lai-recode.rule (if the *--includeLaiRules* option was selected)
 
-There is no need to edit these rules for this NLCD2006 example, but
+There is no need to edit these rules for this NLCD2011 example, but
 you should take a moment to look at how these rules work.
 RHESSysWorkflows uses GRASS's
 [r.reclass](http://grass.osgeo.org/grass64/manuals/r.reclass.html)
@@ -1090,7 +1089,7 @@ rules in your project metadata, you should use the RunCmd workflow
 command (see the section on custom workflows to learn how to use this
 tool). 
 
-> You can find information on NLCD2006 classes [here](http://www.mrlc.gov/nlcd06_leg.php)
+> You can find information on NLCD classes [here](http://www.mrlc.gov/nlcd2011.php)
 
 Once the landcover reclass rules are in place, it is very easy to
 generate the raster maps derived from the landcover data as well as
