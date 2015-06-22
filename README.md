@@ -42,7 +42,7 @@ conceptual overview RHESSysWorkflows.
     - [Extract NHD catchments that drain through the streamflow gage](#extract-nhd-catchments-that-drain-through-the-streamflow-gage)
     - [Get bounding box for study area](#get-bounding-box-for-study-area)
     - [Acquire terrain data from U.S. Geological Survey](#acquire-terrain-data-from-us-geological-survey)
-    - [Extract landcover data from local NLCD 2006 data](#extract-landcover-data-from-local-nlcd-2006-data)
+    - [Extract landcover data from local NLCD 2006 or 2011 data](#extract-landcover-data-from-local-nlcd-2006-or-2011-data)
     - [Download soils data from SSURGO](#download-soils-data-from-ssurgo)
     - [Registering custom local data: LAI data](#registering-custom-local-data-lai-data)
     - [Create a new GRASS location](#create-a-new-grass-location)
