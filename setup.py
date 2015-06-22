@@ -5,7 +5,7 @@ def readme():
         return f.read()
 
 setup(name='rhessysworkflows',
-      version='1.31',
+      version='1.32.dev1',
       description='Libraries and command-line scripts for performing RHESSys data preparation workflows.',
       long_description=readme(),
       classifiers=[
@@ -26,7 +26,7 @@ setup(name='rhessysworkflows',
                 'rhessysworkflows.tests'
                 ],
       install_requires=[
-        'ecohydrolib>=1.19',
+        'ecohydrolib>=1.27',
         'numpy>=1.7',
         'matplotlib>=1.1',
         'pandas',
@@ -68,6 +68,11 @@ setup(name='rhessysworkflows',
                            'etc/NLCD2006/landuse.rule',
                            'etc/NLCD2006/road.rule',
                            'etc/NLCD2006/stratum.rule'] ),
+                  ('rhessysworkflows/etc/NLCD2011', ['etc/NLCD2011/impervious.rule',
+                           'etc/NLCD2011/lai-recode.rule',
+                           'etc/NLCD2011/landuse.rule',
+                           'etc/NLCD2011/road.rule',
+                           'etc/NLCD2011/stratum.rule'] ),
                   ('rhessysworkflows/etc/r.soils.texture', ['etc/r.soils.texture/FAO.dat',
                                                            'etc/r.soils.texture/isss.dat',
                                                            'etc/r.soils.texture/USDA.dat'] )

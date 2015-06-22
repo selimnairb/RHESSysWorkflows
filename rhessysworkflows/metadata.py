@@ -41,6 +41,8 @@ from ecohydrolib.metadata import GenericMetadata
 import ecohydrolib.metadata as metadata
 from ecohydrolib.metadata import MetadataVersionError
 
+import ecohydrolib.command.landcover
+
 import rhessysworkflows
 
 class WorkflowVersionError(MetadataVersionError):
@@ -70,7 +72,7 @@ class RHESSysMetadata(GenericMetadata):
     GenericMetadata.SECTIONS.append(RHESSYS_SECTION)
    
     RULES_DIR = 'rules' 
-    KNOWN_LC_TYPES = ['NLCD2006']
+    KNOWN_LC_TYPES = ecohydrolib.command.landcover.KNOWN_LC_TYPES
     LC_RULE_ROAD = 'road.rule'
     LC_RULE_IMPERVIOUS = 'impervious.rule'
     LC_RULE_LANDUSE = 'landuse.rule'
