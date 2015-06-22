@@ -1,3 +1,6 @@
+# 1.32 - 6/22/2015
+  - Add support for NLCD2011 landcover type
+
 # 1.31 - 6/15/2015
   - Update RHESSysPlotMassbalance to read precip. data from observed data 
     instead of from modeled data
