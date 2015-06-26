@@ -216,7 +216,8 @@ if result != 0:
     sys.exit("\nlairead failed, returning %s" % (result,))
 if args.verbose:
     sys.stdout.write(stdoutStr)
-    sys.stdout.write(stderrStr)
+    if stderrStr:
+        sys.stdout.write(stderrStr)
 
 ## 3. Write TEC file for redefining the initial world file
 ##    Redefine on the second day of the simulation, write output
