@@ -215,7 +215,8 @@ if result != 0:
     sys.stdout.write(stdoutStr)
     sys.exit("\nlairead failed, returning %s" % (result,))
 if args.verbose:
-    sys.stdout.write(stdoutStr)
+    if stdoutStr:
+        sys.stdout.write(stdoutStr)
     if stderrStr:
         sys.stdout.write(stderrStr)
 
