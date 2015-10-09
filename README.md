@@ -128,8 +128,14 @@ under other Linux distributions is also possible. RHESSysWorkflows may in
 theory work under Windows, but this has never been tested.  Windows users 
 are encouraged to run an Ubuntu under a virtual machine.
 
-RHESSysWorkflows is compatible with OS X 10.6, 10.7, 10.8, 10.9, and 10.10.  To
-find out what version of OS X you are currently running, click on the
+RHESSysWorkflows is compatible with OS X 10.6, 10.7, 10.8, 10.9, and 10.10.  
+
+> 10/9/2015: RHESSysWorkflows is not compatible with OS X 10.11 (El Capitan)
+> because GRASS GIS is not compatible with this version of OS X.  These
+> instructions will be updated with instructions specific to OS X 10.11
+> when they are available.
+
+To find out what version of OS X you are currently running, click on the
 apple in the upper left corner of the screen and select *About this
 Mac*.  To find out the latest version of OS X you computer can run,
 visit
