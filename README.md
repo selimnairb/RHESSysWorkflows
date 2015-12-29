@@ -237,7 +237,7 @@ In addition to GRASS and components installed above, install:
 
 QGIS is useful for visualizing output for earlier workflow steps that precede the importing data into GRASS. 
 
-#### Installing dependencies under Ubuntu Linux
+#### Installing dependencies under Ubuntu Linux 14.04 or 15.04
 First install aptitude:
 
     apt-get install aptitude
@@ -251,6 +251,20 @@ The install RHESSysWorkflows/EcohydroLib dependencies using aptitude:
     grass grass-dev \
     libbsd-dev ffmpeg vlc
 
+Note: the above works for Ubuntu 14.04.  For 15.04 the packaging of 
+GDAL has changed use the following to install dependencies under
+Ubuntu 15.04:
+
+    aptitude install build-essential git subversion p7zip-full \
+    python python-dev python-pip python-scipy \
+    libxml2-dev libxslt-dev \
+    libgdal-dev libgdal-doc gdal-bin python-gdal \
+    grass grass-dev \
+    libbsd-dev ffmpeg vlc
+    
+> Ubuntu 15.10 is not compatible with RHESSys or RHESSysWorkflows
+> as this version of Ubuntu uses GRASS 7, which is not yet supported
+> by RHESSys or RHESSysWorkflows.
 
 #### Install GRASS Addons for RHESSysWorkflows
 Follow these steps to install the GRASS addons under OS X and Linux:
