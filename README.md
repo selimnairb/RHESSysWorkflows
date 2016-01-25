@@ -196,15 +196,15 @@ requires you to register for a free developer account)
 RHESSysWorkflows uses Git to download RHESSys source code so you don't have to.
 
 #### OS X 10.7, 10.8, 10.9, and 10.10: Install Xcode (OS X developer tools):
-1. Install Xcode via the App Store
-2. Launch Xcode
-3. Make sure that Xcode command line tools are installed by running the following from the command line (e.g. using the Terminal app):
+- Install Xcode via the App Store
+- Launch Xcode
+- Make sure that Xcode command line tools are installed by running the following from the command line (e.g. using the Terminal app):
 
 ```
 xcode-select --install
 ```
 
-4. Agree to the Xcode license by running the following command (we only run this command to force Xcode show us the license):
+- Agree to the Xcode license by running the following command (we only run this command to force Xcode show us the license):
     sudo cc
 
 #### Install GIS tools: GRASS QGIS
