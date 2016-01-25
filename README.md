@@ -198,7 +198,12 @@ RHESSysWorkflows uses Git to download RHESSys source code so you don't have to.
 #### OS X 10.7, 10.8, 10.9, and 10.10: Install Xcode (OS X developer tools):
 1. Install Xcode via the App Store
 2. Launch Xcode
-3. Install 'Command Line Tools' from menu Xcode > Preferences... > Downloads (if you don't see it, it's already installed)
+3. Make sure that Xcode command line tools are installed by running the following from the command line (e.g. using the Terminal app):
+
+```
+xcode-select --install
+```
+
 4. Agree to the Xcode license by running the following command (we only run this command to force Xcode show us the license):
     sudo cc
 
@@ -212,7 +217,7 @@ some workflow steps.
 > Before installing GRASS, etc. under OS X 10.8, 10.9 or 10.10, you will need to
 > enable applications from any source to be installed.  To do so open
 > *System Preferences > Security & Privacy > General* and choose
-> "Allow apps downloaded from: Andywhere". Doing so exposes your computer
+> "Allow apps downloaded from: Anywhere". Doing so exposes your computer
 > to more security risks from downloaded software. We recommend that you
 > revert this setting once you are finished with installation.
 
