@@ -36,9 +36,11 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 import requests
 
+from .compat import http_responses
+
 
 DEFAULT_HOSTNAME = 'gidesigner.renci.org'
-DEFAULT_API_ROOT = 'ginotebook/api/'
+DEFAULT_API_ROOT = 'ginotebook/api'
 
 GI_TYPE_RAIN_GARDEN = 'Rain Garden'
 GI_TYPE_TREE = 'Tree'
@@ -49,6 +51,35 @@ GI_TYPES = (GI_TYPE_RAIN_GARDEN, GI_TYPE_TREE, GI_TYPE_GREEN_ROOF)
 class GINotebookException(Exception):
     def __init__(self, args):
         super(GINotebookException, self).__init__(args)
+
+
+class GINotebookHTTPException(GINotebookException):
+    """ Exception used to communicate HTTP errors from GI Notebook server
+        Arguments in tuple passed to constructor must be: (url, status_code, params).
+        url and status_code are of type string, while the optional params argument
+        should be a dict.
+    """
+    def __init__(self, args):
+        super(GINotebookHTTPException, self).__init__(args)
+        self.url = args[0]
+        self.method = args[1]
+        self.status_code = args[2]
+        if len(args) >= 4:
+            self.params = args[3]
+        else:
+            self.params = None
+
+    def __str__(self):
+        msg = "Received status {status_code} {status_msg} when accessing {url} " + \
+              "with method {method} and params {params}."
+        return msg.format(status_code=self.status_code,
+                          status_msg=http_responses[self.status_code],
+                          url=self.url,
+                          method=self.method,
+                          params=self.params)
+
+    def __unicode__(self):
+        return unicode(str(self))
 
 
 class GINotebookIntegrityError(GINotebookException):
@@ -79,15 +110,14 @@ class RHESSysDefaultType(object):
 class SoilType(RHESSysDefaultType):
     """ Represents a SoilType as presented by the GI Notebook rhessys_soil_types REST API end point
     """
-    def __init__(self, url, name, rhessys_default_id):
+    def __init__(self, id, url, name, rhessys_default_id):
         super(SoilType, self).__init__(id, url, name, rhessys_default_id)
 
 
-
-class StratumType(object):
+class StratumType(RHESSysDefaultType):
     """ Represents a StratumType as presented by the GI Notebook rhessys_stratum_types REST API end point
     """
-    def __init__(self, url, name, rhessys_default_id):
+    def __init__(self, id, url, name, rhessys_default_id):
         super(StratumType, self).__init__(id, url, name, rhessys_default_id)
 
 
@@ -199,7 +229,7 @@ class GINotebook(object):
         self.session = None
         self.auth_header = {}
         if auth_token:
-            self.auth_header['Authorization'] = "access_token {token}".format(token=auth_token)
+            self.auth_header['Authorization'] = "Token {token}".format(token=auth_token)
 
         if use_https:
             self.scheme = 'https'
@@ -220,7 +250,7 @@ class GINotebook(object):
                                                                 hostname=self.hostname,
                                                                 api_root=api_root)
 
-    def request(self, method, url, params=None, data=None, files=None, headers=None, stream=False):
+    def _request(self, method, url, params=None, data=None, files=None, headers=None, stream=False):
         if headers:
             h = dict(headers)
             h.update(self.auth_header)
@@ -230,3 +260,120 @@ class GINotebook(object):
         r = requests.request(method, url, params=params, data=data, files=files, headers=h, stream=stream,
                              verify=self.verify)
         return r
+
+    def _get_resource(self, endpoint, id=None, url=None):
+        if id:
+            url = "{url_base}/{endpoint}/{id}/".format(url_base=self.url_base, endpoint=endpoint, id=id)
+        elif not url:
+            GINotebookException("Resource URL not specified")
+
+        r = self._request('GET', url)
+        if r.status_code != 200:
+            raise GINotebookHTTPException((url, 'GET', r.status_code))
+        return r.json()
+
+    def get_scenario(self, id=None, url=None):
+        """ Get GIScenario resource from the GI Notebook
+
+        @param id: The ID of the GIScenario resource to download from the GI Notebook
+        @param url: The URL of the GIScenario resource to download from the GI Notebook
+        @return: GIScenario instance representing the resource
+        """
+        raw = self._get_resource('gi_scenarios', id=id, url=url)
+        scenario = GIScenario(raw['id'], raw['url'], raw['name'], raw['description'], raw['immutable'],
+                              raw['watershed'])
+        for instance_url in raw['giinstances']:
+            instance = self.get_instance(url=instance_url)
+            scenario.add_instance(instance)
+
+        return scenario
+
+    def get_instance(self, id=None, url=None):
+        """ Get GIInstance resource from the GI Notebook
+
+        @param id: The ID of the GIInstance resource to download from the GI Notebook
+        @param url: The URL of the GIInstance resource to download from the GI Notebook
+        @return: GIInstance instance representing the resource
+        """
+        raw = self._get_resource('gi_instances', id=id, url=url)
+        template = self.get_template(url=raw['template'])
+        instance = GIInstance(raw['id'], raw['url'], raw['placement_poly'],
+                              template=template)
+
+        return instance
+
+    def get_template(self, id=None, url=None):
+        """ Get GITemplate resource from the GI Notebook
+
+        @param id: The ID of the GITemplate resource to download from the GI Notebook
+        @param url: The URL of the GITemplate resource to download from the GI Notebook
+        @return: GITemplate instance representing the resource
+        """
+        raw = self._get_resource('gi_templates', id=id, url=url)
+        gi_type = self.get_type(url=raw['gi_type'])
+        template = GITemplate(raw['id'], raw['url'], raw['name'], gi_type,
+                              raw['model_3d'], raw['model_planview'])
+        for element_url in raw['gi_elements']:
+            element = self.get_element(url=element_url)
+            template.add_element(element)
+
+        return template
+
+    def get_type(self, id=None, url=None):
+        """ Get GI type resource from the GI Notebook
+
+        @param id: The ID of the GI type resource to download from the GI Notebook
+        @param url: The URL of the GI type resource to download from the GI Notebook
+        @return: String representing the GI type
+        """
+        raw = self._get_resource('gi_types', id=id, url=url)
+
+        return raw['name']
+
+    def get_element(self, id=None, url=None):
+        """ Get GIElement resource from the GI Notebook
+
+        @param id: The ID of the GIElement resource to download from the GI Notebook
+        @param url: The URL of the GIElement resource to download from the GI Notebook
+        @return: GIElement instance representing the resource
+        """
+        raw = self._get_resource('gi_elements', id=id, url=url)
+        stratum_type = None
+        if raw['stratum_type']:
+            stratum_type = self.get_stratum_type(url=raw['stratum_type'])
+        soil_type = None
+        if raw['soil_type']:
+            soil_type = self.get_soil_type(url=raw['soil_type'])
+        element = GIElement(raw['id'], raw['url'], raw['name'],
+                            raw['model_3d'], raw['model_planview'],
+                            raw['soil_depth'], raw['ponding_depth'],
+                            raw['major_axis'], raw['minor_axis'],
+                            stratum_type, soil_type)
+
+        return element
+
+    def get_stratum_type(self, id=None, url=None):
+        """ Get StratumType resource from the GI Notebook
+
+        @param id: The ID of the StratumType resource to download from the GI Notebook
+        @param url: The URL of the StratumType resource to download from the GI Notebook
+        @return: StratumType instance representing the resource
+        """
+        raw = self._get_resource('rhessys_stratum_types', id=id, url=url)
+        stratum_type = StratumType(raw['id'], raw['url'], raw['name'],
+                                   raw['rhessys_default_id'])
+
+        return stratum_type
+
+    def get_soil_type(self, id=None, url=None):
+        """ Get SoilType resource from the GI Notebook
+
+        @param id: The ID of the SoilType resource to download from the GI Notebook
+        @param url: The URL of the SoilType resource to download from the GI Notebook
+        @return: SoilType instance representing the resource
+        """
+        raw = self._get_resource('rhessys_stratum_types', id=id, url=url)
+        soil_type = SoilType(raw['id'], raw['url'], raw['name'],
+                             raw['rhessys_default_id'])
+
+        return soil_type
