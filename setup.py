@@ -32,7 +32,8 @@ setup(name='rhessysworkflows',
         'pandas',
         'scipy',
         'patsy',
-        'statsmodels'
+        'statsmodels',
+        'requests'
       ],
       scripts=['bin/CreateFlowtable.py',
                'bin/CreateFlowtableMultiple.py',
