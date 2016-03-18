@@ -34,6 +34,9 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 @author Brian Miles <brian_miles@unc.edu>
 """
+import json
+from collections import OrderedDict
+
 import requests
 
 from .compat import http_responses
@@ -139,6 +142,42 @@ class GIElement(object):
         self.stratum_type = stratum_type
         self.soil_type = soil_type
 
+    def get_properties(self, dict_to_use=None, key_prefix=None):
+        """ Generate a dict consisting of the properties of a GIElement.
+
+        @param: dict_to_use: The dict to store properties in.  If None, a new dict will be created.
+        @param: key_prefix: Prefix to be prepended onto each key name.  Prefix will be separate from the
+        rest of the key by "_".
+        @return: Dict of properties.
+        """
+        if dict_to_use:
+            p = dict_to_use
+        else:
+            p = {}
+
+        temp = OrderedDict()
+        temp['id'] = self.id
+        temp['url'] = self.url
+        temp['name'] = self.name
+        temp['soil_depth'] = self.soil_depth
+        temp['ponding_depth'] = self.ponding_depth
+        temp['major_axis'] = self.major_axis
+        temp['minor_axis'] = self.minor_axis
+        if self.stratum_type:
+            temp['stratum_name'] = self.stratum_type.name
+            temp['stratum_default_id'] = int(self.stratum_type.rhessys_default_id)
+        if self.soil_type:
+            temp['soil_name'] = self.soil_type.name
+            temp['soil_default_id'] = int(self.soil_type.rhessys_default_id)
+
+        if key_prefix:
+            # Re-write values with keys prefixed by key_prefix
+            temp = {"{0}_{1}".format(key_prefix, k): v for (k, v) in temp.iteritems()}
+
+        p.update(temp)
+
+        return p
+
 
 class GITemplate(object):
     """ Represents a GI Template as presented by the GI Notebook gi_template REST API end point
@@ -160,6 +199,32 @@ class GITemplate(object):
         """
         self.gi_elements.append(gi_element)
 
+    def get_properties(self, dict_to_use=None, flatten=True):
+        """ Generate a dict consisting of the properties of a GIInstance.
+
+        @param: dict_to_use: The dict to store properties in.  If None, a new dict will be created.
+        @param: flatten: If False, properties of elements contained in template will be written
+        to their own dict with key "element_<id>".  If True, element properties will be stored directly
+        in the template properties dict, with "element_<id>_" prepended to each property name.
+        @return: Dict of properties.
+        """
+        if dict_to_use:
+            p = dict_to_use
+        else:
+            p = {}
+
+        p['template_id'] = self.id
+        p['template_url'] = self.url
+        p['type'] = self.gi_type
+
+        for i, element in enumerate(self.gi_elements, 1):
+            key = "element_{0}".format(i)
+            if flatten:
+                element.get_properties(dict_to_use=p, key_prefix=key)
+            else:
+                p[key] = element.get_properties()
+
+        return p
 
 class GIInstance(object):
     """ Represents a GI Instance as presented by the GI Notebook gi_instance REST API end point
@@ -179,6 +244,20 @@ class GIInstance(object):
         self.placement_poly = placement_poly
         self.scenario = scenario
         self.template = template
+
+    def get_properties(self, flatten=True):
+        """ Generate a dict consisting of the properties of a GIInstance.
+
+        @param: flatten If True, compound properties will be flattened into a single namespace such that
+        all properties values are simple strings.  This allows GIS clients to easily interpret feature properties.
+        If False, properties values may be any JSON object.
+        @return: Dict of properties.
+        """
+        p = {}
+        if self.template:
+            p = self.template.get_properties(p, flatten=flatten)
+
+        return p
 
 
 class GIScenario(object):
@@ -211,6 +290,26 @@ class GIScenario(object):
         """
         gi_instance.scenario = self
         self.gi_instances.append(gi_instance)
+
+    def get_instances_as_geojson(self, indent=None, flatten=True):
+        """ Generate a GeoJSON FeatureCollection representing all GI Instances associated with a scenario.
+
+        @param: indent Integer by which JSON output will be indented for pretty printing
+        @param: flatten If True, compound properties will be flattened into a single namespace such that
+        all properties values are simple strings.  This allows GIS clients to easily interpret feature properties.
+        If False, properties values may be any JSON object.
+        @return: String in GeoJSON format
+        """
+        features = []
+        feature_collection = OrderedDict([('type', 'FeatureCollection'), ('features', features)])
+        for instance in self.gi_instances:
+            feature = OrderedDict([('type', 'Feature'), ('id', instance.id),
+                                   ('geometry', instance.placement_poly),
+                                   ('properties', instance.get_properties(flatten=flatten))])
+            features.append(feature)
+
+        return json.dumps(feature_collection, indent=indent)
+
 
 
 class GINotebook(object):
