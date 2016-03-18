@@ -217,14 +217,19 @@ class GITemplate(object):
         p['template_url'] = self.url
         p['type'] = self.gi_type
 
+        if not flatten:
+            elements = []
+            p['elements'] = elements
+
         for i, element in enumerate(self.gi_elements, 1):
-            key = "element_{0}".format(i)
             if flatten:
+                key = "element_{0}".format(i)
                 element.get_properties(dict_to_use=p, key_prefix=key)
             else:
-                p[key] = element.get_properties()
+                elements.append(element.get_properties())
 
         return p
+
 
 class GIInstance(object):
     """ Represents a GI Instance as presented by the GI Notebook gi_instance REST API end point
@@ -245,19 +250,23 @@ class GIInstance(object):
         self.scenario = scenario
         self.template = template
 
-    def get_properties(self, flatten=True):
-        """ Generate a dict consisting of the properties of a GIInstance.
+    def get_as_geojson_feature(self, flatten=True):
+        """ Generate a dict representing a GIInstance as a GeoJSON Feature
 
         @param: flatten If True, compound properties will be flattened into a single namespace such that
         all properties values are simple strings.  This allows GIS clients to easily interpret feature properties.
         If False, properties values may be any JSON object.
-        @return: Dict of properties.
+        @return: Dict representing a GeoJSON Feature.
         """
-        p = {}
+        p = OrderedDict([('instance_id', self.id), ('instance_url', self.url)])
         if self.template:
             p = self.template.get_properties(p, flatten=flatten)
 
-        return p
+        feature = OrderedDict([('type', 'Feature'), ('id', self.id),
+                                ('geometry', self.placement_poly),
+                                ('properties', p)])
+
+        return feature
 
 
 class GIScenario(object):
@@ -303,13 +312,9 @@ class GIScenario(object):
         features = []
         feature_collection = OrderedDict([('type', 'FeatureCollection'), ('features', features)])
         for instance in self.gi_instances:
-            feature = OrderedDict([('type', 'Feature'), ('id', instance.id),
-                                   ('geometry', instance.placement_poly),
-                                   ('properties', instance.get_properties(flatten=flatten))])
-            features.append(feature)
+            features.append(instance.get_as_geojson_feature(flatten=flatten))
 
         return json.dumps(feature_collection, indent=indent)
-
 
 
 class GINotebook(object):
