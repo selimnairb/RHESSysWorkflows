@@ -123,133 +123,59 @@ Documentation can be found at: http://pythonhosted.org/rhessysworkflows
 Installation instructions
 -------------------------
 These instructions are tailored to OS X and Linux users (specifically 
-Ubuntu 13.04+ a.k.a. Raring Ringtail), however installation
+Ubuntu 14.04, or 15.04; 15.10 is not compatible as it
+ships with GRASS 7 rather than GRASS 6.4), however installation
 under other Linux distributions is also possible. RHESSysWorkflows may in 
 theory work under Windows, but this has never been tested.  Windows users 
 are encouraged to run an Ubuntu under a virtual machine.
 
-RHESSysWorkflows is compatible with OS X 10.6, 10.7, 10.8, 10.9, and 10.10.  
-
-> 10/9/2015: RHESSysWorkflows is not compatible with OS X 10.11 (El Capitan)
-> because GRASS GIS is not compatible with this version of OS X.  These
-> instructions will be updated with instructions specific to OS X 10.11
-> when they are available.
+RHESSysWorkflows is compatible with OS X 10.6 through 10.11, but only
+versions 10.9 through 10.11 are officially supported.  For installation
+instructions for OS X 10.6 through 10.8, see 
+[Deprecated installation instructions](deprecated-installation-instructions)
+toward the end of this document.
 
 To find out what version of OS X you are currently running, click on the
 apple in the upper left corner of the screen and select *About this
 Mac*.  To find out the latest version of OS X you computer can run,
-visit
-http://www.everymac.com/systems/by_capability/maximum-macos-supported.html.
-
-Due to its age, there are a few more installation steps needed under
-OS X 10.6.  Also, once Apple stops support this version of the OS,
-support for OS X 10.6 will also be dropped from subsequent releases of
-RHESSysWorkflows.  If you were thinking of upgrading from OS X 10.6 to
-10.9 for other reasons, this may add another.
-
-> You will need to use the *sudo* command line tool to install many of
-> the components needed for EcohydroLib/RHESSysWorkflows.  The sudo
-> command allows you to run other commands as a super user.  Under OS
-> X, by default, only users who are 'admins' have permission to run
-> sudo.  To check if your user account is an administrator, or to make
-> your user an administrator open *System Preferences > Users &
-> Groups*.  Note that to use sudo, your account will also have to have
-> a non-blank password.  See this Apple support
-> [article](http://support.apple.com/kb/HT4103?viewlocale=en_US&locale=en_US)
-> for more information.
+visit this helpful [page](http://www.everymac.com/systems/by_capability/maximum-macos-supported.html).
 
 If you encounter problems during installation, please check the 
 [installation notes](https://github.com/selimnairb/RHESSysWorkflows/wiki/Installation-Notes)
 before contacting the developers for support.
 
-### OS X 10.6 only: Install Python 2.7
 
-#### Download and install Python 2.7 (for Mac OS 10.6 and later) from: http://www.python.org/download/
+### Installing on OS X using Homebrew
 
-Once installation has completed, make sure that Python 2.7 is the
-default Python version by doing the following from the Terminal:
+PASTE FROM HOMEBREW INSTRUCTIONS
 
-    python
+### Install RHESSysWorkflows and Python packages under OS X
+To install RHESSysWorkflows and its dependencies (including EcohydroLib), 
+enter the following from your Terminal:
+
+    pip install rhessysworkflows
+
+#### Upgrading to a new version of RHESSysWorkflows
+To upgrade to a newer version of RHESSysWorkflows, enter the following into the Terminal:
+
+    pip install rhessysworkflows --upgrade --force-reinstall
     
-This will load the Python interpreter.  The first line of output will
-display the Python version number.  Type *exit()* to exit the
-interpreter.
+If pip does not install the version you expect, it may be necessary
+to first remove RHESSysWorkflows and Ecohydrolib before installing the 
+new version (especially under Linux where some Python packages fail to
+build when installed via *pip*):
 
-#### Download setuptools from: https://pypi.python.org/pypi/setuptools/0.8
-Install setuptools as follows:
-1. Unpack the archive by double-clicking on it in Finder
-2. From Terminal:
+    pip uninstall rhessysworkflows
+    pip uninstall ecohydrolib
 
-    cd setuptools-0.8
-    sudo python ez_setup.py
+Then install as above:
 
-### Install non-Python dependencies
+    pip install rhessysworkflows
 
-#### OS X 10.6: Install Xcode (OS X developer tools)
+### Installing dependencies under Ubuntu Linux 14.04 or 15.04
+Install RHESSysWorkflows/EcohydroLib dependencies using apt-get:
 
-1. Download and install Xcode 3.2.6 and iOS SDK 4.3 for Snow Leopard
-[here](https://developer.apple.com/downloads/index.action) (This
-requires you to register for a free developer account)
-
-2. Download and install Git from http://git-scm.com/download/mac
-
-RHESSysWorkflows uses Git to download RHESSys source code so you don't have to.
-
-#### OS X 10.7, 10.8, 10.9, and 10.10: Install Xcode (OS X developer tools):
-- Install Xcode via the App Store
-- Launch Xcode
-- Make sure that Xcode command line tools are installed by running the following from the command line (e.g. using the Terminal app):
-
-```
-xcode-select --install
-```
-
-- Agree to the Xcode license by running the following command (we only run this command to force Xcode show us the license):
-    sudo cc
-
-#### Install GIS tools: GRASS QGIS
-Note, GRASS version 6.4 is required for RHESSysWorkflows (GRASS 7.0 is not
-supported at this time).  GRASS is used internally to carry out workflow 
-steps (leading to the creation of RHESSys world files and flow tables).  
-You will also find it useful to use GRASS to visualize the results from 
-some workflow steps.
-
-> Before installing GRASS, etc. under OS X 10.8, 10.9 or 10.10, you will need to
-> enable applications from any source to be installed.  To do so open
-> *System Preferences > Security & Privacy > General* and choose
-> "Allow apps downloaded from: Anywhere". Doing so exposes your computer
-> to more security risks from downloaded software. We recommend that you
-> revert this setting once you are finished with installation.
-
-To install GRASS on OS X, visit http://www.kyngchaos.com/software/grass
-
-Here you will need to download and install the following:
-
-1. GDAL Complete framework
-2. FreeType framework
-3. cairo framework
-4. PIL (Python imaging library)
-5. GRASS.app
-
-While you are there, we recommend you also install QGIS (Quantum GIS)
-
-In addition to GRASS and components installed above, install:
-
-1. NumPy from http://www.kyngchaos.com/software/python
-2. SciPy from http://www.kyngchaos.com/software/python
-2. Matplotlib Python module from http://www.kyngchaos.com/software/python
-3. QGIS from from http://www.kyngchaos.com/software/qgis
-
-QGIS is useful for visualizing output for earlier workflow steps that precede the importing data into GRASS. 
-
-#### Installing dependencies under Ubuntu Linux 14.04 or 15.04
-First install aptitude:
-
-    apt-get install aptitude
-    
-The install RHESSysWorkflows/EcohydroLib dependencies using aptitude:
-
-    aptitude install build-essential git subversion p7zip-full \
+    sudo apt-get install build-essential git subversion p7zip-full \
     python python-dev python-pip python-scipy \
     libxml2-dev libxslt-dev \
     gdal gdal-bin python-gdal \
@@ -260,7 +186,7 @@ Note: the above works for Ubuntu 14.04.  For 15.04 the packaging of
 GDAL has changed use the following to install dependencies under
 Ubuntu 15.04:
 
-    aptitude install build-essential git subversion p7zip-full \
+    sudo apt-get install build-essential git subversion p7zip-full \
     python python-dev python-pip python-scipy \
     libxml2-dev libxslt-dev \
     libgdal-dev libgdal-doc gdal-bin python-gdal \
@@ -269,7 +195,56 @@ Ubuntu 15.04:
     
 > Ubuntu 15.10 is not compatible with RHESSys or RHESSysWorkflows
 > as this version of Ubuntu uses GRASS 7, which is not yet supported
-> by RHESSys or RHESSysWorkflows.
+> by RHESSys or RHESSysWorkflows.  If you want to use another 
+> Linux distribution, make sure that it provides similar versions
+> of the above dependencies.
+
+### Install RHESSysWorkflows and Python packages under Linux
+To install RHESSysWorkflows and its dependencies (including EcohydroLib), 
+enter the following from your Terminal:
+
+    sudo pip install rhessysworkflows
+
+#### Upgrading to a new version of RHESSysWorkflows
+To upgrade to a newer version of RHESSysWorkflows, enter the following into the Terminal:
+
+    sudo pip install rhessysworkflows --upgrade --force-reinstall
+    
+If pip does not install the version you expect, it may be necessary
+to first remove RHESSysWorkflows and Ecohydrolib before installing the 
+new version (especially under Linux where some Python packages fail to
+build when installed via *pip*):
+
+    sudo pip uninstall rhessysworkflows
+    sudo pip uninstall ecohydrolib
+
+Then install as above:
+
+    sudo pip install rhessysworkflows
+
+### A note on RHESSysWorkflows version numbers   
+Each project can only be used with compatible versions of RHESSysWorkflows/Ecohydrolib.
+Compatible versions are those that write the same version number to the metadata
+store for a given project.  This compatibility check is necessary to ensure both
+scientific reproducibility and to make sure your workflows do not become corrupted
+by incompatible versions.  We strive to maintain compatibility between releases of
+RHESSysWorkflows/Ecohydrolib, however sometimes enabling new workflow scenarios
+requires incompatible changes.  The release notes for each release will note when
+a new version breaks backward compatibility.  The good news is that you can have multiple
+copies of RHESSysWorkflows/Ecohydrolib installed on your computer at the same time.
+To do so, you must do the following:
+
+1. Install virtualenv (https://pypi.python.org/pypi/virtualenv)
+2. Create a new virtual environment for each version of RHESSysWorkflows you would
+like to run
+3. Activate a virtual environment you would like to install a specific version
+of RHESSysWorkflows into
+4. Install RHESSysWorkflows in the virtual environment, for example to install version 1.0: 
+
+    pip install rhessysworkflows==1.0
+    
+Not that you do not need to use 'sudo' when running in a virtual environment as the
+files are installed in a directory owned by your user account.
 
 #### Install GRASS Addons for RHESSysWorkflows
 Follow these steps to install the GRASS addons under OS X and Linux:
@@ -294,123 +269,10 @@ For more information on these addons (r.soils.texture and r.findtheriver), see:
 and r.soils.texture
 - [r.soils.texture](http://grasswiki.osgeo.org/wiki/AddOns/GRASS_6#r.soils.texture).
 
-### Install Python modules
-The steps in this section is the same for OS X and Linux (except where
-noted for OS X 10.6).
-
-#### Install PIP, a tool for installing Python modules
-Pip is the recommended way to install Python modules (i.e. rather than
-using easy_install). For example, Pip allows you to easily uninstall
-modules.  To install pip, enter the following in a Terminal window:
-
-    sudo easy_install pip
-
-#### OS X 10.6: Install GDAL Python modules
-Even though we installed the GDAL complete framework above, we still
-need to install the GDAL Python modules for the copy of Python 2.7 we
-installed above; the GDAL framework only installs the Python modules
-for Python 2.6, which RHESSysWorkflows is not compatible with. These
-installation steps are a little ugly, but bear with me (or upgrade
-from OS X 10.6). From a Terminal window type the following:
-
-    export PATH=${PATH}:/Library/Frameworks/GDAL.framework/unix/bin
-    sudo pip install --no-install GDAL
-    cd /tmp/pip-build-root/GDAL
-    sudo python setup.py build_ext --include-dirs=/Library/Frameworks/GDAL.framework/Headers --library-dirs=/Library/Frameworks/GDAL.framework/Versions/Current/unix/lib
-    sudo pip install --no-download GDAL
-
-#### Install RHESSysWorkflows Python modules (including EcohydroLib) 
-Before installing RHESSysWorkflows, we need to install some
-dependencies by hand (this is annoying, but unavoidable):
-
-    sudo pip install pandas patsy
-
-This is necessary because another depdendency (statsmodels) requires
-that we install its dependencies first. If you are running XCode 5.1 or later, 
-you may encounter this error:
-
-    clang: warning: unknown argument: '-mno-fused-madd' [-Wunused-command-line-argument-hard-error-in-future]
-    clang: note: this will be a hard error (cannot be downgraded to a warning) in the future
-    clang: warning: argument unused during compilation: '-mno-fused-madd'
-    
-If you don't see the above error, skip the next step.  To work around the error, install statsmodels' 
-dependencies this way (you'll probably want to copy and paste this rather than typing it):
-
-    sudo ARCHFLAGS=-Wno-error=unused-command-line-argument-hard-error-in-future pip install pandas patsy
-    
-This too is annoying, but is unaviodable (for now).
-
-To install RHESSysWorkflows and its dependencies (including EcohydroLib), 
-enter the following from your Terminal if you are running XCode 5.0 or earlier:
-
-    sudo pip install rhessysworkflows
-
-If you are running Xcode 5.1 (but not Xcode 6.1 or later), we need to set the ARCHFLAGS variable 
-as above:
-
-	sudo ARCHFLAGS=-Wno-error=unused-command-line-argument-hard-error-in-future pip install rhessysworkflows
-
-Again, only do the above step if youa re running Xcode 5.1, not Xcode 6.1.
-
-This may take a while as several of the modules rely on non-Python code that has to be compiled.
-    
-> Why are GDAL Python libraries not included as a dependency of
-> RHESSysWorkflows? This is to make life easier for users of OS X 10.7
-> and 10.8.  For these OSes, the GDAL complete installer that
-> accompanies GRASS will install GDAL Python modules in the copy of
-> Python 2.7 that ships with the OS, and the GDAL Python module does
-> not successfully build by itself under OS X, which would make the
-> rhessysworkflows install fail.  Linux users will have to make sure
-> they install GDAL Python modules in addition to GDAL itself
-> (e.g. via a companion package, or by 'sudo pip install GDAL').
-
-### Upgrading to a new version of RHESSysWorkflows
-To upgrade to a newer version of RHESSysWorkflows, enter the following into the Terminal:
-
-    sudo pip install rhessysworkflows --upgrade --force-reinstall
-    
-If pip does not install the version you expect, it may be necessary
-to first remove RHESSysWorkflows and Ecohydrolib before installing the 
-new version (especially under Linux where some Python packages fail to
-build when installed via *pip*):
-
-    sudo pip uninstall rhessysworkflows
-    sudo pip uninstall ecohydrolib
-
-The install as above:
-
-    sudo pip install rhessysworkflows
-
-### A note on version numbers   
-Each project can only be used with compatible versions of RHESSysWorkflows/Ecohydrolib.
-Compatible versions are those that write the same version number to the metadata
-store for a given project.  This compatibility check is necessary to ensure both
-scientific reproducibility and to make sure your workflows do not become corrupted
-by incompatible versions.  We strive to maintain compatibility between releases of
-RHESSysWorkflows/Ecohydrolib, however sometimes enabling new workflow scenarios
-requires incompatible changes.  The release notes for each release will note when
-a new version breaks backward compatibility.  The good news is that you can have multiple
-copies of RHESSysWorkflows/Ecohydrolib installed on your computer at the same time.
-To do so, you must do the following:
-
-1. Install virtualenv (https://pypi.python.org/pypi/virtualenv)
-2. Create a new virtual environment for each version of RHESSysWorkflows you would
-like to run
-3. Activate a virtual environment you would like to install a specific version
-of RHESSysWorkflows into
-4. Install RHESSysWorkflows in the virtual environment, for example to install version 1.0: 
-
-    pip install rhessysworkflows==1.0
-    
-Not that you do not need to use 'sudo' when running in a virtual environment as the
-files are installed in a directory owned by your user account.
-
 ### Setup EcohydroLib and RHESSysWorkflows configuration file
 - Choose the appropriate prototype configuration file:
 
-    + [OS X 10.6](https://raw.github.com/selimnairb/RHESSysWorkflows/master/docs/config/ecohydro-OSX_10.6.cfg)
-
-    + [OS X 10.7/10.8/10.9/10.10](https://raw.github.com/selimnairb/RHESSysWorkflows/master/docs/config/ecohydro-OSX.cfg)
+    + [OS X](https://raw.github.com/selimnairb/RHESSysWorkflows/master/docs/config/ecohydro-OSX-homebrew.cfg)
     
     + [Linux](https://raw.github.com/selimnairb/RHESSysWorkflows/master/docs/config/ecohydro-Linux.cfg)
 
@@ -1808,6 +1670,310 @@ For Linux:
 
 See [Setup EcohydroLib and RHESSysWorkflows configuration file](#configfile)
 for more details on setting up your configuration file.
+
+### Deprecated installation instructions
+
+#### OS X 10.7 through 10.10 using Kyngchaos GIS packages
+
+##### Install Xcode (OS X developer tools):
+- Install Xcode via the App Store
+- Launch Xcode
+- Make sure that Xcode command line tools are installed by running the following from the command line (e.g. using the Terminal app):
+
+```
+xcode-select --install
+```
+
+- Agree to the Xcode license by running the following command (we only run this command to force Xcode show us the license):
+    sudo cc
+    
+##### Install GIS tools: GRASS & QGIS
+Note, GRASS version 6.4 is required for RHESSysWorkflows (GRASS 7.0 is not
+supported at this time).  GRASS is used internally to carry out workflow 
+steps (leading to the creation of RHESSys world files and flow tables).  
+You will also find it useful to use GRASS to visualize the results from 
+some workflow steps.
+
+> Before installing GRASS, etc. under OS X 10.8, 10.9 or 10.10, you will need to
+> enable applications from any source to be installed.  To do so open
+> *System Preferences > Security & Privacy > General* and choose
+> "Allow apps downloaded from: Anywhere". Doing so exposes your computer
+> to more security risks from downloaded software. We recommend that you
+> revert this setting once you are finished with installation.
+
+To install GRASS on OS X, visit http://www.kyngchaos.com/software/grass
+
+Here you will need to download and install the following:
+
+1. GDAL Complete framework
+2. FreeType framework
+3. cairo framework
+4. PIL (Python imaging library)
+5. GRASS.app
+
+While you are there, we recommend you also install QGIS (Quantum GIS)
+
+In addition to GRASS and components installed above, install:
+
+1. NumPy from http://www.kyngchaos.com/software/python
+2. SciPy from http://www.kyngchaos.com/software/python
+2. Matplotlib Python module from http://www.kyngchaos.com/software/python
+3. QGIS from from http://www.kyngchaos.com/software/qgis
+
+QGIS is useful for visualizing output for earlier workflow steps that precede the importing data into GRASS. 
+
+##### Install RHESSysWorkflows Python modules (including EcohydroLib) 
+Before installing RHESSysWorkflows, we need to install some
+dependencies by hand (this is annoying, but unavoidable):
+
+    sudo pip install pandas patsy
+
+This is necessary because another depdendency (statsmodels) requires
+that we install its dependencies first. If you are running XCode 5.1 or later, 
+you may encounter this error:
+
+    clang: warning: unknown argument: '-mno-fused-madd' [-Wunused-command-line-argument-hard-error-in-future]
+    clang: note: this will be a hard error (cannot be downgraded to a warning) in the future
+    clang: warning: argument unused during compilation: '-mno-fused-madd'
+    
+If you don't see the above error, skip the next step.  To work around the error, install statsmodels' 
+dependencies this way (you'll probably want to copy and paste this rather than typing it):
+
+    sudo ARCHFLAGS=-Wno-error=unused-command-line-argument-hard-error-in-future pip install pandas patsy
+    
+This too is annoying, but is unaviodable (for now).
+
+To install RHESSysWorkflows and its dependencies (including EcohydroLib), 
+enter the following from your Terminal if you are running XCode 5.0 or earlier:
+
+    sudo pip install rhessysworkflows
+
+If you are running Xcode 5.1 (but not Xcode 6.1 or later), we need to set the ARCHFLAGS variable 
+as above:
+
+	sudo ARCHFLAGS=-Wno-error=unused-command-line-argument-hard-error-in-future pip install rhessysworkflows
+
+Again, only do the above step if youa re running Xcode 5.1, not Xcode 6.1.
+
+This may take a while as several of the modules rely on non-Python code that has to be compiled.
+    
+> Why are GDAL Python libraries not included as a dependency of
+> RHESSysWorkflows? This is to make life easier for users of OS X 10.7
+> and 10.8.  For these OSes, the GDAL complete installer that
+> accompanies GRASS will install GDAL Python modules in the copy of
+> Python 2.7 that ships with the OS, and the GDAL Python module does
+> not successfully build by itself under OS X, which would make the
+> rhessysworkflows install fail.  Linux users will have to make sure
+> they install GDAL Python modules in addition to GDAL itself
+> (e.g. via a companion package, or by 'sudo pip install GDAL').
+
+##### Install GRASS Addons for RHESSysWorkflows
+Follow these steps to install the GRASS addons needed by RHESSysWorkflows:
+
+1. First start GRASS
+ - Double-click on the *GRASS-6.4* icon in your Applications folder
+
+2. Create a new location (it doesn't matter where, we'll only use it to run
+the g.extension command to install the extensions)
+3. Install r.soils.texture
+
+    g.extension extension=r.soils.texture
+
+4. Install r.findtheriver
+
+    g.extension extension=r.findtheriver
+
+5. Exit GRASS
+
+For more information on these addons (r.soils.texture and r.findtheriver), see:
+- [r.findtheriver](http://grasswiki.osgeo.org/wiki/AddOns/GRASS_6#r.findtheriver)
+and r.soils.texture
+- [r.soils.texture](http://grasswiki.osgeo.org/wiki/AddOns/GRASS_6#r.soils.texture).
+
+##### Setup EcohydroLib and RHESSysWorkflows configuration file
+- Download a [prototype configuration](https://raw.github.com/selimnairb/RHESSysWorkflows/master/docs/config/ecohydro-OSX.cfg) file.
+
+- Save into a file named '.ecohydro.cfg' stored in your home directory
+	Replace all occurances of *&lt;myusername&gt;* with your user name (To find
+	out your OS X user name, use the *whoami* command in Terminal).
+    
+- Set ECOHYDROLIB_CFG environment variable so that RHESSysWorkflows
+  can find your configuration file
+
+    + From Terminal, do the following:
+
+		echo "export ECOHYDROLIB_CFG=${HOME}/.ecohydro.cfg" >> ~/.bash_profile
+
+	+ Re-load bash profile (or close and open a new Terminal window):
+
+		source ~/.bash_profile
+
+This concludes installation and configuration instructions for OS X 10.7 through 10.10 using Kyngchaos GIS packages.
+
+#### OS X 10.6
+
+Apple, and thus many third-party software developers, no longer supports OS X 10.6.
+If you are still running OS X 10.6, you may want to explore 
+[upgrade options](http://arstechnica.com/apple/2014/03/snow-leopard-updates-are-probably-done-here-are-your-os-x-upgrade-options/) 
+as many older Macs can run newer operating systems, upto and including the latest version.
+If your Mac still has some life in it, it is important to upgrade from OS X 10.6 this version
+is no longer receiving security updates from Apple, and because newer versions have more
+security features by design.
+
+If you wish to install RHESSysWorkflows on OS X 10.6, follow the instructions below (though
+we no longer have a OS X 10.6 machine to test on, so we won't be able to help if you run into problems).
+
+Due to its age, there are a few more installation steps needed under
+OS X 10.6.  Also, once Apple stops support this version of the OS,
+support for OS X 10.6 will also be dropped from subsequent releases of
+RHESSysWorkflows.  If you were thinking of upgrading from OS X 10.6 to
+10.9 for other reasons, this may add another.
+
+> You will need to use the *sudo* command line tool to install many of
+> the components needed for EcohydroLib/RHESSysWorkflows.  The sudo
+> command allows you to run other commands as a super user.  Under OS
+> X, by default, only users who are 'admins' have permission to run
+> sudo.  To check if your user account is an administrator, or to make
+> your user an administrator open *System Preferences > Users &
+> Groups*.  Note that to use sudo, your account will also have to have
+> a non-blank password.  See this Apple support
+> [article](http://support.apple.com/kb/HT4103?viewlocale=en_US&locale=en_US)
+> for more information.
+
+##### Download and install Python 2.7 from: http://www.python.org/download/
+
+Once installation has completed, make sure that Python 2.7 is the
+default Python version by doing the following from the Terminal:
+
+    python
+    
+This will load the Python interpreter.  The first line of output will
+display the Python version number.  Type *exit()* to exit the
+interpreter.
+
+##### Download setuptools from: https://pypi.python.org/pypi/setuptools/0.8
+Install setuptools as follows:
+1. Unpack the archive by double-clicking on it in Finder
+2. From Terminal:
+
+    cd setuptools-0.8
+    sudo python ez_setup.py
+
+##### Install Xcode (OS X developer tools)
+
+1. Download and install Xcode 3.2.6 and iOS SDK 4.3 for Snow Leopard
+[here](https://developer.apple.com/downloads/index.action) (This
+requires you to register for a free developer account)
+
+2. Download and install Git from http://git-scm.com/download/mac
+
+RHESSysWorkflows uses Git to download RHESSys source code so you don't have to.
+
+##### Install PIP, a tool for installing Python modules
+Pip is the recommended way to install Python modules (i.e. rather than
+using easy_install). For example, Pip allows you to easily uninstall
+modules.  To install pip, enter the following in a Terminal window:
+
+    sudo easy_install pip
+
+##### Install GIS tools: GRASS & QGIS
+Note, GRASS version 6.4 is required for RHESSysWorkflows (GRASS 7.0 is not
+supported at this time).  GRASS is used internally to carry out workflow 
+steps (leading to the creation of RHESSys world files and flow tables).  
+You will also find it useful to use GRASS to visualize the results from 
+some workflow steps.
+
+To install GRASS on OS X, visit http://www.kyngchaos.com/software/grass
+
+Here you will need to download and install the following:
+
+1. GDAL Complete framework
+2. FreeType framework
+3. cairo framework
+4. PIL (Python imaging library)
+5. GRASS.app
+
+While you are there, we recommend you also install QGIS (Quantum GIS)
+
+In addition to GRASS and components installed above, install:
+
+1. NumPy from http://www.kyngchaos.com/software/python
+2. SciPy from http://www.kyngchaos.com/software/python
+2. Matplotlib Python module from http://www.kyngchaos.com/software/python
+3. QGIS from from http://www.kyngchaos.com/software/qgis
+
+QGIS is useful for visualizing output for earlier workflow steps that precede the importing data into GRASS. 
+
+##### Install GDAL Python modules
+Even though we installed the GDAL complete framework above, we still
+need to install the GDAL Python modules for the copy of Python 2.7 we
+installed above; the GDAL framework only installs the Python modules
+for Python 2.6, which RHESSysWorkflows is not compatible with. These
+installation steps are a little ugly, but bear with me (or upgrade
+from OS X 10.6). From a Terminal window type the following:
+
+    export PATH=${PATH}:/Library/Frameworks/GDAL.framework/unix/bin
+    sudo pip install --no-install GDAL
+    cd /tmp/pip-build-root/GDAL
+    sudo python setup.py build_ext --include-dirs=/Library/Frameworks/GDAL.framework/Headers --library-dirs=/Library/Frameworks/GDAL.framework/Versions/Current/unix/lib
+    sudo pip install --no-download GDAL
+
+##### Install RHESSysWorkflows Python modules (including EcohydroLib) 
+Before installing RHESSysWorkflows, we need to install some
+dependencies by hand (this is annoying, but unavoidable):
+
+    sudo pip install pandas patsy
+
+This is necessary because another depdendency (statsmodels) requires
+that we install its dependencies first. 
+
+To install RHESSysWorkflows and its dependencies (including EcohydroLib), 
+enter the following from your Terminal if you are running XCode 5.0 or earlier:
+
+    sudo pip install rhessysworkflows
+
+##### Install GRASS Addons for RHESSysWorkflows
+Follow these steps to install the GRASS addons needed by RHESSysWorkflows:
+
+1. First start GRASS
+ - Double-click on the *GRASS-6.4* icon in your Applications folder
+
+2. Create a new location (it doesn't matter where, we'll only use it to run
+the g.extension command to install the extensions)
+3. Install r.soils.texture
+
+    g.extension extension=r.soils.texture
+
+4. Install r.findtheriver
+
+    g.extension extension=r.findtheriver
+
+5. Exit GRASS
+
+For more information on these addons (r.soils.texture and r.findtheriver), see:
+- [r.findtheriver](http://grasswiki.osgeo.org/wiki/AddOns/GRASS_6#r.findtheriver)
+and r.soils.texture
+- [r.soils.texture](http://grasswiki.osgeo.org/wiki/AddOns/GRASS_6#r.soils.texture).
+
+##### Setup EcohydroLib and RHESSysWorkflows configuration file
+- Download a [prototype configuration](https://raw.github.com/selimnairb/RHESSysWorkflows/master/docs/config/ecohydro-OSX_10.6.cfg) file.
+
+- Save into a file named '.ecohydro.cfg' stored in your home directory
+	Replace all occurances of *&lt;myusername&gt;* with your user name (To find
+	out your OS X user name, use the *whoami* command in Terminal).
+    
+- Set ECOHYDROLIB_CFG environment variable so that RHESSysWorkflows
+  can find your configuration file
+
+    + From Terminal, do the following:
+
+		echo "export ECOHYDROLIB_CFG=${HOME}/.ecohydro.cfg" >> ~/.bash_profile
+
+	+ Re-load bash profile (or close and open a new Terminal window):
+
+		source ~/.bash_profile
+
+This concludes installation and configuration instructions for OS X 10.6.
 
 ### Install local data
 
