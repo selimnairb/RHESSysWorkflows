@@ -149,7 +149,7 @@ are encouraged to run an Ubuntu under a virtual machine.
 RHESSysWorkflows is compatible with OS X 10.6 through 10.11, but only
 versions 10.9 through 10.11 are officially supported.  For installation
 instructions for OS X 10.6 through 10.8, see 
-[Deprecated installation instructions](deprecated-installation-instructions)
+[Deprecated installation instructions](#deprecated-installation-instructions)
 toward the end of this document.
 
 To find out what version of OS X you are currently running, click on
@@ -165,7 +165,7 @@ before contacting the developers for support.
 
 
 ### Installing on OS X using Homebrew
-Previous [methods](deprecated-installation-instructions) for
+Previous [methods](#deprecated-installation-instructions) for
 installing RHESSysWorkflows under OS X relied on the official GRASS
 6.4 GIS
 [packages](https://grass.osgeo.org/download/software/mac-osx/).
@@ -192,7 +192,7 @@ available software formula, visit
 [here](https://github.com/OSGeo/homebrew-osgeo4mac).
 
 > A tap allows software developers to maintain a collection of
-> software formulae; OSGeo4Mac currates a number of formula related to
+> software formulae; OSGeo4Mac curates a number of formula related to
 > open source GIS software.
 
 Now Homebrew is installed and we just need to install a few software
@@ -317,7 +317,7 @@ that you can have multiple copies of RHESSysWorkflows/Ecohydrolib
 installed on your computer at the same time.  To do so, you must do
 the following:
 
-1. Install virtualenv (https://pypi.python.org/pypi/virtualenv)
+1. Install [virtualenv](https://pypi.python.org/pypi/virtualenv)
 
 2. Create a new virtual environment for each version of
 RHESSysWorkflows you would like to run
@@ -403,6 +403,9 @@ Terminal).
 	+ Re-load bash profile (or close and open a new Terminal window):
 
 		source ~/.bash_profile (~/.profile under Linux)
+
+This concludes the configuration portion of the installation and 
+configuration instructions.
 
 
 Using RHESSysWorkflows - Introduction
@@ -1774,7 +1777,7 @@ For Linux:
     [RHESSYS]
     PATH_OF_FFMPEG = /usr/bin/ffmpeg
 
-See [Setup EcohydroLib and RHESSysWorkflows configuration file](#configfile)
+See [Setup EcohydroLib and RHESSysWorkflows configuration file](#setup-ecohydrolib-and-rhessysworkflows-configuration-file)
 for more details on setting up your configuration file.
 
 ### Deprecated installation instructions
