@@ -188,6 +188,13 @@ available software formula, visit
 > During installation you may be prompted to install OS X command line
 > developer tools.  Choose "Install".
 
+**If you already have Homebrew installed, make sure to do the following
+before proceeding**:
+```
+brew update
+brew upgrade
+```
+
 - Next, install the OSGeo4Mac tap for Homebrew by following the instructions 
 [here](https://github.com/OSGeo/homebrew-osgeo4mac).
 
@@ -340,13 +347,13 @@ Follow these steps to install the GRASS addons under OS X and Linux:
 1. Start GRASS:
 
  - OS X: In the Terminal, type:
-```bash
+```
 brew link gettext --force   # Make sure GRASS's g.extension program can find gettext, which is used in internationalization.
 /usr/local/Cellar/grass-64/6.4.4_1/bin/grass64
 ```
  
  - Linux: on a command line type: 
- ```bash
+ ```
  grass64
  ```
     
