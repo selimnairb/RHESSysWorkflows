@@ -174,8 +174,8 @@ matter) are not compatible with new security enhancements in OS X
 10.11 (El Capitan).  Rather than disable this new security measure
 (called System Integrity Protection), we recommend that
 RHESSysWorkflows users use a new [Homebrew](http://brew.sh/)-based
-installation method, which does not require the security features of
-your operating system to be disabled.
+installation method, which will install GRASS without requiring that 
+the security features of your operating system be disabled.
 
 Homebrew is a third-party package management system that makes it easy
 to install open-source software under OS X.  Each software package one
