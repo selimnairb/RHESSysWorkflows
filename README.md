@@ -245,8 +245,8 @@ Then install as above:
 #### Install GRASS and QGIS
 Install GRASS and QGIS using Homebrew as follows from the Terminal:
 
-    brew install grass-64 qgis-28 --without-server ffmpeg
-    brew linkapps qgis-28
+    brew install grass-64 gdal-20 qgis-214 --without-server ffmpeg
+    brew linkapps qgis-214
     
 You will also need to install a Python library for accessing PostGIS
 geospatial databases; This is required by QGIS:
