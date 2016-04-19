@@ -234,19 +234,21 @@ class GITemplate(object):
 class GIInstance(object):
     """ Represents a GI Instance as presented by the GI Notebook gi_instance REST API end point
     """
-    def __init__(self, id, url, placement_poly, scenario=None, template=None):
+    def __init__(self, id, url, placement_poly, poly_area_sq_meter, scenario=None, template=None):
         """
 
         @param id:
         @param url:
+        @param placement_poly: WGS 84 polygon (a dict representation of the GeoJSON)
+        @param poly_area_sq_meter: The area of placement_poly in square meters
         @param scenario: A GIScenario object
         @param template: A GITemplate object
-        @param placement_poly: WGS 84 polygon (a dict representation of the GeoJSON)
         @return:
         """
         self.id = id
         self.url = url
         self.placement_poly = placement_poly
+        self.poly_area_sq_meter = poly_area_sq_meter
         self.scenario = scenario
         self.template = template
 
@@ -258,7 +260,8 @@ class GIInstance(object):
         If False, properties values may be any JSON object.
         @return: Dict representing a GeoJSON Feature.
         """
-        p = OrderedDict([('instance_id', self.id), ('instance_url', self.url)])
+        p = OrderedDict([('poly_area_sq_meter', self.poly_area_sq_meter),
+                         ('instance_id', self.id), ('instance_url', self.url)])
         if self.template:
             p = self.template.get_properties(p, flatten=flatten)
 
@@ -401,7 +404,7 @@ class GINotebook(object):
         """
         raw = self._get_resource('gi_instances', id=id, url=url)
         template = self.get_template(url=raw['template'])
-        instance = GIInstance(raw['id'], raw['url'], raw['placement_poly'],
+        instance = GIInstance(raw['id'], raw['url'], raw['placement_poly'], raw['placement_poly_area_sq_m'],
                               template=template)
 
         return instance
