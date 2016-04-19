@@ -246,6 +246,7 @@ Then install as above:
 Install GRASS and QGIS using Homebrew as follows from the Terminal:
 
     brew install grass-64 gdal-20 qgis-214 --without-server ffmpeg
+    brew link grass-64 --force
     brew linkapps qgis-214
     
 You will also need to install a Python library for accessing PostGIS
@@ -349,9 +350,9 @@ Follow these steps to install the GRASS addons under OS X and Linux:
  - OS X: In the Terminal, type:
 ```
 brew link gettext --force   # Make sure GRASS's g.extension program can find gettext, which is used in internationalization.
-/usr/local/Cellar/grass-64/6.4.4_1/bin/grass64
+grass64
 ```
- 
+
  - Linux: on a command line type: 
  ```
  grass64
