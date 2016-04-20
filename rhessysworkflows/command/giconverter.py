@@ -156,7 +156,10 @@ class GIConverter(GrassCommand):
             else:
                 raise RunException('Exiting.  Use force option to overwrite.')
 
-        dev_null = open('/dev/null')
+        if verbose:
+            output = None
+        else:
+            output = open('/dev/null')
         try:
             # Connect to GI Notebook and fetch GI instance information (in GeoJSON format)
             # for this scenario ID.
@@ -186,7 +189,7 @@ class GIConverter(GrassCommand):
             args = shlex.split(ogr_cmd)
             # Send output to /dev/null so that we don't see the spurious error that OGR
             # can't write GeoJSON files, when it seems to create ours just fine
-            p = subprocess.Popen(args, stdout=dev_null, stderr=dev_null)
+            p = subprocess.Popen(args, stdout=output, stderr=output)
             rc = p.wait()
             if rc != 0:
                 raise RunException("GI Instance re-project command {0} returned {1}".format(ogr_cmd,
@@ -199,8 +202,8 @@ class GIConverter(GrassCommand):
                                                    dsn=scenario_geojson_path,
                                                    output=gi_scenario_data_key,
                                                    quiet=not verbose,
-                                                   stdout=dev_null,
-                                                   stderr=dev_null)
+                                                   stdout=output,
+                                                   stderr=output)
             rc = p.wait()
             if rc != 0:
                 raise RunException("Unable to import scenario data into GRASS; v.in.ogr returned {0}".format(rc))
@@ -223,4 +226,5 @@ class GIConverter(GrassCommand):
             RHESSysMetadata.appendProcessingHistoryItem(self.context, RHESSysMetadata.getCommandLine())
 
         finally:
-            dev_null.close()
+            if output:
+                output.close()
