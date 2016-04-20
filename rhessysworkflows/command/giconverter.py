@@ -44,6 +44,9 @@ from rhessysworkflows.command.exceptions import RunException
 from rhessysworkflows.rhessys import RHESSysPaths
 from rhessysworkflows.metadata import RHESSysMetadata
 
+from rhessysworkflows.ginotebook import DEFAULT_HOSTNAME, DEFAULT_API_ROOT
+from rhessysworkflows.ginotebook import GINotebook
+
 
 class GIConverter(GrassCommand):
 
@@ -117,17 +120,54 @@ class GIConverter(GrassCommand):
 
         Arguments:
         scenario_id -- int    ID of the GI Notebook scenario whose GI instances are to be parameterized.
+        auth_token -- string    Authorization token to use for authenticating to the GI Notebook.
         host -- string    Hostname of GI Notebook server. Default: None.
-        api_path -- string    The root of the API URL to use. Default: None.
+        api_root -- string    The root of the API URL to use. Default: None.
         use_HTTPS -- boolean    Use HTTPS for communication with the GI Notebook.
         force -- boolean        Force overwrite of existing scenario output. Default: False.
         verbose -- boolean    Produce verbose output. Default: False.
         """
         scenario_id = kwargs.get('scenario_id')
         if scenario_id is None:
-            raise RunException('No scenario ID was specified.')
-        host = kwargs.get('host')
-        api_path = kwargs.get('api_path')
+            raise RunException('Scenario ID was not specified.')
+        auth_token = kwargs.get('auth_token')
+        if auth_token is None:
+            raise RunException('Authorization token was not specified.')
+        host = kwargs.get('host', DEFAULT_HOSTNAME)
+        api_root = kwargs.get('api_path', DEFAULT_API_ROOT)
         use_HTTPS = kwargs.get('use_HTTPS', False)
         force = kwargs.get('force', False)
         verbose = kwargs.get('verbose', False)
+
+        self.checkMetadata()
+
+        gi_scenario_data_key = 'gi_scenario_data'
+        if gi_scenario_data_key in self.metadata:
+            self.outfp.write('Existing GI scenario found.\n')
+            if force:
+                self.outfp.write('Force option specified, overwriting existing GI scenario.\n')
+            else:
+                raise RunException('Exiting.  Use force option to overwrite.')
+
+        # Connect to GI Notebook and fetch GI instance information (in GeoJSON format)
+        # for this scenario ID.
+        nb = GINotebook(hostname=host,
+                        api_root=api_root,
+                        use_https=use_HTTPS, auth_token=auth_token)
+        scenario = nb.get_scenario(scenario_id)
+        scenario_geojson = scenario.get_instances_as_geojson(indent=2)
+        # Write GeoJSON to file in project directory
+        gi_scenario_data = 'gi_scenario.geojson'
+        scenario_geojson_path = os.path.join(self.context.projectDir, gi_scenario_data)
+        f = open(scenario_geojson_path, 'w')
+        f.writelines(scenario_geojson)
+        f.close()
+
+        # Write metadata
+        RHESSysMetadata.writeRHESSysEntry(self.context, gi_scenario_data_key, gi_scenario_data)
+
+        if verbose:
+            self.outfp.write('\n\nFinished parameterizing GI.\n')
+
+        # Write processing history
+        RHESSysMetadata.appendProcessingHistoryItem(self.context, RHESSysMetadata.getCommandLine())

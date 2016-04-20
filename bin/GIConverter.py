@@ -53,9 +53,11 @@ if __name__ == "__main__":
                         help='The directory to which metadata, intermediate, and final files should be saved')
     parser.add_argument('-s', '--scenario', dest='scenario', required=True, type=int,
                         help='The ID of the GI Scenario whose GI instances are to be parameterized.')
-    parser.add_argument('-h', '--host', dest='host', required=False, default=DEFAULT_HOSTNAME,
+    parser.add_argument('-a', '--authToken', dest='authToken', required=True,
+                        help='Authorization token to use for authenticating to the GI Notebook.')
+    parser.add_argument('--host', dest='host', required=False, default=DEFAULT_HOSTNAME,
                         help='The hostname of the GI Notebook server.')
-    parser.add_argument('--apiPath', dest='apiPath', required=False, default=DEFAULT_API_ROOT,
+    parser.add_argument('--apiRoot', dest='apiRoot', required=False, default=DEFAULT_API_ROOT,
                         help='The root of the API URL to use.')
     parser.add_argument('--useHTTPS', dest='useHTTPS', required=False, action='store_true', default=False,
                         help='Use HTTPS for communication with the GI Notebook.')
@@ -74,8 +76,9 @@ if __name__ == "__main__":
     exitCode = os.EX_OK
     try:
         command.run(scenario_id=args.scenario,
+                    auth_token=args.authToken,
                     host=args.host,
-                    api_path=args.apiPath,
+                    api_root=args.apiRoot,
                     use_HTTPS=args.useHTTPS,
                     force=args.force,
                     verbose=args.verbose)
