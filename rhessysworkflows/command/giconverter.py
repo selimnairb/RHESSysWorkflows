@@ -148,9 +148,11 @@ class GIConverter(GrassCommand):
         scenario_geojson_path = os.path.join(self.context.projectDir, gi_scenario_data)
         gi_scenario_data_key = 'gi_scenario_data'
         if gi_scenario_data_key in self.metadata:
-            self.outfp.write('Existing GI scenario found.\n')
+            if verbose:
+                self.outfp.write('Existing GI scenario found.\n')
             if force:
-                self.outfp.write('Force option specified, overwriting existing GI scenario.\n')
+                if verbose:
+                    self.outfp.write('Force option specified, overwriting existing GI scenario.\n')
                 if os.path.exists(scenario_geojson_path):
                     os.unlink(scenario_geojson_path)
             else:
@@ -198,9 +200,9 @@ class GIConverter(GrassCommand):
             if verbose:
                 self.outfp.write('\nImporting GI scenario data into GRASS...\n')
             p = self.grassLib.script.start_command('v.in.ogr',
-                                                   overwrite=force,
                                                    dsn=scenario_geojson_path,
                                                    output=gi_scenario_data_key,
+                                                   overwrite=force,
                                                    quiet=not verbose,
                                                    stdout=output,
                                                    stderr=output)
@@ -209,14 +211,30 @@ class GIConverter(GrassCommand):
                 raise RunException("Unable to import scenario data into GRASS; v.in.ogr returned {0}".format(rc))
 
             # Generate raster layers from vector-based GI Scenario
-
             # Raster for updating soil type
-
-            # Raster for updating veg type
+            gi_scenario_soils = "gi_scenario_soils"
+            self._rasterize(gi_scenario_data_key, gi_scenario_soils,
+                            column='e_1_pedid', labelcolumn='e_1_pednm',
+                            rast_title='GI soil types',
+                            verbose=verbose,
+                            force=force,
+                            redir_fp=output)
+            # Raster for updating stratum type
+            gi_scenario_strata = "gi_scenario_strata"
+            self._rasterize(gi_scenario_data_key, gi_scenario_strata,
+                            column='e_1_vegid', labelcolumn='e_1_vegnm',
+                            rast_title='GI vegetation types',
+                            verbose=verbose,
+                            force=force,
+                            redir_fp=output)
 
             # Raster for updating land use
 
             # Write metadata
+            RHESSysMetadata.writeGRASSEntry(self.context, "{0}_rast".format(gi_scenario_soils), gi_scenario_soils)
+            RHESSysMetadata.writeGRASSEntry(self.context, "{0}_rast".format(gi_scenario_strata), gi_scenario_strata)
+
+            RHESSysMetadata.writeGRASSEntry(self.context, "{0}_vect".format(gi_scenario_data_key), gi_scenario_data_key)
             RHESSysMetadata.writeRHESSysEntry(self.context, gi_scenario_data_key, gi_scenario_data)
 
             if verbose:
@@ -228,3 +246,22 @@ class GIConverter(GrassCommand):
         finally:
             if output:
                 output.close()
+
+    def _rasterize(self, input, output, column, labelcolumn, rast_title,
+                   verbose=False, force=False, redir_fp=None):
+        if verbose:
+            self.outfp.write("\nRasterizing {title}...\n".format(title=rast_title))
+        gi_scenario_soils = "gi_scenario_soils"
+        p = self.grassLib.script.start_command('v.to.rast',
+                                               input=input,
+                                               output=output,
+                                               column=column,
+                                               labelcolumn=labelcolumn,
+                                               overwrite=force,
+                                               quiet=not verbose,
+                                               stdout=redir_fp,
+                                               stderr=redir_fp)
+        rc = p.wait()
+        if rc != 0:
+            raise RunException("Unable to rasterize {title}; v.to.rast returned {rc}".format(title=rast_title,
+                                                                                             rc=rc))
