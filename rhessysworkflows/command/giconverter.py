@@ -35,7 +35,8 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 import os
 import sys
-from subprocess import *
+import subprocess
+import shlex
 
 from rhessysworkflows.command.base import GrassCommand
 from rhessysworkflows.command.exceptions import MetadataException
@@ -87,6 +88,8 @@ class GIConverter(GrassCommand):
         if not 'zero_rast' in self.grassMetadata:
             raise MetadataException("Metadata in project directory %s does not contain a GRASS dataset with a zero raster" % (self.context.projectDir,))
 
+        if not 'dem_srs' in self.studyArea:
+            raise MetadataException("Metadata in project directory %s does not contain a DEM spatial reference system" % (self.context.projectDir,))
         if not 'dem_res_x' in self.studyArea:
             raise MetadataException("Metadata in project directory %s does not contain a DEM x resolution" % (self.context.projectDir,))
         if not 'dem_res_y' in self.studyArea:
@@ -141,11 +144,15 @@ class GIConverter(GrassCommand):
 
         self.checkMetadata()
 
+        gi_scenario_data = 'gi_scenario.geojson'
+        scenario_geojson_path = os.path.join(self.context.projectDir, gi_scenario_data)
         gi_scenario_data_key = 'gi_scenario_data'
         if gi_scenario_data_key in self.metadata:
             self.outfp.write('Existing GI scenario found.\n')
             if force:
                 self.outfp.write('Force option specified, overwriting existing GI scenario.\n')
+                if os.path.exists(scenario_geojson_path):
+                    os.unlink(scenario_geojson_path)
             else:
                 raise RunException('Exiting.  Use force option to overwrite.')
 
@@ -157,11 +164,39 @@ class GIConverter(GrassCommand):
         scenario = nb.get_scenario(scenario_id)
         scenario_geojson = scenario.get_instances_as_geojson(indent=2, shorten=True)
         # Write GeoJSON to file in project directory
-        gi_scenario_data = 'gi_scenario.geojson'
-        scenario_geojson_path = os.path.join(self.context.projectDir, gi_scenario_data)
-        f = open(scenario_geojson_path, 'w')
+        gi_scenario_data_wgs84 = 'gi_scenario_wgs84.geojson'
+        scenario_geojson_wgs84_path = os.path.join(self.context.projectDir, gi_scenario_data_wgs84)
+        f = open(scenario_geojson_wgs84_path, 'w')
         f.writelines(scenario_geojson)
         f.close()
+
+        # Reproject scenario data from WGS84 into our coordinate system (using ogr2ogr)
+        t_srs = self.studyArea['dem_srs']
+        path_to_ogr_cmd = self.context.config.get('GDAL/OGR', 'PATH_OF_OGR2OGR')
+        ogr_cmd = "{ogr} -overwrite -f GeoJSON -t_srs {t_srs} {dest} {src}".format(ogr=path_to_ogr_cmd,
+                                                                                   t_srs=t_srs,
+                                                                                   dest=scenario_geojson_path,
+                                                                                   src=scenario_geojson_wgs84_path)
+        args = shlex.split(ogr_cmd)
+        # Send output to /dev/null so that we don't see the spurious error that OGR
+        # can't write GeoJSON files, when it seems to create ours just fine
+        out = open('/dev/null')
+        p = subprocess.Popen(args, stdout=out, stderr=out)
+        rc = p.wait()
+        if rc != 0:
+            raise RunException("GI Instance re-project command {0} returned {1}".format(ogr_cmd,
+                                                                                        rc))
+        out.close()
+
+        # Import GeoJSON into GRASS
+
+        # Generate raster layers from vector-based GI Scenario
+
+        # Raster for updating soil type
+
+        # Raster for updating veg type
+
+        # Raster for updating land use
 
         # Write metadata
         RHESSysMetadata.writeRHESSysEntry(self.context, gi_scenario_data_key, gi_scenario_data)
