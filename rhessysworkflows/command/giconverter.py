@@ -156,53 +156,71 @@ class GIConverter(GrassCommand):
             else:
                 raise RunException('Exiting.  Use force option to overwrite.')
 
-        # Connect to GI Notebook and fetch GI instance information (in GeoJSON format)
-        # for this scenario ID.
-        nb = GINotebook(hostname=host,
-                        api_root=api_root,
-                        use_https=use_HTTPS, auth_token=auth_token)
-        scenario = nb.get_scenario(scenario_id)
-        scenario_geojson = scenario.get_instances_as_geojson(indent=2, shorten=True)
-        # Write GeoJSON to file in project directory
-        gi_scenario_data_wgs84 = 'gi_scenario_wgs84.geojson'
-        scenario_geojson_wgs84_path = os.path.join(self.context.projectDir, gi_scenario_data_wgs84)
-        f = open(scenario_geojson_wgs84_path, 'w')
-        f.writelines(scenario_geojson)
-        f.close()
+        dev_null = open('/dev/null')
+        try:
+            # Connect to GI Notebook and fetch GI instance information (in GeoJSON format)
+            # for this scenario ID.
+            if verbose:
+                self.outfp.write("\nDownloading GI scenario {0} from GI database...\n".format(scenario_id))
+            nb = GINotebook(hostname=host,
+                            api_root=api_root,
+                            use_https=use_HTTPS, auth_token=auth_token)
+            scenario = nb.get_scenario(scenario_id)
+            scenario_geojson = scenario.get_instances_as_geojson(indent=2, shorten=True)
+            # Write GeoJSON to file in project directory
+            gi_scenario_data_wgs84 = 'gi_scenario_wgs84.geojson'
+            scenario_geojson_wgs84_path = os.path.join(self.context.projectDir, gi_scenario_data_wgs84)
+            f = open(scenario_geojson_wgs84_path, 'w')
+            f.writelines(scenario_geojson)
+            f.close()
 
-        # Reproject scenario data from WGS84 into our coordinate system (using ogr2ogr)
-        t_srs = self.studyArea['dem_srs']
-        path_to_ogr_cmd = self.context.config.get('GDAL/OGR', 'PATH_OF_OGR2OGR')
-        ogr_cmd = "{ogr} -overwrite -f GeoJSON -t_srs {t_srs} {dest} {src}".format(ogr=path_to_ogr_cmd,
-                                                                                   t_srs=t_srs,
-                                                                                   dest=scenario_geojson_path,
-                                                                                   src=scenario_geojson_wgs84_path)
-        args = shlex.split(ogr_cmd)
-        # Send output to /dev/null so that we don't see the spurious error that OGR
-        # can't write GeoJSON files, when it seems to create ours just fine
-        out = open('/dev/null')
-        p = subprocess.Popen(args, stdout=out, stderr=out)
-        rc = p.wait()
-        if rc != 0:
-            raise RunException("GI Instance re-project command {0} returned {1}".format(ogr_cmd,
-                                                                                        rc))
-        out.close()
+            # Reproject scenario data from WGS84 into our coordinate system (using ogr2ogr)
+            t_srs = self.studyArea['dem_srs']
+            if verbose:
+                self.outfp.write("\nReprojecting GI scenario data to {srs}...\n".format(srs=t_srs))
+            path_to_ogr_cmd = self.context.config.get('GDAL/OGR', 'PATH_OF_OGR2OGR')
+            ogr_cmd = "{ogr} -overwrite -f GeoJSON -t_srs {t_srs} {dest} {src}".format(ogr=path_to_ogr_cmd,
+                                                                                       t_srs=t_srs,
+                                                                                       dest=scenario_geojson_path,
+                                                                                       src=scenario_geojson_wgs84_path)
+            args = shlex.split(ogr_cmd)
+            # Send output to /dev/null so that we don't see the spurious error that OGR
+            # can't write GeoJSON files, when it seems to create ours just fine
+            p = subprocess.Popen(args, stdout=dev_null, stderr=dev_null)
+            rc = p.wait()
+            if rc != 0:
+                raise RunException("GI Instance re-project command {0} returned {1}".format(ogr_cmd,
+                                                                                            rc))
+            # Import GeoJSON into GRASS
+            if verbose:
+                self.outfp.write('\nImporting GI scenario data into GRASS...\n')
+            p = self.grassLib.script.start_command('v.in.ogr',
+                                                   overwrite=force,
+                                                   dsn=scenario_geojson_path,
+                                                   output=gi_scenario_data_key,
+                                                   quiet=not verbose,
+                                                   stdout=dev_null,
+                                                   stderr=dev_null)
+            rc = p.wait()
+            if rc != 0:
+                raise RunException("Unable to import scenario data into GRASS; v.in.ogr returned {0}".format(rc))
 
-        # Import GeoJSON into GRASS
+            # Generate raster layers from vector-based GI Scenario
 
-        # Generate raster layers from vector-based GI Scenario
+            # Raster for updating soil type
 
-        # Raster for updating soil type
+            # Raster for updating veg type
 
-        # Raster for updating veg type
+            # Raster for updating land use
 
-        # Raster for updating land use
+            # Write metadata
+            RHESSysMetadata.writeRHESSysEntry(self.context, gi_scenario_data_key, gi_scenario_data)
 
-        # Write metadata
-        RHESSysMetadata.writeRHESSysEntry(self.context, gi_scenario_data_key, gi_scenario_data)
+            if verbose:
+                self.outfp.write('\n\nFinished parameterizing GI.\n')
 
-        if verbose:
-            self.outfp.write('\n\nFinished parameterizing GI.\n')
+            # Write processing history
+            RHESSysMetadata.appendProcessingHistoryItem(self.context, RHESSysMetadata.getCommandLine())
 
-        # Write processing history
-        RHESSysMetadata.appendProcessingHistoryItem(self.context, RHESSysMetadata.getCommandLine())
+        finally:
+            dev_null.close()
