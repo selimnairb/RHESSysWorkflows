@@ -155,7 +155,7 @@ class GIConverter(GrassCommand):
                         api_root=api_root,
                         use_https=use_HTTPS, auth_token=auth_token)
         scenario = nb.get_scenario(scenario_id)
-        scenario_geojson = scenario.get_instances_as_geojson(indent=2)
+        scenario_geojson = scenario.get_instances_as_geojson(indent=2, shorten=True)
         # Write GeoJSON to file in project directory
         gi_scenario_data = 'gi_scenario.geojson'
         scenario_geojson_path = os.path.join(self.context.projectDir, gi_scenario_data)

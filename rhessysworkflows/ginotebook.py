@@ -142,12 +142,13 @@ class GIElement(object):
         self.stratum_type = stratum_type
         self.soil_type = soil_type
 
-    def get_properties(self, dict_to_use=None, key_prefix=None):
+    def get_properties(self, dict_to_use=None, key_prefix=None, shorten=False):
         """ Generate a dict consisting of the properties of a GIElement.
 
         @param: dict_to_use: The dict to store properties in.  If None, a new dict will be created.
         @param: key_prefix: Prefix to be prepended onto each key name.  Prefix will be separate from the
         rest of the key by "_".
+        @param: shorten: Use short names for properties if True.
         @return: Dict of properties.
         """
         if dict_to_use:
@@ -159,16 +160,36 @@ class GIElement(object):
         temp['id'] = self.id
         temp['url'] = self.url
         temp['name'] = self.name
-        temp['soil_depth'] = self.soil_depth
-        temp['ponding_depth'] = self.ponding_depth
-        temp['major_axis'] = self.major_axis
-        temp['minor_axis'] = self.minor_axis
+
+        if shorten:
+            soil_depth = 'pedz'
+            ponding_depth = 'pondz'
+            major_axis = 'majax'
+            minor_axis = 'minax'
+            stratum_name = 'vegnm'
+            stratum_default_id = 'vegid'
+            soil_name = 'pednm'
+            soil_default_id = 'pedid'
+        else:
+            soil_depth = 'soil_depth'
+            ponding_depth = 'ponding_depth'
+            major_axis = 'major_axis'
+            minor_axis = 'minor_axis'
+            stratum_name = 'stratum_name'
+            stratum_default_id = 'stratum_default_id'
+            soil_name = 'soil_name'
+            soil_default_id = 'soil_default_id'
+
+        temp[soil_depth] = self.soil_depth
+        temp[ponding_depth] = self.ponding_depth
+        temp[major_axis] = self.major_axis
+        temp[minor_axis] = self.minor_axis
         if self.stratum_type:
-            temp['stratum_name'] = self.stratum_type.name
-            temp['stratum_default_id'] = int(self.stratum_type.rhessys_default_id)
+            temp[stratum_name] = self.stratum_type.name
+            temp[stratum_default_id] = int(self.stratum_type.rhessys_default_id)
         if self.soil_type:
-            temp['soil_name'] = self.soil_type.name
-            temp['soil_default_id'] = int(self.soil_type.rhessys_default_id)
+            temp[soil_name] = self.soil_type.name
+            temp[soil_default_id] = int(self.soil_type.rhessys_default_id)
 
         if key_prefix:
             # Re-write values with keys prefixed by key_prefix
@@ -199,13 +220,14 @@ class GITemplate(object):
         """
         self.gi_elements.append(gi_element)
 
-    def get_properties(self, dict_to_use=None, flatten=True):
+    def get_properties(self, dict_to_use=None, flatten=True, shorten=False):
         """ Generate a dict consisting of the properties of a GIInstance.
 
         @param: dict_to_use: The dict to store properties in.  If None, a new dict will be created.
         @param: flatten: If False, properties of elements contained in template will be written
         to their own dict with key "element_<id>".  If True, element properties will be stored directly
         in the template properties dict, with "element_<id>_" prepended to each property name.
+        @param: shorten: Use short names for properties if True.
         @return: Dict of properties.
         """
         if dict_to_use:
@@ -213,18 +235,30 @@ class GITemplate(object):
         else:
             p = {}
 
-        p['template_id'] = self.id
-        p['template_url'] = self.url
+        if shorten:
+            template_id = 'templt_id'
+            template_url = 'templt_url'
+            elements = 'elements'
+        else:
+            template_id = 'template_id'
+            template_url = 'template_url'
+            elements = 'elements'
+
+        p[template_id] = self.id
+        p[template_url] = self.url
         p['type'] = self.gi_type
 
         if not flatten:
-            elements = []
-            p['elements'] = elements
+            elems = []
+            p[elements] = elems
 
         for i, element in enumerate(self.gi_elements, 1):
             if flatten:
-                key = "element_{0}".format(i)
-                element.get_properties(dict_to_use=p, key_prefix=key)
+                if shorten:
+                    key = "e_{0}".format(i)
+                else:
+                    key = "element_{0}".format(i)
+                element.get_properties(dict_to_use=p, key_prefix=key, shorten=shorten)
             else:
                 elements.append(element.get_properties())
 
@@ -252,18 +286,28 @@ class GIInstance(object):
         self.scenario = scenario
         self.template = template
 
-    def get_as_geojson_feature(self, flatten=True):
+    def get_as_geojson_feature(self, flatten=True, shorten=False):
         """ Generate a dict representing a GIInstance as a GeoJSON Feature
 
         @param: flatten If True, compound properties will be flattened into a single namespace such that
         all properties values are simple strings.  This allows GIS clients to easily interpret feature properties.
         If False, properties values may be any JSON object.
+        @param: shorten: Use short names for properties if True.
         @return: Dict representing a GeoJSON Feature.
         """
-        p = OrderedDict([('poly_area_sq_meter', self.poly_area_sq_meter),
-                         ('instance_id', self.id), ('instance_url', self.url)])
+        if shorten:
+            poly_area_sq_meter = 'area_sq_m'
+            instance_id = 'inst_id'
+            instance_url = 'inst_url'
+        else:
+            poly_area_sq_meter = 'poly_area_sq_meter'
+            instance_id = 'instance_id'
+            instance_url = 'instance_url'
+
+        p = OrderedDict([(poly_area_sq_meter, self.poly_area_sq_meter),
+                         (instance_id, self.id), (instance_url, self.url)])
         if self.template:
-            p = self.template.get_properties(p, flatten=flatten)
+            p = self.template.get_properties(p, flatten=flatten, shorten=shorten)
 
         feature = OrderedDict([('type', 'Feature'), ('id', self.id),
                                 ('geometry', self.placement_poly),
@@ -303,19 +347,20 @@ class GIScenario(object):
         gi_instance.scenario = self
         self.gi_instances.append(gi_instance)
 
-    def get_instances_as_geojson(self, indent=None, flatten=True):
+    def get_instances_as_geojson(self, indent=None, flatten=True, shorten=False):
         """ Generate a GeoJSON FeatureCollection representing all GI Instances associated with a scenario.
 
         @param: indent Integer by which JSON output will be indented for pretty printing
         @param: flatten If True, compound properties will be flattened into a single namespace such that
         all properties values are simple strings.  This allows GIS clients to easily interpret feature properties.
         If False, properties values may be any JSON object.
+        @param: shorten: Use short names for properties if True.
         @return: String in GeoJSON format
         """
         features = []
         feature_collection = OrderedDict([('type', 'FeatureCollection'), ('features', features)])
         for instance in self.gi_instances:
-            features.append(instance.get_as_geojson_feature(flatten=flatten))
+            features.append(instance.get_as_geojson_feature(flatten=flatten, shorten=shorten))
 
         return json.dumps(feature_collection, indent=indent)
 
