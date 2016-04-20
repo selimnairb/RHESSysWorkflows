@@ -251,9 +251,25 @@ class GIConverter(GrassCommand):
                    verbose=False, force=False, redir_fp=None):
         if verbose:
             self.outfp.write("\nRasterizing {title}...\n".format(title=rast_title))
+
+        # Select only those GI instances that have information for column
+        input_extract = "{input}_extract".format(input=input)
+        pred = "{column} not NULL".format(column=column)
+        p = self.grassLib.script.start_command('v.extract',
+                                               input=input,
+                                               output=input_extract,
+                                               where=pred,
+                                               overwrite=True, # Temporary value, always overwrite
+                                               quiet=not verbose,
+                                               stdout=redir_fp,
+                                               stderr=redir_fp)
+        rc = p.wait()
+        if rc != 0:
+            raise RunException("Unable to extract features WHERE {pred}; v.extract returned {rc}".format(pred=pred,
+                                                                                                         rc=rc))
         gi_scenario_soils = "gi_scenario_soils"
         p = self.grassLib.script.start_command('v.to.rast',
-                                               input=input,
+                                               input=input_extract,
                                                output=output,
                                                column=column,
                                                labelcolumn=labelcolumn,
@@ -265,3 +281,17 @@ class GIConverter(GrassCommand):
         if rc != 0:
             raise RunException("Unable to rasterize {title}; v.to.rast returned {rc}".format(title=rast_title,
                                                                                              rc=rc))
+
+        # Remove extract vector
+        p = self.grassLib.script.start_command('g.remove',
+                                               flags='f',
+                                               vect=input_extract,
+                                               quiet=not verbose,
+                                               stdout=redir_fp,
+                                               stderr=redir_fp)
+        rc = p.wait()
+        if rc != 0:
+            raise RunException("Unable to clean up {vect}; g.remove returned {rc}".format(vect=input_extract,
+                                                                                          rc=rc))
+
+
