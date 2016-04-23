@@ -144,9 +144,14 @@ class GIConverter(GrassCommand):
 
         self.checkMetadata()
 
-        gi_scenario_data = 'gi_scenario.geojson'
+        gi_scenario_base = 'gi_scenario'
+        gi_scenario_data = "{0}.geojson".format(gi_scenario_base)
         scenario_geojson_path = os.path.join(self.context.projectDir, gi_scenario_data)
+        gi_scenario_soils_base = "{0}_wsoils".format(gi_scenario_base)
+        gi_scenario_soils = "{0}.geojson".format(gi_scenario_soils_base)
+        scenario_soils_geojson_path = os.path.join(self.context.projectDir, gi_scenario_soils)
         gi_scenario_data_key = 'gi_scenario_data'
+        gi_scenario_soils_data_key = "{0}_soils".format(gi_scenario_data_key)
         if gi_scenario_data_key in self.metadata:
             if verbose:
                 self.outfp.write('Existing GI scenario found.\n')
@@ -155,6 +160,8 @@ class GIConverter(GrassCommand):
                     self.outfp.write('Force option specified, overwriting existing GI scenario.\n')
                 if os.path.exists(scenario_geojson_path):
                     os.unlink(scenario_geojson_path)
+                if os.path.exists(scenario_soils_geojson_path):
+                    os.unlink(scenario_soils_geojson_path)
             else:
                 raise RunException('Exiting.  Use force option to overwrite.')
 
@@ -172,48 +179,29 @@ class GIConverter(GrassCommand):
                             use_https=use_HTTPS, auth_token=auth_token)
             scenario = nb.get_scenario(scenario_id)
             scenario_geojson = scenario.get_instances_as_geojson(indent=2, shorten=True)
-            # Write GeoJSON to file in project directory
-            gi_scenario_data_wgs84 = 'gi_scenario_wgs84.geojson'
-            scenario_geojson_wgs84_path = os.path.join(self.context.projectDir, gi_scenario_data_wgs84)
-            f = open(scenario_geojson_wgs84_path, 'w')
-            f.writelines(scenario_geojson)
-            f.close()
+            (gi_scenario_data_wgs84, scenario_geojson_wgs84_path), (gi_scenario_data, scenario_geojson_path) = \
+                self._write_geojson_and_reproject(scenario_geojson, gi_scenario_base, verbose=verbose, output=output)
 
-            # Reproject scenario data from WGS84 into our coordinate system (using ogr2ogr)
-            t_srs = self.studyArea['dem_srs']
-            if verbose:
-                self.outfp.write("\nReprojecting GI scenario data to {srs}...\n".format(srs=t_srs))
-            path_to_ogr_cmd = self.context.config.get('GDAL/OGR', 'PATH_OF_OGR2OGR')
-            ogr_cmd = "{ogr} -overwrite -f GeoJSON -t_srs {t_srs} {dest} {src}".format(ogr=path_to_ogr_cmd,
-                                                                                       t_srs=t_srs,
-                                                                                       dest=scenario_geojson_path,
-                                                                                       src=scenario_geojson_wgs84_path)
-            args = shlex.split(ogr_cmd)
-            # Send output to /dev/null so that we don't see the spurious error that OGR
-            # can't write GeoJSON files, when it seems to create ours just fine
-            p = subprocess.Popen(args, stdout=output, stderr=output)
-            rc = p.wait()
-            if rc != 0:
-                raise RunException("GI Instance re-project command {0} returned {1}".format(ogr_cmd,
-                                                                                            rc))
-            # Import GeoJSON into GRASS
-            if verbose:
-                self.outfp.write('\nImporting GI scenario data into GRASS...\n')
-            p = self.grassLib.script.start_command('v.in.ogr',
-                                                   dsn=scenario_geojson_path,
-                                                   output=gi_scenario_data_key,
-                                                   overwrite=force,
-                                                   quiet=not verbose,
-                                                   stdout=output,
-                                                   stderr=output)
-            rc = p.wait()
-            if rc != 0:
-                raise RunException("Unable to import scenario data into GRASS; v.in.ogr returned {0}".format(rc))
+            # Filter out instances that do not contain soils data
+            gi_scenario_soils_base = "{0}_wsoils".format(gi_scenario_base)
+            scenario_geojson_wsoils = scenario.get_instances_as_geojson(indent=2, shorten=True,
+                                                                        filter=lambda a: a.get('e_1_pedid') is not None)
+            (gi_scenario_soils_wgs84, scenario_soils_geojson_wgs84_path), (gi_scenario_soils, scenario_soils_geojson_path) = \
+                self._write_geojson_and_reproject(scenario_geojson_wsoils, gi_scenario_soils_base,
+                                                  verbose=verbose, output=output)
+
+            # Import scenario GeoJSON into GRASS
+            self._import_vector_into_grass(scenario_geojson_path, gi_scenario_data_key,
+                                           force=force, verbose=verbose, output=output)
+
+            # Import scenario (instances with soils data) GeoJSON into GRASS
+            self._import_vector_into_grass(scenario_soils_geojson_path, gi_scenario_soils_data_key,
+                                           force=force, verbose=verbose, output=output)
 
             # Generate raster layers from vector-based GI Scenario
             # Raster for updating soil type
-            gi_scenario_soils = "gi_scenario_soils"
-            self._rasterize(gi_scenario_data_key, gi_scenario_soils,
+            # gi_scenario_soils = "gi_scenario_soils"
+            self._rasterize(gi_scenario_soils_data_key, gi_scenario_soils_data_key,
                             column='e_1_pedid', labelcolumn='e_1_pednm',
                             rast_title='GI soil types',
                             verbose=verbose,
@@ -231,10 +219,13 @@ class GIConverter(GrassCommand):
             # Raster for updating land use
 
             # Write metadata
-            RHESSysMetadata.writeGRASSEntry(self.context, "{0}_rast".format(gi_scenario_soils), gi_scenario_soils)
+            RHESSysMetadata.writeGRASSEntry(self.context, "{0}_rast".format(gi_scenario_soils_data_key),
+                                            gi_scenario_soils_data_key)
             RHESSysMetadata.writeGRASSEntry(self.context, "{0}_rast".format(gi_scenario_strata), gi_scenario_strata)
 
             RHESSysMetadata.writeGRASSEntry(self.context, "{0}_vect".format(gi_scenario_data_key), gi_scenario_data_key)
+            RHESSysMetadata.writeGRASSEntry(self.context, "{0}_vect".format(gi_scenario_soils_data_key),
+                                            gi_scenario_soils_data_key)
             RHESSysMetadata.writeRHESSysEntry(self.context, gi_scenario_data_key, gi_scenario_data)
 
             if verbose:
@@ -254,20 +245,17 @@ class GIConverter(GrassCommand):
 
         # Select only those GI instances that have information for column
         input_extract = "{input}_extract".format(input=input)
-        pred = "{column} not NULL".format(column=column)
         p = self.grassLib.script.start_command('v.extract',
                                                input=input,
                                                output=input_extract,
-                                               where=pred,
                                                overwrite=True, # Temporary value, always overwrite
                                                quiet=not verbose,
                                                stdout=redir_fp,
                                                stderr=redir_fp)
         rc = p.wait()
         if rc != 0:
-            raise RunException("Unable to extract features WHERE {pred}; v.extract returned {rc}".format(pred=pred,
-                                                                                                         rc=rc))
-        gi_scenario_soils = "gi_scenario_soils"
+            raise RunException("Unable to extract features; v.extract returned {rc}".format(rc=rc))
+
         p = self.grassLib.script.start_command('v.to.rast',
                                                input=input_extract,
                                                output=output,
@@ -281,7 +269,6 @@ class GIConverter(GrassCommand):
         if rc != 0:
             raise RunException("Unable to rasterize {title}; v.to.rast returned {rc}".format(title=rast_title,
                                                                                              rc=rc))
-
         # Remove extract vector
         p = self.grassLib.script.start_command('g.remove',
                                                flags='f',
@@ -294,4 +281,46 @@ class GIConverter(GrassCommand):
             raise RunException("Unable to clean up {vect}; g.remove returned {rc}".format(vect=input_extract,
                                                                                           rc=rc))
 
+    def _write_geojson_and_reproject(self, geojson, filename_base, verbose=False, output=None):
+        # Write GeoJSON to file in project directory
+        geojson_wgs84 = "{0}_wgs84.geojson".format(filename_base)
+        geojson_wgs84_path = os.path.join(self.context.projectDir, geojson_wgs84)
+        f = open(geojson_wgs84_path, 'w')
+        f.writelines(geojson)
+        f.close()
 
+        # Reproject scenario data from WGS84 into our coordinate system (using ogr2ogr)
+        geojson_reproj = "{0}.geojson".format(filename_base)
+        geojson_reproj_path = os.path.join(self.context.projectDir, geojson_reproj)
+        t_srs = self.studyArea['dem_srs']
+        if verbose:
+            self.outfp.write("\nReprojecting {file} to {srs}...\n".format(file=geojson_wgs84, srs=t_srs))
+        path_to_ogr_cmd = self.context.config.get('GDAL/OGR', 'PATH_OF_OGR2OGR')
+        ogr_cmd = "{ogr} -overwrite -f GeoJSON -t_srs {t_srs} {dest} {src}".format(ogr=path_to_ogr_cmd,
+                                                                                   t_srs=t_srs,
+                                                                                   dest=geojson_reproj_path,
+                                                                                   src=geojson_wgs84_path)
+        args = shlex.split(ogr_cmd)
+        # Send output to /dev/null so that we don't see the spurious error that OGR
+        # can't write GeoJSON files, when it seems to create ours just fine
+        p = subprocess.Popen(args, stdout=output, stderr=output)
+        rc = p.wait()
+        if rc != 0:
+            raise RunException("GI Instance re-project command {0} returned {1}".format(ogr_cmd,
+                                                                                        rc))
+        return (geojson_wgs84, geojson_wgs84_path), (geojson_reproj, geojson_reproj_path)
+
+    def _import_vector_into_grass(self, vector_input, vector_output, force=False, verbose=False, output=None):
+        if verbose:
+                self.outfp.write('\nImporting GI scenario data into GRASS...\n')
+        p = self.grassLib.script.start_command('v.in.ogr',
+                                               dsn=vector_input,
+                                               output=vector_output,
+                                               overwrite=force,
+                                               quiet=not verbose,
+                                               stdout=output,
+                                               stderr=output)
+        rc = p.wait()
+        if rc != 0:
+            raise RunException("Unable to import {vect} into GRASS; v.in.ogr returned {rc}".format(vect=vector_input,
+                                                                                                   rc=rc))

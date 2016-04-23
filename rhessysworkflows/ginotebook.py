@@ -286,13 +286,15 @@ class GIInstance(object):
         self.scenario = scenario
         self.template = template
 
-    def get_as_geojson_feature(self, flatten=True, shorten=False):
+    def get_as_geojson_feature(self, flatten=True, shorten=False, filter=None):
         """ Generate a dict representing a GIInstance as a GeoJSON Feature
 
         @param: flatten If True, compound properties will be flattened into a single namespace such that
         all properties values are simple strings.  This allows GIS clients to easily interpret feature properties.
         If False, properties values may be any JSON object.
         @param: shorten: Use short names for properties if True.
+        @param: filter If flatten is True, filter should be a function that takes as input a dictionary
+        and returns True if the items in the dictionary pass the filter, False if not.
         @return: Dict representing a GeoJSON Feature.
         """
         if shorten:
@@ -309,10 +311,16 @@ class GIInstance(object):
         if self.template:
             p = self.template.get_properties(p, flatten=flatten, shorten=shorten)
 
-        feature = OrderedDict([('type', 'Feature'), ('id', self.id),
-                                ('geometry', self.placement_poly),
-                                ('properties', p)])
+        feature = None
+        filter_pass = True
+        if flatten and filter:
+            if not filter(p):
+                filter_pass = False
 
+        if filter_pass:
+            feature = OrderedDict([('type', 'Feature'), ('id', self.id),
+                                    ('geometry', self.placement_poly),
+                                    ('properties', p)])
         return feature
 
 
@@ -347,20 +355,25 @@ class GIScenario(object):
         gi_instance.scenario = self
         self.gi_instances.append(gi_instance)
 
-    def get_instances_as_geojson(self, indent=None, flatten=True, shorten=False):
+    def get_instances_as_geojson(self, indent=None, flatten=True, shorten=False,
+                                 filter=None):
         """ Generate a GeoJSON FeatureCollection representing all GI Instances associated with a scenario.
 
         @param: indent Integer by which JSON output will be indented for pretty printing
         @param: flatten If True, compound properties will be flattened into a single namespace such that
         all properties values are simple strings.  This allows GIS clients to easily interpret feature properties.
         If False, properties values may be any JSON object.
-        @param: shorten: Use short names for properties if True.
+        @param: shorten Use short names for properties if True.
+        @param: filter If flatten is True, filter should be a function that takes as input a dictionary
+        and returns True if the items in the dictionary pass the filter, False if not.
         @return: String in GeoJSON format
         """
         features = []
         feature_collection = OrderedDict([('type', 'FeatureCollection'), ('features', features)])
         for instance in self.gi_instances:
-            features.append(instance.get_as_geojson_feature(flatten=flatten, shorten=shorten))
+            feature = instance.get_as_geojson_feature(flatten=flatten, shorten=shorten, filter=filter)
+            if feature is not None:
+                features.append(feature)
 
         return json.dumps(feature_collection, indent=indent)
 
