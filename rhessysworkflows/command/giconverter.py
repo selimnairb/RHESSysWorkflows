@@ -37,6 +37,8 @@ import os
 import sys
 import subprocess
 import shlex
+import importlib
+import tempfile
 
 from rhessysworkflows.command.base import GrassCommand
 from rhessysworkflows.command.exceptions import MetadataException
@@ -144,14 +146,20 @@ class GIConverter(GrassCommand):
 
         self.checkMetadata()
 
+        paths = RHESSysPaths(self.context.projectDir, self.metadata['rhessys_dir'])
+
         gi_scenario_base = 'gi_scenario'
         gi_scenario_data = "{0}.geojson".format(gi_scenario_base)
         scenario_geojson_path = os.path.join(self.context.projectDir, gi_scenario_data)
         gi_scenario_soils_base = "{0}_wsoils".format(gi_scenario_base)
         gi_scenario_soils = "{0}.geojson".format(gi_scenario_soils_base)
         scenario_soils_geojson_path = os.path.join(self.context.projectDir, gi_scenario_soils)
+        gi_scenario_landuse_base = "{0}_landuse".format(gi_scenario_base)
+        gi_scenario_landuse = "{0}.geojson".format(gi_scenario_landuse_base)
+        scenario_landuse_geojson_path = os.path.join(self.context.projectDir, gi_scenario_landuse)
         gi_scenario_data_key = 'gi_scenario_data'
         gi_scenario_soils_data_key = "{0}_soils".format(gi_scenario_data_key)
+        gi_scenario_landuse_data_key = "{0}_landuse".format(gi_scenario_data_key)
         if gi_scenario_data_key in self.metadata:
             if verbose:
                 self.outfp.write('Existing GI scenario found.\n')
@@ -162,6 +170,8 @@ class GIConverter(GrassCommand):
                     os.unlink(scenario_geojson_path)
                 if os.path.exists(scenario_soils_geojson_path):
                     os.unlink(scenario_soils_geojson_path)
+                if os.path.exists(scenario_landuse_geojson_path):
+                    os.unlink(scenario_landuse_geojson_path)
             else:
                 raise RunException('Exiting.  Use force option to overwrite.')
 
@@ -217,8 +227,66 @@ class GIConverter(GrassCommand):
                             redir_fp=output)
 
             # Raster for updating land use
+            # Filter out instances that are not rain gardens (i.e. the only GI type for which we currently have a
+            #   land use).
+            scenario_geojson_landuse = scenario.get_instances_as_geojson(indent=2, shorten=True,
+                                                                         filter=lambda a: a.get('type',
+                                                                                                '') == 'Rain Garden')
+            (gi_scenario_landuse_wgs84, scenario_landuse_geojson_wgs84_path), \
+            (gi_scenario_landuse, scenario_landuse_geojson_path) = \
+                self._write_geojson_and_reproject(scenario_geojson_landuse, gi_scenario_landuse_base,
+                                                  verbose=verbose, output=output)
+            # Import land use (i.e. instances that are rain gardens) GeoJSON into GRASS
+            self._import_vector_into_grass(scenario_landuse_geojson_path, gi_scenario_landuse_data_key,
+                                           force=force, verbose=verbose, output=output)
+
+            # Search for raster value for rain gardens in RHESSys parameter DB
+            param_const, param_db = self._init_paramdb()
+            rg_name = 'raingarden'
+            rg_found = param_db.search(param_const.SEARCH_TYPE_HIERARCHICAL, 'landuse', rg_name,
+                                       None, None, None, None, None, None, None, None)
+            if not rg_found:
+                raise RunException("Unable to find raingarden landuse class in parameter database")
+
+            rg_id = [c[1][2] for c in param_db.classes.iteritems()][0]
+
+            # Generate raster layer from vector-based GI Scenario
+            # Raster for updating landuse type
+            self._rasterize_single_value(gi_scenario_landuse_data_key, gi_scenario_landuse_data_key,
+                                         value=rg_id, label=rg_name,
+                                         rast_title='GI landuse types',
+                                         verbose=verbose,
+                                         force=force,
+                                         redir_fp=output)
+
+            # Generate parameter definition file for land use types
+            pipe = self.grassLib.script.pipe_command('r.stats', flags='licn', input=gi_scenario_landuse_data_key)
+            raster_vals = {}
+            for line in pipe.stdout:
+                (dn, cat, num) = line.strip().split()
+                if cat != 'NULL':
+                    raster_vals[cat] = int(dn)
+            pipe.wait()
+            if verbose:
+                self.outfp.write("Writing GI landuse definition files to {0}".format(paths.RHESSYS_DEF))
+            for key in raster_vals.keys():
+                if verbose:
+                    self.outfp.write("landuse '{lu}' has dn {dn}".format(lu=key, dn=raster_vals[key]))
+                params_found = param_db.search(param_const.SEARCH_TYPE_HIERARCHICAL, None, key, None, None, None, None, None, None, None, None,
+                                              defaultIdOverride=raster_vals[key])
+                assert(params_found)
+                param_db.writeParamFileForClass(paths.RHESSYS_DEF)
+
+            # Backup landuse raster
+            self._backup_raster(self.grassMetadata['landuse_rast'])
+            # Update landuse raster
+            self._patch_raster(self.grassMetadata['landuse_rast'], gi_scenario_landuse_data_key)
+            # TODO: update _patch_raster to:
+            # Update new landuse raster with category values from patch raster and old landuse raster
 
             # Write metadata
+            RHESSysMetadata.writeGRASSEntry(self.context, "{0}_rast".format(gi_scenario_landuse_data_key),
+                                            gi_scenario_landuse_data_key)
             RHESSysMetadata.writeGRASSEntry(self.context, "{0}_rast".format(gi_scenario_soils_data_key),
                                             gi_scenario_soils_data_key)
             RHESSysMetadata.writeGRASSEntry(self.context, "{0}_rast".format(gi_scenario_strata), gi_scenario_strata)
@@ -226,6 +294,8 @@ class GIConverter(GrassCommand):
             RHESSysMetadata.writeGRASSEntry(self.context, "{0}_vect".format(gi_scenario_data_key), gi_scenario_data_key)
             RHESSysMetadata.writeGRASSEntry(self.context, "{0}_vect".format(gi_scenario_soils_data_key),
                                             gi_scenario_soils_data_key)
+            RHESSysMetadata.writeGRASSEntry(self.context, "{0}_vect".format(gi_scenario_landuse_data_key),
+                                            gi_scenario_landuse_data_key)
             RHESSysMetadata.writeRHESSysEntry(self.context, gi_scenario_data_key, gi_scenario_data)
 
             if verbose:
@@ -237,6 +307,39 @@ class GIConverter(GrassCommand):
         finally:
             if output:
                 output.close()
+
+    def _rasterize_single_value(self, input, output, value, label, rast_title,
+                                verbose=False, force=False, redir_fp=None):
+        if verbose:
+            self.outfp.write("\nRasterizing {title}...\n".format(title=rast_title))
+
+        p = self.grassLib.script.start_command('v.to.rast',
+                                               input=input,
+                                               output=output,
+                                               use='val',
+                                               value=value,
+                                               overwrite=force,
+                                               quiet=not verbose,
+                                               stdout=redir_fp,
+                                               stderr=redir_fp)
+        rc = p.wait()
+        if rc != 0:
+            raise RunException("Unable to rasterize {title}; v.to.rast returned {rc}".format(title=rast_title,
+                                                                                             rc=rc))
+
+        rule_file = tempfile.NamedTemporaryFile(delete=False)
+        rule_file_name = rule_file.name
+        rule_file.write("{value}:{label}\n".format(value=value, label=label))
+        rule_file.close()
+
+        p = self.grassLib.script.start_command('r.category',
+                                               map=output,
+                                               rules=rule_file_name)
+        rc = p.wait()
+        if rc != 0:
+            raise RunException("Unable to assign category to raster {rast}; r.category returned {rc}".format(rast=output,
+                                                                                                             rc=rc))
+        os.unlink(rule_file_name)
 
     def _rasterize(self, input, output, column, labelcolumn, rast_title,
                    verbose=False, force=False, redir_fp=None):
@@ -323,4 +426,43 @@ class GIConverter(GrassCommand):
         rc = p.wait()
         if rc != 0:
             raise RunException("Unable to import {vect} into GRASS; v.in.ogr returned {rc}".format(vect=vector_input,
-                                                                                                   rc=rc))
+                                                                                     rc=rc))
+
+    def _init_paramdb(self):
+        param_db_path = os.path.join(self.context.projectDir, self.metadata['paramdb'])
+        if not os.access(param_db_path, os.R_OK):
+            sys.exit("Unable to read RHESSys parameters database {0}".format(param_db_path))
+        param_db_path = os.path.abspath(param_db_path)
+
+        sys.path.append( os.path.join(self.context.projectDir, self.metadata['paramdb_dir']) )
+        params = importlib.import_module('rhessys.params')
+        param_const = importlib.import_module('rhessys.constants')
+        param_db = params.paramDB(filename=param_db_path)
+
+        return (param_const, param_db)
+
+    def _backup_raster(self, raster_name,
+                       verbose=False, force=False, output=None):
+        backup_name = "{0}_backup".format(raster_name)
+        arg = "{0},{1}".format(raster_name, backup_name)
+
+        if verbose:
+                self.outfp.write("\nBacking up raster {rast} to {backup}\n".format(rast=raster_name,
+                                                                                   backup_name=backup_name))
+        p = self.grassLib.script.start_command('g.copy',
+                                               rast=arg,
+                                               overwrite=True,
+                                               quiet=not verbose,
+                                               stdout=output,
+                                               stderr=output)
+        rc = p.wait()
+        if rc != 0:
+            raise RunException("Unable to backup {rast}; g.copy returned {rc}".format(vect=raster_name,
+                                                                                      rc=rc))
+
+    def _patch_raster(self, dest_raster, patch_raster,
+                      verbose=False, force=False, output=None):
+        # TODO: Update new raster with category values from patch raster and old raster
+        mapcalc_expr = '$dest=if(!isnull($patch), $patch, $dest)'
+        self.grassLib.script.raster.mapcalc(mapcalc_expr, dest=dest_raster, patch=patch_raster,
+                                            verbose=verbose)
