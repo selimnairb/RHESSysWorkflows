@@ -282,11 +282,15 @@ class GIConverter(GrassCommand):
             # Update landuse raster
             self._update_raster(self.grassMetadata['landuse_rast'], gi_scenario_landuse_data_key)
 
-            # TODO: Backup stratum raster
-            # TODO: Update stratum raster
+            # Backup stratum raster
+            self._backup_raster(self.grassMetadata['stratum_rast'])
+            # Update stratum raster
+            self._update_raster(self.grassMetadata['stratum_rast'], gi_scenario_strata)
 
-            # TODO: Backup soils raster
-            # TODO: Update soils raster
+            # Backup soils raster
+            self._backup_raster(self.grassMetadata['soil_rast'])
+            # Update soils raster
+            self._update_raster(self.grassMetadata['soil_rast'], gi_scenario_soils_data_key)
 
             # Write metadata
             RHESSysMetadata.writeGRASSEntry(self.context, "{0}_rast".format(gi_scenario_landuse_data_key),
