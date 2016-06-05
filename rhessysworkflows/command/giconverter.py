@@ -280,9 +280,9 @@ class GIConverter(GrassCommand):
             # Backup landuse raster
             self._backup_raster(self.grassMetadata['landuse_rast'])
             # Update landuse raster
-            self._patch_raster(self.grassMetadata['landuse_rast'], gi_scenario_landuse_data_key)
-            # TODO: update _patch_raster to:
-            # Update new landuse raster with category values from patch raster and old landuse raster
+            self._update_raster(self.grassMetadata['landuse_rast'], gi_scenario_landuse_data_key)
+            # TODO: update _update_raster to:
+            # Update new landuse raster with category values from updated raster and old landuse raster
 
             # Write metadata
             RHESSysMetadata.writeGRASSEntry(self.context, "{0}_rast".format(gi_scenario_landuse_data_key),
@@ -460,9 +460,10 @@ class GIConverter(GrassCommand):
             raise RunException("Unable to backup {rast}; g.copy returned {rc}".format(vect=raster_name,
                                                                                       rc=rc))
 
-    def _patch_raster(self, dest_raster, patch_raster,
+    def _update_raster(self, dest_raster, src_raster,
                       verbose=False, force=False, output=None):
-        # TODO: Update new raster with category values from patch raster and old raster
-        mapcalc_expr = '$dest=if(!isnull($patch), $patch, $dest)'
-        self.grassLib.script.raster.mapcalc(mapcalc_expr, dest=dest_raster, patch=patch_raster,
+        # TODO: Update new raster with category values from dest raster and src raster
+        mapcalc_expr = '$dest=if(!isnull($src), $src, $dest)'
+        self.grassLib.script.raster.mapcalc(mapcalc_expr, dest=dest_raster, src=src_raster,
                                             verbose=verbose)
+
