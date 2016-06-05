@@ -281,8 +281,6 @@ class GIConverter(GrassCommand):
             self._backup_raster(self.grassMetadata['landuse_rast'])
             # Update landuse raster
             self._update_raster(self.grassMetadata['landuse_rast'], gi_scenario_landuse_data_key)
-            # TODO: update _update_raster to:
-            # Update new landuse raster with category values from updated raster and old landuse raster
 
             # Write metadata
             RHESSysMetadata.writeGRASSEntry(self.context, "{0}_rast".format(gi_scenario_landuse_data_key),
@@ -457,13 +455,49 @@ class GIConverter(GrassCommand):
                                                stderr=output)
         rc = p.wait()
         if rc != 0:
-            raise RunException("Unable to backup {rast}; g.copy returned {rc}".format(vect=raster_name,
+            raise RunException("Unable to backup {rast}; g.copy returned {rc}".format(rast=raster_name,
                                                                                       rc=rc))
 
     def _update_raster(self, dest_raster, src_raster,
                       verbose=False, force=False, output=None):
-        # TODO: Update new raster with category values from dest raster and src raster
+        # Read category values of dest_ and src_raster
+        raster_vals_list = self._read_raster_categories((dest_raster, src_raster))
+        raster_vals = {}
+        for cat_vals in raster_vals_list:
+            for key in cat_vals:
+                raster_vals[key] = cat_vals[key]
         mapcalc_expr = '$dest=if(!isnull($src), $src, $dest)'
+        # import pdb; pdb.set_trace()
         self.grassLib.script.raster.mapcalc(mapcalc_expr, dest=dest_raster, src=src_raster,
                                             verbose=verbose)
+        self._update_raster_categories(dest_raster, raster_vals, verbose=verbose, output=output)
 
+    def _read_raster_categories(self, rasters,
+                                verbose=False, output=None):
+        raster_vals_list = []
+        for raster in rasters:
+            raster_vals = {}
+            raster_vals_list.append(raster_vals)
+            pipe = self.grassLib.script.pipe_command('r.stats', flags='licn', input=raster)
+            for line in pipe.stdout:
+                (dn, cat, num) = line.strip().split()
+                if cat != 'NULL':
+                    raster_vals[cat] = int(dn)
+            pipe.wait()
+        return raster_vals_list
+
+    def _update_raster_categories(self, raster_name, cat_dict,
+                                  verbose=False, output=None):
+        rules_str = '\n'.join(["{cat}:{label}".format(cat=cat_dict[k], label=k) for k in cat_dict])
+        rules_str += '\n'
+        rule_file = tempfile.NamedTemporaryFile(delete=False)
+        rule_file_name = rule_file.name
+        rule_file.write(rules_str)
+        rule_file.close()
+        p = self.grassLib.script.start_command('r.category', map=raster_name, rules=rule_file_name,
+                                               verbose=verbose)
+        rc = p.wait()
+        os.unlink(rule_file_name)
+        if rc != 0:
+            raise RunException("Unable to update categories for raster {rast}; r.category returned {rc}".format(rast=raster_name,
+                                                                                                                rc=rc))
