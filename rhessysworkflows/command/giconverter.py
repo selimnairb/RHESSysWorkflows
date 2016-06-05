@@ -62,6 +62,8 @@ class GIConverter(GrassCommand):
 
         """
         super(GIConverter, self).__init__(projectDir, configFile, outfp)
+        self.param_const = self.param_db = None
+        self.paths = None
 
     def checkMetadata(self, *args, **kwargs):
         """ Check to make sure the project directory has the necessary metadata to run this command.
@@ -145,8 +147,8 @@ class GIConverter(GrassCommand):
         verbose = kwargs.get('verbose', False)
 
         self.checkMetadata()
-
-        paths = RHESSysPaths(self.context.projectDir, self.metadata['rhessys_dir'])
+        self.param_const, self.param_db = self._init_paramdb()
+        self.paths = RHESSysPaths(self.context.projectDir, self.metadata['rhessys_dir'])
 
         gi_scenario_base = 'gi_scenario'
         gi_scenario_data = "{0}.geojson".format(gi_scenario_base)
@@ -210,7 +212,6 @@ class GIConverter(GrassCommand):
 
             # Generate raster layers from vector-based GI Scenario
             # Raster for updating soil type
-            # gi_scenario_soils = "gi_scenario_soils"
             self._rasterize(gi_scenario_soils_data_key, gi_scenario_soils_data_key,
                             column='e_1_pedid', labelcolumn='e_1_pednm',
                             rast_title='GI soil types',
@@ -241,14 +242,13 @@ class GIConverter(GrassCommand):
                                            force=force, verbose=verbose, output=output)
 
             # Search for raster value for rain gardens in RHESSys parameter DB
-            param_const, param_db = self._init_paramdb()
             rg_name = 'raingarden'
-            rg_found = param_db.search(param_const.SEARCH_TYPE_HIERARCHICAL, 'landuse', rg_name,
-                                       None, None, None, None, None, None, None, None)
+            rg_found = self.param_db.search(self.param_const.SEARCH_TYPE_HIERARCHICAL, 'landuse', rg_name,
+                                            None, None, None, None, None, None, None, None)
             if not rg_found:
                 raise RunException("Unable to find raingarden landuse class in parameter database")
 
-            rg_id = [c[1][2] for c in param_db.classes.iteritems()][0]
+            rg_id = [c[1][2] for c in self.param_db.classes.iteritems()][0]
 
             # Generate raster layer from vector-based GI Scenario
             # Raster for updating landuse type
@@ -259,39 +259,28 @@ class GIConverter(GrassCommand):
                                          force=force,
                                          redir_fp=output)
 
-            # Generate parameter definition file for land use types
-            pipe = self.grassLib.script.pipe_command('r.stats', flags='licn', input=gi_scenario_landuse_data_key)
-            raster_vals = {}
-            for line in pipe.stdout:
-                (dn, cat, num) = line.strip().split()
-                if cat != 'NULL':
-                    raster_vals[cat] = int(dn)
-            pipe.wait()
-            if verbose:
-                self.outfp.write("Writing GI landuse definition files to {0}".format(paths.RHESSYS_DEF))
-            for key in raster_vals.keys():
-                if verbose:
-                    self.outfp.write("landuse '{lu}' has dn {dn}".format(lu=key, dn=raster_vals[key]))
-                params_found = param_db.search(param_const.SEARCH_TYPE_HIERARCHICAL, None, key, None, None, None, None, None, None, None, None,
-                                              defaultIdOverride=raster_vals[key])
-                assert(params_found)
-                param_db.writeParamFileForClass(paths.RHESSYS_DEF)
-
+            # Write out updated landuse, stratum, and soil rasters and parameter definitions
             # Backup landuse raster
             self._backup_raster(self.grassMetadata['landuse_rast'])
             # Update landuse raster
             self._update_raster(self.grassMetadata['landuse_rast'], gi_scenario_landuse_data_key)
-
+            # Generate parameter definition file for landuse raster
+            self._generate_parameter_definitions_for_raster(self.grassMetadata['landuse_rast'], 'landuse',
+                                                            verbose=verbose)
             # Backup stratum raster
             self._backup_raster(self.grassMetadata['stratum_rast'])
             # Update stratum raster
             self._update_raster(self.grassMetadata['stratum_rast'], gi_scenario_strata)
-
+            # Generate parameter definition file for stratum raster
+            self._generate_parameter_definitions_for_raster(self.grassMetadata['stratum_rast'], 'stratum',
+                                                            verbose=verbose)
             # Backup soils raster
             self._backup_raster(self.grassMetadata['soil_rast'])
             # Update soils raster
             self._update_raster(self.grassMetadata['soil_rast'], gi_scenario_soils_data_key)
-
+            # Generate parameter definition file for soil raster
+            self._generate_parameter_definitions_for_raster(self.grassMetadata['soil_rast'], 'soil',
+                                                            verbose=verbose)
             # Write metadata
             RHESSysMetadata.writeGRASSEntry(self.context, "{0}_rast".format(gi_scenario_landuse_data_key),
                                             gi_scenario_landuse_data_key)
@@ -511,3 +500,25 @@ class GIConverter(GrassCommand):
         if rc != 0:
             raise RunException("Unable to update categories for raster {rast}; r.category returned {rc}".format(rast=raster_name,
                                                                                                                 rc=rc))
+
+    def _generate_parameter_definitions_for_raster(self, raster_name, raster_type_name,
+                                                   verbose=False):
+        pipe = self.grassLib.script.pipe_command('r.stats', flags='licn', input=raster_name)
+        raster_vals = {}
+        for line in pipe.stdout:
+            (dn, cat, num) = line.strip().split()
+            if cat != 'NULL':
+                raster_vals[cat] = int(dn)
+        pipe.wait()
+        if verbose:
+            self.outfp.write("Writing GI {0} definition files to {1}".format(raster_type_name,
+                                                                             self.paths.RHESSYS_DEF))
+        for key in raster_vals.keys():
+            if verbose:
+                self.outfp.write("\n{rast_type} '{cat}' has dn {dn}".format(rast_type=raster_type_name,
+                                                                            cat=key, dn=raster_vals[key]))
+            params_found = self.param_db.search(self.param_const.SEARCH_TYPE_HIERARCHICAL, None, key, None, None, None,
+                                                None, None, None, None, None,
+                                                defaultIdOverride=raster_vals[key])
+            assert(params_found)
+            self.param_db.writeParamFileForClass(self.paths.RHESSYS_DEF)
