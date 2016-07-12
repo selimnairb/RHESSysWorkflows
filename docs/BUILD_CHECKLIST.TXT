@@ -1,5 +1,5 @@
 1. Edit setup.py:
-	- Change version number to match that in rhessysworkflows/__init__.py
+	- Change version number to that of the next release
 	- Make sure packages list is up to date
 	- Make sure install_requires is up to date
 	- Make sure scripts is up to date
