@@ -15,6 +15,9 @@
 .project
 .pydevproject
 
+# PyCharm metadata
+.idea
+
 # OS files
 .DS_Store
 

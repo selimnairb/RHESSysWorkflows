@@ -5,7 +5,7 @@ def readme():
         return f.read()
 
 setup(name='rhessysworkflows',
-      version='1.33',
+      version='1.34',
       description='Libraries and command-line scripts for performing RHESSys data preparation workflows.',
       long_description=readme(),
       classifiers=[
@@ -32,7 +32,8 @@ setup(name='rhessysworkflows',
         'pandas',
         'scipy',
         'patsy',
-        'statsmodels'
+        'statsmodels',
+        'requests'
       ],
       scripts=['bin/CreateFlowtable.py',
                'bin/CreateFlowtableMultiple.py',
@@ -46,6 +47,7 @@ setup(name='rhessysworkflows',
                'bin/GeneratePatchMap.py',
                'bin/GenerateSoilTextureMap.py',
                'bin/GenerateWorldTemplate.py',
+               'bin/GIConverter.py',
                'bin/ImportClimateData.py',
                'bin/ImportRasterMapIntoGRASS.py',
                'bin/ImportRHESSysSource.py',

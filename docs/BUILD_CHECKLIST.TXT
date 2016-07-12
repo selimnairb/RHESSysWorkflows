@@ -1,5 +1,5 @@
 1. Edit setup.py:
-	- Change version number to match that in rhessysworkflows/__init__.py
+	- Change version number to that of the next release
 	- Make sure packages list is up to date
 	- Make sure install_requires is up to date
 	- Make sure scripts is up to date
@@ -7,9 +7,10 @@
 	  MANIFEST.in)
 	
 2. Change version number in rhessysworkflows/__init__.py to match setup.py if changes will break
-   compatibility to previous versions' metadata
+   compatibility to previous versions' metadata (you almost never want to do this as it
+   will break compatibility with projects developed with older versions of RHESSysWorkflows.)
 
-3. Update PROJECT_NUMBER in Doxyfile matches version in above.
+3. Update PROJECT_NUMBER in Doxyfile matches version in setup.py.
 	
 4. Remove old documentation: rm -rf docs/html
 
