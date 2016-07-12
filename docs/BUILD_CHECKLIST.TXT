@@ -19,18 +19,22 @@
 
 6. Generate zip of new documentation: cd docs/html && zip -r ~/Desktop/rhessyworkflowodocs.zip * && cd -
 
-7. Commit release files to git: git commit -a
+7. Update release notes with features included in this version
 
-8. Push to develop: git push origin develop
+8. Commit release files to git: git commit -a
 
-9. Merge develop into master: git checkout master; git merge develop
+9. Push to develop: git push origin develop
 
-10. Tag release in git: git tag -a 1.XY -m 'DESCRIPTION OF RELEASE'
+10. Merge develop into master: git checkout master; git merge develop
 
-11. Push to master git repository: git push -u origin master --tags
+11. Tag release in git: git tag -a 1.XY -m 'DESCRIPTION OF RELEASE'
 
-12. Publish package to PyPi: python setup.py register sdist upload
+12. Push to master git repository: git push -u origin master --tags
 
-13. Check on PyPi to make sure the new version is the only non-hidden version
+13. Publish package to PyPi: python setup.py register sdist upload
 
-14. Upload new documentation to PyPi using web form
+14. Check on PyPi to make sure the new version is the only non-hidden version
+
+15. Upload new documentation to PyPi using web form
+
+16. Update versions in setup.py and Doxyfile to ".devN", e.g. "1.35.dev1"
