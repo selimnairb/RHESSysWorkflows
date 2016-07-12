@@ -7,7 +7,8 @@
 	  MANIFEST.in)
 	
 2. Change version number in rhessysworkflows/__init__.py to match setup.py if changes will break
-   compatibility to previous versions' metadata
+   compatibility to previous versions' metadata (you almost never want to do this as it
+   will break compatibility with projects developed with older versions of RHESSysWorkflows.)
 
 3. Update PROJECT_NUMBER in Doxyfile matches version in above.
 	
