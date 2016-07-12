@@ -10,7 +10,7 @@
    compatibility to previous versions' metadata (you almost never want to do this as it
    will break compatibility with projects developed with older versions of RHESSysWorkflows.)
 
-3. Update PROJECT_NUMBER in Doxyfile matches version in above.
+3. Update PROJECT_NUMBER in Doxyfile matches version in setup.py.
 	
 4. Remove old documentation: rm -rf docs/html
 
