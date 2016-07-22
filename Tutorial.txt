@@ -1,0 +1,81 @@
+Summary of Brian's Tutorial
+
+mkdir standard
+
+GetNHDStreamflowGageIdentifiersAndLocation.py -p standard -g 01589312
+GetCatchmentShapefileForNHDStreamflowGage.py -p standard
+GetBoundingboxFromStudyareaShapefile.py -p standard
+GetUSGSDEMForBoundingbox.py -p standard
+GetUSGSNLCDForDEMExtent.py -p standard
+GetSSURGOFeaturesForBoundingbox.py -p standard
+GenerateSoilPropertyRastersFromSSURGO.py -p standard
+
+--Download LAI
+***************************************
+OPPORTUNITY
+***************************************
+
+RegisterRaster.py -p standard -t lai -r /path/to/static_lai-01589312.tif -b "Brian Miles <brian_miles@unc.edu>" --force
+
+RegisterRaster.py -p standard -t lai -r /projects/start_from_scratch/01589312/static_lai-01589312.tif -b "Brian Miles <brian_miles@unc.edu>" --force
+
+
+CreateGRASSLocationFromDEM.py -p standard -d "RHESSys model for Dead Run 5 watershed near Catonsville, MD"
+ImportRHESSysSource.py -p standard
+
+USED THIS
+ImportRHESSysSource.py -p standard -s /projects/rhessys
+
+
+--Download Climate data
+ImportClimateData.py -p standard -s /path/to/clim
+USED THIS
+ImportClimateData.py -p standard -s /projects/start_from_scratch/01589312/clim
+
+
+--Station data
+GenerateBaseStationMap.py -p standard -b /path/to/dummy_stations1.txt
+USED THIS
+GenerateBaseStationMap.py -p standard -b /projects/start_from_scratch/01589312/dummy_stations1.txt
+
+***************************************
+ERROR: Found 1 points/centroids in <basestation_points@PERMANENT>, but at
+       least 2 are needed
+
+v.voronoi failed, returning 1
+***************************************
+
+
+DelineateWatershed.py -p standard -t 500 -a 1.5
+
+
+GeneratePatchMap.py -p standard -t grid
+or
+GeneratePatchMap.py -p standard -t clump -c elevation
+or
+GeneratePatchMap.py -p standard -t clump -c wetness_index
+
+
+GenerateSoilTextureMap.py -p standard
+ImportRasterMapIntoGRASS.py -p standard -t lai -m nearest
+ImportRasterMapIntoGRASS.py -p standard -t landcover -m nearest
+
+RegisterLandcoverReclassRules.py -p standard -k
+GenerateLandcoverMaps.py -p standard
+
+GenerateWorldTemplate.py -p standard -c bwi
+CreateWorldfile.py -p standard -v
+CreateFlowtable.py -p standard --routeRoads
+RunLAIRead.py -p standard -v
+
+RunCmd.py -p standard echo "2008 10 1 1 print_daily_on" > standard/rhessys/tecfiles/tec_daily.txt
+
+
+******************************************
+
+Download Observed
+
+RHESSysPlot.py --plottype standard -o PATH_TO_OBSERVED -d PATH_TO_SIMULATION/rhessys_basin.daily -c streamflow --secondaryData PATH_TO_SIMULATION/rhessys_basin.daily --secondaryColumn precip --secondaryLabel "Rainfall (mm/day)" -t "DR5 streamflow" -l "Test simulation" -f test_plot --figureX 8 --figureY 3 -y "Streamflow (mm/day)" --color magenta
+
+/projects/start_from_scratch/01589312/standard/rhessys/output/test
+RHESSysPlot.py --plottype standard -o /projects/start_from_scratch/01589312/DR5_discharge_WY2008-2012.txt -d /projects/start_from_scratch/01589312/standard/rhessys/output/test/rhessys_basin.daily -c streamflow --secondaryData /projects/start_from_scratch/01589312/standard/rhessys/output/test/rhessys_basin.daily --secondaryColumn precip --secondaryLabel "Rainfall (mm/day)" -t "DR5 streamflow" -l "Test simulation" -f test_plot --figureX 8 --figureY 3 -y "Streamflow (mm/day)" --color magenta
