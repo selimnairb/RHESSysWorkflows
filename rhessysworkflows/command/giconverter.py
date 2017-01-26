@@ -517,8 +517,12 @@ class GIConverter(GrassCommand):
             if verbose:
                 self.outfp.write("\n{rast_type} '{cat}' has dn {dn}".format(rast_type=raster_type_name,
                                                                             cat=key, dn=raster_vals[key]))
-            params_found = self.param_db.search(self.param_const.SEARCH_TYPE_HIERARCHICAL, None, key, None, None, None,
+            #Problem found with soil hierarchy      
+            #params_found = self.param_db.search(self.param_const.SEARCH_TYPE_HIERARCHICAL, None, key, None, None, None,
+            #                                    None, None, None, None, None,
+            #                                    defaultIdOverride=raster_vals[key])
+            params_found = self.param_db.search(self.param_const.SEARCH_TYPE_CONSTRAINED, None, key, None, None, None,
                                                 None, None, None, None, None,
-                                                defaultIdOverride=raster_vals[key])
+                                                defaultIdOverride=raster_vals[key])            
             assert(params_found)
             self.param_db.writeParamFileForClass(self.paths.RHESSYS_DEF)
